@@ -1,0 +1,27 @@
+import { Navbar } from '@/components/landing/Navbar';
+import { Hero } from '@/components/landing/Hero';
+import { About } from '@/components/landing/About';
+import { Features } from '@/components/landing/Features';
+import { UseCases } from '@/components/landing/UseCases';
+import { FAQ } from '@/components/landing/FAQ';
+import { Contact } from '@/components/landing/Contact';
+import { Footer } from '@/components/landing/Footer';
+
+const Landing = () => {
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <main>
+        <Hero />
+        <About />
+        <Features />
+        <UseCases />
+        <FAQ />
+        <Contact />
+      </main>
+      <Footer />
+    </div>
+  );
+};
+
+export default Landing;
