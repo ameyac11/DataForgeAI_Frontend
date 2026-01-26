@@ -45,7 +45,7 @@ export function LoadingScreen({ onComplete, minDuration = 2000 }: LoadingScreenP
         className="mb-8"
       >
         <div className="p-6 rounded-2xl bg-card/50 border border-border">
-          <ThemeLogo size="xl" />
+          <ThemeLogo size="xl" forceTheme="dark" />
         </div>
       </motion.div>
 

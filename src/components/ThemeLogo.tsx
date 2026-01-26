@@ -3,7 +3,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 
 interface ThemeLogoProps {
   className?: string;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | 'custom';
+  forceTheme?: 'light' | 'dark';
 }
 
 const sizeClasses = {
@@ -11,14 +12,16 @@ const sizeClasses = {
   md: 'w-10 h-10',
   lg: 'w-14 h-14',
   xl: 'w-20 h-20',
+  custom: '',
 };
 
-export function ThemeLogo({ className = '', size = 'md' }: ThemeLogoProps) {
-  const { theme } = useTheme();
+export function ThemeLogo({ className = '', size = 'md', forceTheme }: ThemeLogoProps) {
+  const { theme: globalTheme } = useTheme();
+  const activeTheme = forceTheme || globalTheme;
 
   return (
     <img
-      src={theme === 'dark' ? '/DataNesTX_Logo_Dark_Frontend.png' : '/DataNesTX_Logo_Light_Frontend.png'}
+      src={activeTheme === 'dark' ? '/DataNesTX_Logo_Light_Frontend.png' : '/DataNesTX_Logo_Dark_Frontend.png'}
       alt="DataForgeAI Logo"
       className={`${sizeClasses[size]} ${className}`}
     />

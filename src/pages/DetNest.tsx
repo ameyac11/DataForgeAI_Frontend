@@ -27,32 +27,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
+import { useChat, DataFormat, DataMode, Model, Attachment, Message } from '@/contexts/ChatContext';
 import { tryExamples } from '@/data/mockData';
 import { cn } from '@/lib/utils';
 import { showErrorToast } from '@/components/ui/error-toast';
-
-type DataFormat = 'CSV' | 'JSON' | 'SQL' | 'Parquet';
-type DataMode = 'Synthetic' | 'Hybrid' | 'Realistic';
-type Model = 'Best' | 'GPT-4.1' | 'GPT-4o';
-
-interface Attachment {
-  id: string;
-  name: string;
-  type: string;
-  status: 'uploading' | 'ready' | 'error';
-  file?: File;
-  preview?: string;
-}
-
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  attachments?: Attachment[];
-  showDownload?: boolean;
-}
-
-type LoadingPhase = 'thinking' | 'analyzing' | 'generating' | null;
 
 const formatColors: Record<DataFormat, string> = {
   CSV: 'text-green-500',
@@ -63,10 +41,14 @@ const formatColors: Record<DataFormat, string> = {
 
 const DetNest = () => {
   const { isAnonymous } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const {
+    messages,
+    isLoading,
+    loadingPhase,
+    sendMessage
+  } = useChat();
+
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadingPhase, setLoadingPhase] = useState<LoadingPhase>(null);
   const [dataFormat, setDataFormat] = useState<DataFormat>('CSV');
   const [dataMode, setDataMode] = useState<DataMode>('Synthetic');
   const [model, setModel] = useState<Model>('Best');
@@ -89,41 +71,41 @@ const DetNest = () => {
 
   const handleFileUpload = (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    
+
     Array.from(files).forEach((file) => {
       const isImage = file.type.startsWith('image/');
       const newAttachment: Attachment = {
         id: Date.now().toString() + Math.random().toString(36).slice(2),
         name: file.name,
-        type: isImage ? 'IMG' : 
-              file.type.includes('pdf') ? 'PDF' : 
-              file.type.includes('doc') ? 'DOCX' : 
+        type: isImage ? 'IMG' :
+          file.type.includes('pdf') ? 'PDF' :
+            file.type.includes('doc') ? 'DOCX' :
               file.type.includes('sheet') || file.type.includes('csv') ? 'CSV' : 'FILE',
         status: 'uploading',
         file,
       };
-      
+
       // Create preview for images
       if (isImage) {
         const reader = new FileReader();
         reader.onload = (e) => {
-          setAttachments(prev => 
+          setAttachments(prev =>
             prev.map(a => a.id === newAttachment.id ? { ...a, preview: e.target?.result as string } : a)
           );
         };
         reader.readAsDataURL(file);
       }
-      
+
       setAttachments(prev => [...prev, newAttachment]);
-      
+
       // Simulate upload completion
       setTimeout(() => {
-        setAttachments(prev => 
+        setAttachments(prev =>
           prev.map(a => a.id === newAttachment.id ? { ...a, status: 'ready' } : a)
         );
       }, 1000 + Math.random() * 1000);
     });
-    
+
     // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -138,41 +120,17 @@ const DetNest = () => {
   const handleSubmit = async () => {
     if ((!input.trim() && attachments.length === 0) || isLoading) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: input,
-      attachments: attachments.length > 0 ? [...attachments] : undefined,
-    };
+    const currentInput = input;
+    const currentAttachments = [...attachments];
 
-    setMessages(prev => [...prev, userMessage]);
+    // Clear local state immediately
     setInput('');
     setAttachments([]);
-    setIsLoading(true);
 
-    // Simulate loading phases
-    setLoadingPhase('thinking');
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setLoadingPhase('analyzing');
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setLoadingPhase('generating');
-    await new Promise(resolve => setTimeout(resolve, 1200));
-
-    // Check if user asked for download
-    const wantsDownload = input.toLowerCase().includes('download') || 
-                          input.toLowerCase().includes('file') ||
-                          input.toLowerCase().includes('export');
-
-    const aiMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: 'assistant',
-      content: `I've generated a ${dataMode.toLowerCase()} dataset based on your request. The ${dataFormat} file contains 1,000 rows with the specifications you mentioned.${wantsDownload ? '\n\nYour dataset is ready for download.' : ''}`,
-      showDownload: true, // Always show for demo
-    };
-
-    setMessages(prev => [...prev, aiMessage]);
-    setIsLoading(false);
-    setLoadingPhase(null);
+    await sendMessage(currentInput, currentAttachments, {
+      dataFormat,
+      dataMode
+    });
   };
 
   const handleExampleClick = (example: string) => {
@@ -222,8 +180,8 @@ const DetNest = () => {
   };
 
   // Attachment Preview Component
-  const AttachmentPreview = ({ attachment, onRemove, compact = false }: { 
-    attachment: Attachment; 
+  const AttachmentPreview = ({ attachment, onRemove, compact = false }: {
+    attachment: Attachment;
     onRemove?: () => void;
     compact?: boolean;
   }) => (
@@ -287,193 +245,193 @@ const DetNest = () => {
     };
 
     return (
-    <div className={cn("w-full", className)}>
-      {/* Attachment previews above search bar - ChatGPT style */}
-      {attachments.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-3 px-1">
-          {attachments.map((attachment) => (
-            <AttachmentPreview 
-              key={attachment.id} 
-              attachment={attachment} 
-              onRemove={() => removeAttachment(attachment.id)} 
-            />
-          ))}
-        </div>
-      )}
+      <div className={cn("w-full", className)}>
+        {/* Attachment previews above search bar - ChatGPT style */}
+        {attachments.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-3 px-1">
+            {attachments.map((attachment) => (
+              <AttachmentPreview
+                key={attachment.id}
+                attachment={attachment}
+                onRemove={() => removeAttachment(attachment.id)}
+              />
+            ))}
+          </div>
+        )}
 
-      {/* Main Search Bar - Compact when at bottom */}
-      <div className="bg-card border border-border rounded-xl">
-        <div className={cn(
-          "flex items-start gap-2",
-          compact ? "p-2.5" : "p-4"
-        )}>
-          {/* Plus button - opens menu upward */}
-          {/* Direct file upload button */}
-          <button 
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className={cn(
-              "p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors shrink-0",
-              compact ? "mt-0" : "mt-0.5"
-            )}
-          >
-            <Plus className="w-5 h-5" />
-          </button>
-
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={(e) => {
-              handleFileUpload(e.target.files);
-            }}
-            className="hidden"
-            multiple
-            accept="image/*,.pdf,.doc,.docx,.csv,.xlsx,.xls,.txt"
-          />
-
-          {/* Text Input - Using local state to prevent re-render issues */}
-          <input
-            ref={inputRef}
-            type="text"
-            value={localInput}
-            onChange={handleLocalChange}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask anything..."
-            className={cn(
-              "flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground text-sm",
-              compact ? "py-0.5" : "py-1.5"
-            )}
-          />
-        </div>
-
-        {/* Controls Row */}
-        <div className={cn(
-          "flex items-center justify-between",
-          compact ? "px-2.5 pb-2.5" : "px-4 pb-4"
-        )}>
-          {/* Left side - Data Type Selector */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-7 px-2.5 gap-1.5 rounded-lg text-muted-foreground hover:text-foreground"
-              >
-                <FormatIcon className={cn("w-4 h-4", formatColors[dataFormat])} />
-                <span className="text-xs font-medium">{dataFormat}</span>
-                <ChevronDown className="w-3 h-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-40">
-              {(['CSV', 'JSON', 'SQL', 'Parquet'] as DataFormat[]).map((format) => {
-                const Icon = formatIcons[format];
-                return (
-                  <DropdownMenuItem
-                    key={format}
-                    onClick={() => setDataFormat(format)}
-                    className="gap-3"
-                  >
-                    <Icon className={cn("w-4 h-4", formatColors[format])} />
-                    <span>{format}</span>
-                  </DropdownMenuItem>
-                );
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Right side - Controls + Send */}
-          <div className="flex items-center gap-1.5">
-            {/* Model Selector - Icon only with Best option */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className={cn(
-                    "h-7 w-7 p-0 rounded-lg",
-                    model === 'Best' 
-                      ? "text-purple-500 bg-purple-500/10" 
-                      : "text-blue-400/60 hover:text-foreground"
-                  )}
-                >
-                  <Cpu className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-36">
-                <DropdownMenuItem onClick={() => setModel('Best')}>
-                  <span className={cn(model === 'Best' && 'text-purple-500 font-medium')}>Best Model</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => !isAnonymous && setModel('GPT-4.1')}
-                  disabled={isAnonymous}
-                  className="gap-2"
-                >
-                  {isAnonymous && <Lock className="w-3.5 h-3.5" />}
-                  <span>GPT-4.1</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setModel('GPT-4o')}>
-                  <span>GPT-4o</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Data Source - Icon only */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-7 w-7 p-0 rounded-lg text-muted-foreground hover:text-foreground"
-                >
-                  <Database className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-32">
-                {(['Synthetic', 'Hybrid', 'Realistic'] as DataMode[]).map((mode) => (
-                  <DropdownMenuItem
-                    key={mode}
-                    onClick={() => setDataMode(mode)}
-                  >
-                    {mode}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Web Search - Shows "Web" text when enabled */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setWebSearchEnabled(!webSearchEnabled)}
+        {/* Main Search Bar - Compact when at bottom */}
+        <div className="bg-card border border-border rounded-xl">
+          <div className={cn(
+            "flex items-start gap-2",
+            compact ? "p-2.5" : "p-4"
+          )}>
+            {/* Plus button - opens menu upward */}
+            {/* Direct file upload button */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
               className={cn(
-                "h-7 px-2 gap-1 rounded-lg",
-                webSearchEnabled 
-                  ? "text-primary bg-primary/10" 
-                  : "text-muted-foreground hover:text-foreground"
+                "p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors shrink-0",
+                compact ? "mt-0" : "mt-0.5"
               )}
             >
-              <Globe className="w-4 h-4" />
-              {webSearchEnabled && <span className="text-xs">Web</span>}
-            </Button>
+              <Plus className="w-5 h-5" />
+            </button>
 
-            {/* Send Button */}
-            <Button
-              onClick={() => {
-                setInput(localInput);
-                setTimeout(() => handleSubmit(), 0);
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={(e) => {
+                handleFileUpload(e.target.files);
               }}
-              disabled={(!localInput.trim() && attachments.length === 0) || isLoading}
-              size="sm"
-              className="h-7 w-7 p-0 rounded-full bg-primary hover:bg-primary/90 ml-1"
-            >
-              <ArrowUp className="w-4 h-4" />
-            </Button>
+              className="hidden"
+              multiple
+              accept="image/*,.pdf,.doc,.docx,.csv,.xlsx,.xls,.txt"
+            />
+
+            {/* Text Input - Using local state to prevent re-render issues */}
+            <input
+              ref={inputRef}
+              type="text"
+              value={localInput}
+              onChange={handleLocalChange}
+              onBlur={handleBlur}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask anything..."
+              className={cn(
+                "flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground text-sm",
+                compact ? "py-0.5" : "py-1.5"
+              )}
+            />
+          </div>
+
+          {/* Controls Row */}
+          <div className={cn(
+            "flex items-center justify-between",
+            compact ? "px-2.5 pb-2.5" : "px-4 pb-4"
+          )}>
+            {/* Left side - Data Type Selector */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2.5 gap-1.5 rounded-lg text-muted-foreground hover:text-foreground"
+                >
+                  <FormatIcon className={cn("w-4 h-4", formatColors[dataFormat])} />
+                  <span className="text-xs font-medium">{dataFormat}</span>
+                  <ChevronDown className="w-3 h-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-40">
+                {(['CSV', 'JSON', 'SQL', 'Parquet'] as DataFormat[]).map((format) => {
+                  const Icon = formatIcons[format];
+                  return (
+                    <DropdownMenuItem
+                      key={format}
+                      onClick={() => setDataFormat(format)}
+                      className="gap-3"
+                    >
+                      <Icon className={cn("w-4 h-4", formatColors[format])} />
+                      <span>{format}</span>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Right side - Controls + Send */}
+            <div className="flex items-center gap-1.5">
+              {/* Model Selector - Icon only with Best option */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "h-7 w-7 p-0 rounded-lg",
+                      model === 'Best'
+                        ? "text-purple-500 bg-purple-500/10"
+                        : "text-blue-400/60 hover:text-foreground"
+                    )}
+                  >
+                    <Cpu className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-36">
+                  <DropdownMenuItem onClick={() => setModel('Best')}>
+                    <span className={cn(model === 'Best' && 'text-purple-500 font-medium')}>Best Model</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => !isAnonymous && setModel('GPT-4.1')}
+                    disabled={isAnonymous}
+                    className="gap-2"
+                  >
+                    {isAnonymous && <Lock className="w-3.5 h-3.5" />}
+                    <span>GPT-4.1</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setModel('GPT-4o')}>
+                    <span>GPT-4o</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Data Source - Icon only */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 rounded-lg text-muted-foreground hover:text-foreground"
+                  >
+                    <Database className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-32">
+                  {(['Synthetic', 'Hybrid', 'Realistic'] as DataMode[]).map((mode) => (
+                    <DropdownMenuItem
+                      key={mode}
+                      onClick={() => setDataMode(mode)}
+                    >
+                      {mode}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Web Search - Shows "Web" text when enabled */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setWebSearchEnabled(!webSearchEnabled)}
+                className={cn(
+                  "h-7 px-2 gap-1 rounded-lg",
+                  webSearchEnabled
+                    ? "text-primary bg-primary/10"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Globe className="w-4 h-4" />
+                {webSearchEnabled && <span className="text-xs">Web</span>}
+              </Button>
+
+              {/* Send Button */}
+              <Button
+                onClick={() => {
+                  setInput(localInput);
+                  setTimeout(() => handleSubmit(), 0);
+                }}
+                disabled={(!localInput.trim() && attachments.length === 0) || isLoading}
+                size="sm"
+                className="h-7 w-7 p-0 rounded-full bg-primary hover:bg-primary/90 ml-1"
+              >
+                <ArrowUp className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
   };
 
   return (
@@ -497,20 +455,23 @@ const DetNest = () => {
             </div>
 
             {/* Try Examples */}
-            <div className="w-full max-w-2xl">
-              <div className="flex items-center gap-3 flex-wrap justify-center">
-                <span className="text-xs text-muted-foreground">Try:</span>
-                {tryExamples.slice(0, 4).map((example, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleExampleClick(example)}
-                    className="px-3 py-1.5 text-xs text-muted-foreground rounded-full border border-border hover:border-primary/40 hover:text-foreground transition-colors"
-                  >
-                    {example.length > 30 ? example.slice(0, 30) + '...' : example}
-                  </button>
-                ))}
+            {!input && (
+              <div className="w-full max-w-2xl px-1">
+                <div className="grid grid-cols-2 gap-3 w-full">
+                  {tryExamples.slice(0, 4).map((example, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleExampleClick(example)}
+                      className="group flex items-center gap-3 p-3 text-left rounded-xl bg-muted/20 border border-transparent hover:bg-muted/40 hover:border-primary/20 transition-all duration-300"
+                    >
+                      <span className="text-xs text-muted-foreground/80 group-hover:text-foreground transition-colors line-clamp-2 leading-relaxed px-1">
+                        {example}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         ) : (
           <div className="max-w-3xl mx-auto px-4 py-8">
@@ -541,7 +502,7 @@ const DetNest = () => {
                         <p className="text-sm text-foreground leading-relaxed">
                           {message.content}
                         </p>
-                        
+
                         {/* Download button - always visible for demo */}
                         {message.showDownload && (
                           <Button
@@ -589,7 +550,7 @@ const DetNest = () => {
 
       {/* Bottom Input Bar - Only when there are messages */}
       {hasMessages && (
-        <div className="border-t border-border bg-background/80 backdrop-blur-sm">
+        <div className="bg-background/80 backdrop-blur-sm">
           <div className="max-w-3xl mx-auto px-4 py-3">
             <InputBar compact />
           </div>

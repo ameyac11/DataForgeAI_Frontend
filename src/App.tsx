@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ChatProvider } from "@/contexts/ChatContext";
 import { ErrorToastContainer } from "@/components/ui/error-toast";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
@@ -26,29 +27,31 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <ErrorToastContainer />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/privacy" element={<PrivacyPolicy />} />
-              <Route path="/terms" element={<TermsOfService />} />
-              <Route path="/getting-started" element={<GettingStarted />} />
-              <Route path="/onboarding" element={<Onboarding />} />
-              <Route path="/app" element={<Dashboard />}>
-                <Route index element={<DetNest />} />
-                <Route path="generator" element={<CustomGenerator />} />
-                <Route path="samples" element={<SampleDatasets />} />
-                <Route path="history" element={<HistoryPage />} />
-                <Route path="settings" element={<SettingsPage />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+        <ChatProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <ErrorToastContainer />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Landing />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/getting-started" element={<GettingStarted />} />
+                <Route path="/onboarding" element={<Onboarding />} />
+                <Route path="/app" element={<Dashboard />}>
+                  <Route index element={<DetNest />} />
+                  <Route path="generator" element={<CustomGenerator />} />
+                  <Route path="samples" element={<SampleDatasets />} />
+                  <Route path="history" element={<HistoryPage />} />
+                  <Route path="settings" element={<SettingsPage />} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </ChatProvider>
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>

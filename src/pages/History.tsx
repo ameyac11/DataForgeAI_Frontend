@@ -9,7 +9,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { recentChats } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
+import { useChat } from '@/contexts/ChatContext';
 import { cn } from '@/lib/utils';
 
 interface ChatItem {
@@ -21,8 +22,17 @@ interface ChatItem {
 
 const HistoryPage = () => {
   const navigate = useNavigate();
+  const { isAnonymous } = useAuth();
+  const { chats: contextChats } = useChat();
   const [search, setSearch] = useState('');
-  const [chats, setChats] = useState<ChatItem[]>(recentChats.map(c => ({ ...c, pinned: c.starred })));
+  const [chats, setChats] = useState<ChatItem[]>(
+    contextChats.map(c => ({
+      id: c.id,
+      name: c.name,
+      timestamp: c.date ? new Date(c.date) : new Date(),
+      pinned: c.pinned || false
+    }))
+  );
   const [filter, setFilter] = useState<'all' | 'pinned'>('all');
   const [sortBy, setSortBy] = useState<'recent' | 'name'>('recent');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -44,14 +54,14 @@ const HistoryPage = () => {
     const now = new Date();
     const chatDate = chat.timestamp;
     const diffDays = Math.floor((now.getTime() - chatDate.getTime()) / (1000 * 60 * 60 * 24));
-    
+
     let groupName: string;
     if (diffDays === 0) groupName = 'Today';
     else if (diffDays === 1) groupName = 'Yesterday';
     else if (diffDays < 7) groupName = 'This Week';
     else if (diffDays < 30) groupName = 'This Month';
     else groupName = 'Older';
-    
+
     if (!groups[groupName]) groups[groupName] = [];
     groups[groupName].push(chat);
     return groups;
@@ -283,10 +293,10 @@ const HistoryPage = () => {
             </div>
             <h3 className="text-lg font-medium text-foreground mb-2">No conversations found</h3>
             <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-              {search 
-                ? "Try adjusting your search terms" 
-                : filter === 'pinned' 
-                  ? "You haven't pinned any conversations yet" 
+              {search
+                ? "Try adjusting your search terms"
+                : filter === 'pinned'
+                  ? "You haven't pinned any conversations yet"
                   : "Start a new conversation to see it here"
               }
             </p>

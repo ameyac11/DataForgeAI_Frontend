@@ -24,75 +24,92 @@ export function Contact() {
   };
 
   return (
-    <section id="contact" className="py-24">
+    <section id="contact" className="py-24 bg-[#18181b]">
       <div className="container px-6">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Contact</h2>
-          <p className="text-lg text-muted-foreground">
-            Have questions? We're here to help.
+          <h2 className="text-3xl md:text-5xl font-medium text-white mb-6">Contact</h2>
+          <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+            Have questions? We're here to help. Reach out to our team.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-12 max-w-5xl mx-auto">
+        <div className="grid lg:grid-cols-5 gap-12 max-w-6xl mx-auto items-center">
           {/* Contact Info */}
-          <div className="space-y-8">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <Mail className="w-5 h-5 text-primary" />
+          <div className="lg:col-span-2 space-y-10">
+            <div className="flex items-center gap-6 group">
+              <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center shrink-0 border border-white/5 group-hover:border-primary/30 transition-colors">
+                <Mail className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold mb-1">Email</h3>
-                <a href="mailto:support@datanestx.com" className="text-primary hover:underline">
+                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Email</h3>
+                <a href="mailto:support@datanestx.com" className="text-lg text-white hover:text-primary transition-colors">
                   support@datanestx.com
                 </a>
               </div>
             </div>
 
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <Clock className="w-5 h-5 text-primary" />
+            <div className="flex items-center gap-6 group">
+              <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center shrink-0 border border-white/5 group-hover:border-primary/30 transition-colors">
+                <Clock className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold mb-1">Response Time</h3>
-                <p className="text-muted-foreground">Within 24 hours</p>
+                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Response Time</h3>
+                <p className="text-lg text-white">Within 24 hours</p>
               </div>
             </div>
 
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <Headphones className="w-5 h-5 text-primary" />
+            <div className="flex items-center gap-6 group">
+              <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center shrink-0 border border-white/5 group-hover:border-primary/30 transition-colors">
+                <Headphones className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold mb-1">Hours</h3>
-                <p className="text-muted-foreground">Mon-Fri, 9AM-6PM UTC</p>
+                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Hours</h3>
+                <p className="text-lg text-white">Mon-Fri, 9AM-6PM UTC</p>
               </div>
             </div>
           </div>
 
-          {/* Contact Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <Input
-              type="text"
-              placeholder="Your name"
-              required
-              className="bg-card h-12"
-            />
-            <Input
-              type="email"
-              placeholder="Your email"
-              required
-              className="bg-card h-12"
-            />
-            <Textarea
-              placeholder="Your message"
-              required
-              rows={5}
-              className="bg-card resize-none"
-            />
-            <Button type="submit" className="w-full h-11" disabled={isSubmitting}>
-              {isSubmitting ? 'Sending...' : 'Send Message'}
-            </Button>
-          </form>
+          {/* Contact Form Card */}
+          <div className="lg:col-span-3 bg-[#232326] p-8 md:p-12 rounded-[2rem] border border-white/5 shadow-2xl">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-400 ml-1">Name</label>
+                  <Input
+                    type="text"
+                    placeholder="John Doe"
+                    required
+                    className="bg-[#18181b] border-white/5 h-14 rounded-2xl focus:border-primary/50 transition-all px-6 text-white"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-400 ml-1">Email</label>
+                  <Input
+                    type="email"
+                    placeholder="john@example.com"
+                    required
+                    className="bg-[#18181b] border-white/5 h-14 rounded-2xl focus:border-primary/50 transition-all px-6 text-white"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-400 ml-1">Message</label>
+                <Textarea
+                  placeholder="How can we help you?"
+                  required
+                  rows={5}
+                  className="bg-[#18181b] border-white/5 rounded-2xl focus:border-primary/50 transition-all p-6 text-white resize-none"
+                />
+              </div>
+              <Button
+                type="submit"
+                className="w-full h-14 rounded-full text-lg font-medium shadow-xl shadow-primary/10 hover:shadow-primary/20 transition-all duration-300 hover:scale-[1.02]"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Sending...' : 'Send Message'}
+              </Button>
+            </form>
+          </div>
         </div>
       </div>
     </section>

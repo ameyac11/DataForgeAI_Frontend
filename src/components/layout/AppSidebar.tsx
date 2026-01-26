@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { MessageSquare, Settings2, FolderOpen, History, MoreHorizontal, Pin, Pencil, Trash2, User, Settings, HelpCircle, LogOut, LogIn, Check, X, Sidebar } from 'lucide-react';
+import { MessageSquare, Settings2, FolderOpen, History, MoreHorizontal, Pin, Pencil, Trash2, User, Settings, HelpCircle, LogOut, LogIn, Check, X, Sidebar, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
-import { recentChats } from '@/data/mockData';
+import { useChat } from '@/contexts/ChatContext';
 import { cn } from '@/lib/utils';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { ThemeLogo } from '@/components/ThemeLogo';
@@ -21,7 +21,7 @@ export function AppSidebar({
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isAnonymous, logout } = useAuth();
-  const [chats, setChats] = useState(recentChats.map(c => ({ ...c, pinned: c.starred })));
+  const { chats, setChats, startNewChat } = useChat();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [showSettings, setShowSettings] = useState(false);
@@ -69,13 +69,28 @@ export function AppSidebar({
       <>
         <aside data-tour="sidebar" className="h-screen w-14 bg-background border-r border-border flex flex-col transition-all duration-300 ease-in-out hidden md:flex">
           {/* Logo that expands sidebar */}
-          <div className="h-14 flex items-center justify-center border-b border-border">
+          <div className="h-14 flex items-center justify-center mb-2">
             <button
               onClick={onToggle}
               className="flex items-center justify-center hover:opacity-80 transition-opacity"
             >
-              <ThemeLogo size="sm" />
+              <ThemeLogo size="sm" forceTheme="dark" />
             </button>
+          </div>
+
+          <div className="px-2 mb-2">
+            <Button
+              onClick={() => {
+                startNewChat();
+                navigate('/app');
+              }}
+              size="icon"
+              variant="outline"
+              className="w-10 h-10 rounded-xl border border-dashed border-muted-foreground/50 bg-background hover:bg-muted hover:border-primary/50 text-muted-foreground hover:text-primary transition-all duration-300"
+              title="New Chat"
+            >
+              <Plus className="w-5 h-5" />
+            </Button>
           </div>
 
           {/* Minimal nav icons */}
@@ -149,7 +164,7 @@ export function AppSidebar({
         {/* Header */}
         <div className="h-14 flex items-center justify-between px-4 border-b border-sidebar-border">
           <Link to="/app" className="flex items-center gap-3">
-            <ThemeLogo size="sm" />
+            <ThemeLogo size="md" forceTheme="dark" />
             <span className="font-semibold text-foreground">DataForgeAI</span>
           </Link>
           <button
@@ -162,6 +177,19 @@ export function AppSidebar({
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-3">
+          {/* New Chat Button */}
+          <Button
+            onClick={() => {
+              startNewChat();
+              navigate('/app');
+            }}
+            className="w-full justify-start gap-3 mb-4 h-10 rounded-xl border border-dashed border-muted-foreground/50 bg-background hover:bg-muted hover:border-primary/50 text-muted-foreground hover:text-primary transition-all duration-300 shadow-none"
+            variant="outline"
+          >
+            <Plus className="w-5 h-5" />
+            <span>New Chat</span>
+          </Button>
+
           <div className="space-y-1">
             {navItems.map(item => {
               const isActive = location.pathname === item.path;
@@ -184,73 +212,76 @@ export function AppSidebar({
           </div>
 
           {/* Recent Chats */}
-          {chats.length > 0 && (
-            <div className="mt-8">
-              <h3 className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-                Recent
-              </h3>
-              <div className="space-y-1">
-                {chats.slice(0, 5).map(chat => (
-                  <div
-                    key={chat.id}
-                    className="group flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent/50 transition-colors"
-                  >
-                    {chat.pinned && <Pin className="w-3.5 h-3.5 text-primary shrink-0" />}
+          <div className="mt-8">
+            <h3 className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
+              Recent
+            </h3>
+            <div className="space-y-1">
+              {chats.slice(0, 5).map(chat => (
+                <div
+                  key={chat.id}
+                  className="group flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent/50 transition-colors"
+                >
+                  {chat.pinned && <Pin className="w-3.5 h-3.5 text-primary shrink-0" />}
 
-                    {editingId === chat.id ? (
-                      <div className="flex-1 flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={editingName}
-                          onChange={e => setEditingName(e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') saveRename(chat.id);
-                            if (e.key === 'Escape') cancelRename();
-                          }}
-                          className="flex-1 bg-background border border-border rounded-md px-2 py-1 text-sm outline-none focus:border-primary transition-colors"
-                          autoFocus
-                        />
-                        <button onClick={() => saveRename(chat.id)} className="p-1 text-primary hover:text-primary/80 transition-colors">
-                          <Check className="w-3.5 h-3.5" />
-                        </button>
-                        <button onClick={cancelRename} className="p-1 text-muted-foreground hover:text-foreground transition-colors">
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <span className="flex-1 truncate text-muted-foreground group-hover:text-foreground cursor-pointer text-sm">
-                          {chat.name}
-                        </span>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <MoreHorizontal className="w-3.5 h-3.5" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-36 bg-card border-border">
-                            <DropdownMenuItem onClick={() => startRename(chat.id, chat.name)} className="text-sm cursor-pointer">
-                              <Pencil className="w-3.5 h-3.5 mr-2" />
-                              Rename
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handlePin(chat.id)} className="text-sm cursor-pointer">
-                              <Pin className="w-3.5 h-3.5 mr-2" />
-                              {chat.pinned ? 'Unpin' : 'Pin'}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleDelete(chat.id)} className="text-destructive text-sm cursor-pointer">
-                              <Trash2 className="w-3.5 h-3.5 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </>
-                    )}
-                  </div>
-                ))}
-              </div>
+                  {editingId === chat.id ? (
+                    <div className="flex-1 flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={editingName}
+                        onChange={e => setEditingName(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') saveRename(chat.id);
+                          if (e.key === 'Escape') cancelRename();
+                        }}
+                        className="flex-1 bg-background border border-border rounded-md px-2 py-1 text-sm outline-none focus:border-primary transition-colors"
+                        autoFocus
+                      />
+                      <button onClick={() => saveRename(chat.id)} className="p-1 text-primary hover:text-primary/80 transition-colors">
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={cancelRename} className="p-1 text-muted-foreground hover:text-foreground transition-colors">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="flex-1 truncate text-muted-foreground group-hover:text-foreground cursor-pointer text-sm">
+                        {chat.name}
+                      </span>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <MoreHorizontal className="w-3.5 h-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-36 bg-card border-border">
+                          <DropdownMenuItem onClick={() => startRename(chat.id, chat.name)} className="text-sm cursor-pointer">
+                            <Pencil className="w-3.5 h-3.5 mr-2" />
+                            Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handlePin(chat.id)} className="text-sm cursor-pointer">
+                            <Pin className="w-3.5 h-3.5 mr-2" />
+                            {chat.pinned ? 'Unpin' : 'Pin'}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleDelete(chat.id)} className="text-destructive text-sm cursor-pointer">
+                            <Trash2 className="w-3.5 h-3.5 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </>
+                  )}
+                </div>
+              ))}
             </div>
-          )}
+            {chats.length === 0 && (
+              <p className="px-3 text-xs text-muted-foreground/60 py-2">
+                No chats yet
+              </p>
+            )}
+          </div>
         </nav>
 
         {/* User Profile */}
@@ -264,9 +295,6 @@ export function AppSidebar({
                 <div className="flex-1 text-left overflow-hidden">
                   <p className="text-sm font-medium text-foreground truncate">
                     {isAnonymous ? 'Guest' : user?.username}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {isAnonymous ? 'Limited access' : user?.email}
                   </p>
                 </div>
               </button>

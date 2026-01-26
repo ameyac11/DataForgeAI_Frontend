@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { ThemeLogo } from '@/components/ThemeLogo';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -217,11 +218,7 @@ const Auth = () => {
               {/* Header inside card */}
               <div className="text-center mb-8">
                 <div className="w-16 h-16 flex items-center justify-center mx-auto mb-6">
-                  <img
-                    src={theme === 'dark' ? logoDark : logoLight}
-                    alt="DataForgeAI Logo"
-                    className="w-full h-full object-contain drop-shadow-lg"
-                  />
+                  <ThemeLogo size="custom" className="w-full h-full object-contain drop-shadow-lg" />
                 </div>
                 <h1 className={cn(
                   "text-3xl font-bold bg-clip-text text-transparent mb-2 bg-gradient-to-br",

@@ -54,9 +54,9 @@ export function HelpMenu() {
               onClick={() => setState('menu')}
               size="icon"
               variant="ghost"
-              className="w-12 h-12 rounded-full border-2 border-primary bg-transparent hover:bg-primary/10 text-primary"
+              className="w-10 h-10 rounded-full border border-muted-foreground/30 bg-background hover:bg-muted text-muted-foreground shadow-sm"
             >
-              <HelpCircle className="w-5 h-5" />
+              <span className="text-sm">?</span>
             </Button>
           </motion.div>
         )}

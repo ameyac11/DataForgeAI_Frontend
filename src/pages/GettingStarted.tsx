@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, MessageSquare, Settings2, FolderOpen, Download, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeLogo } from '@/components/ThemeLogo';
-import { motion } from 'framer-motion';
 
 const sections = [
   {
@@ -68,138 +67,123 @@ const sections = [
 
 const GettingStarted = () => {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#18181b] text-gray-200 font-sans selection:bg-primary/30 relative overflow-hidden">
+      {/* Background Decoration */}
+      {/* Background Decoration */}
+
       {/* Header */}
-      <header className="border-b border-border sticky top-0 bg-background/95 backdrop-blur-sm z-10">
-        <div className="container px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-            <ThemeLogo size="sm" />
-            <span className="font-semibold">DataNestX</span>
+      <header className="border-b border-white/5 sticky top-0 bg-[#18181b]/80 backdrop-blur-md z-50">
+        <div className="container px-6 h-20 flex items-center justify-between max-w-6xl mx-auto">
+          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <ThemeLogo size="sm" forceTheme="dark" />
+            <span className="font-medium text-white tracking-wide">DataNestX</span>
           </Link>
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/app">Go to App</Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" asChild className="text-gray-400 hover:text-white hover:bg-white/5 rounded-full px-5">
               <Link to="/">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Home
+                Back
               </Link>
+            </Button>
+            <Button size="sm" asChild className="rounded-full px-6 shadow-lg shadow-primary/20 bg-white text-black hover:bg-gray-100 border-0">
+              <Link to="/app">Launch App</Link>
             </Button>
           </div>
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="py-16 md:py-24">
-        <div className="container px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center max-w-3xl mx-auto"
-          >
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">Getting Started</h1>
-            <p className="text-lg text-muted-foreground">
-              Learn how to generate high-quality datasets with DataNestX
-            </p>
-          </motion.div>
-        </div>
-      </section>
+      {/* Main Content */}
+      <main className="container px-6 py-12 md:py-20 max-w-5xl mx-auto relative z-10">
 
-      {/* Content */}
-      <main className="container px-6 pb-24 max-w-4xl">
-        {/* What is DataNestX */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-16"
-        >
-          <h2 className="text-2xl font-bold mb-4">{sections[0].title}</h2>
-          <p className="text-muted-foreground leading-relaxed text-lg">{sections[0].content}</p>
-        </motion.section>
+        {/* Hero Section */}
+        <section className="mb-20 text-center">
+          <h1 className="text-4xl md:text-5xl font-medium text-white mb-6 tracking-tight">
+            Getting Started
+          </h1>
+          <p className="text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
+            Master the art of synthetic data generation with DataNestX. Simple, powerful, and efficient.
+          </p>
+        </section>
 
-        {/* Key Features */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mb-16"
-        >
-          <h2 className="text-2xl font-bold mb-8">{sections[1].title}</h2>
-          <div className="grid sm:grid-cols-2 gap-6">
+        {/* Hero Banner Image */}
+        <section className="mb-20">
+          <div className="w-full h-64 md:h-80 rounded-3xl overflow-hidden border border-white/5 relative bg-[#232326]">
+            <img
+              src="/src/assets/purple-cubes-multiple.png"
+              alt="Getting Started Banner"
+              className="w-full h-full object-cover opacity-90"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#18181b]/20 to-transparent pointer-events-none" />
+          </div>
+        </section>
+
+        {/* Introduction Card */}
+        <section className="mb-12">
+          <div className="bg-[#232326] p-8 md:p-10 rounded-3xl border border-white/5 shadow-2xl">
+            <h2 className="text-2xl font-medium text-white mb-4 tracking-tight">{sections[0].title}</h2>
+            <p className="text-gray-400 leading-8 text-lg">{sections[0].content}</p>
+          </div>
+        </section>
+
+        {/* Key Features Grid */}
+        <section className="mb-20">
+          <h2 className="text-2xl font-medium text-white mb-8 px-2">{sections[1].title}</h2>
+          <div className="grid md:grid-cols-2 gap-6">
             {sections[1].items?.map((item, index) => (
               <div
                 key={index}
-                className="p-6 rounded-xl bg-card border border-border"
+                className="group p-8 rounded-3xl bg-[#232326] border border-white/5 hover:border-white/10 transition-all duration-300 hover:bg-[#2a2a2d]"
               >
-                <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                  <item.icon className="w-5 h-5 text-primary" />
+                <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mb-6 group-hover:scale-105 transition-transform duration-300">
+                  <item.icon className="w-6 h-6 text-white" />
                 </div>
-                <h3 className="font-semibold mb-2">{item.title}</h3>
-                <p className="text-sm text-muted-foreground">{item.description}</p>
+                <h3 className="text-xl font-medium text-white mb-3">{item.title}</h3>
+                <p className="text-gray-400 leading-relaxed">{item.description}</p>
               </div>
             ))}
           </div>
-        </motion.section>
+        </section>
 
-        {/* Steps */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="mb-16"
-        >
-          <h2 className="text-2xl font-bold mb-8">{sections[2].title}</h2>
-          <div className="space-y-6">
+        {/* Steps Section */}
+        <section className="mb-20">
+          <h2 className="text-2xl font-medium text-white mb-8 px-2">{sections[2].title}</h2>
+          <div className="space-y-4">
             {sections[2].steps?.map((step, index) => (
               <div
                 key={index}
-                className="flex gap-6 p-6 rounded-xl bg-card border border-border"
+                className="flex flex-col md:flex-row gap-6 md:gap-8 p-8 rounded-3xl bg-[#232326] border border-white/5 items-start md:items-center"
               >
-                <div className="text-3xl font-bold text-primary/30">{step.number}</div>
+                <div className="text-4xl font-medium text-white/10 select-none min-w-[3rem]">{step.number}</div>
                 <div>
-                  <h3 className="font-semibold mb-2">{step.title}</h3>
-                  <p className="text-muted-foreground">{step.description}</p>
+                  <h3 className="text-xl font-medium text-white mb-2">{step.title}</h3>
+                  <p className="text-gray-400 leading-relaxed">{step.description}</p>
                 </div>
               </div>
             ))}
           </div>
-        </motion.section>
+        </section>
 
         {/* Best Practices */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="mb-16"
-        >
-          <h2 className="text-2xl font-bold mb-6">{sections[3].title}</h2>
-          <div className="p-6 rounded-xl bg-card border border-border">
-            <ul className="space-y-3">
+        <section className="mb-20">
+          <div className="p-10 rounded-3xl bg-gradient-to-br from-[#232326] to-[#1c1c1f] border border-white/5">
+            <h2 className="text-2xl font-medium text-white mb-8">{sections[3].title}</h2>
+            <ul className="grid gap-4">
               {sections[3].tips?.map((tip, index) => (
-                <li key={index} className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                    <Zap className="w-3 h-3 text-primary" />
-                  </div>
-                  <span className="text-muted-foreground">{tip}</span>
+                <li key={index} className="flex items-start gap-4 text-gray-400 group">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white/20 mt-2.5 group-hover:bg-white/60 transition-colors" />
+                  <span className="leading-relaxed">{tip}</span>
                 </li>
               ))}
             </ul>
           </div>
-        </motion.section>
+        </section>
 
-        {/* CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="text-center"
-        >
-          <Button asChild size="lg" className="h-12 px-8">
-            <Link to="/app">Start Generating Data</Link>
+        {/* Bottom CTA */}
+        <div className="text-center pb-12">
+          <Button asChild size="lg" className="h-14 px-10 rounded-full bg-white text-black hover:bg-gray-200 text-base font-medium transition-all hover:scale-105 shadow-xl shadow-white/5 border-0">
+            <Link to="/app">Start Generating Now</Link>
           </Button>
-        </motion.div>
+        </div>
       </main>
     </div>
   );
