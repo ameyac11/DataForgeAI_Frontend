@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Eye, EyeOff, Loader2, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -525,8 +525,8 @@ const Auth = () => {
           theme === 'dark' ? "text-white/30" : "text-gray-400"
         )}>
           By continuing, you agree to our{' '}
-          <a href="#" className="underline hover:text-foreground transition-colors">Terms</a> and{' '}
-          <a href="#" className="underline hover:text-foreground transition-colors">Privacy Policy</a>
+          <Link to="/terms" className="underline hover:text-foreground transition-colors">Terms</Link> and{' '}
+          <Link to="/privacy" className="underline hover:text-foreground transition-colors">Privacy Policy</Link>
         </p>
       </div>
     </div>

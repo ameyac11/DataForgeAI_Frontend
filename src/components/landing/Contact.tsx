@@ -42,8 +42,8 @@ export function Contact() {
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Email</h3>
-                <a href="mailto:support@datanestx.com" className="text-lg text-white hover:text-primary transition-colors">
-                  support@datanestx.com
+                <a href="mailto:support@dataforgeai.com" className="text-lg text-white hover:text-primary transition-colors">
+                  support@dataforgeai.com
                 </a>
               </div>
             </div>

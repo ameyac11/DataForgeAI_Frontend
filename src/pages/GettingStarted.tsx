@@ -76,7 +76,7 @@ const GettingStarted = () => {
         <div className="container px-6 h-20 flex items-center justify-between max-w-6xl mx-auto">
           <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <ThemeLogo size="sm" forceTheme="dark" />
-            <span className="font-medium text-white tracking-wide">DataNestX</span>
+            <span className="font-medium text-white tracking-wide">DataForgeAI</span>
           </Link>
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="sm" asChild className="text-gray-400 hover:text-white hover:bg-white/5 rounded-full px-5">
@@ -101,7 +101,7 @@ const GettingStarted = () => {
             Getting Started
           </h1>
           <p className="text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
-            Master the art of synthetic data generation with DataNestX. Simple, powerful, and efficient.
+            Master the art of synthetic data generation with DataForgeAI. Simple, powerful, and efficient.
           </p>
         </section>
 
