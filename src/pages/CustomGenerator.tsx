@@ -56,6 +56,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/services/api';
 import { ENDPOINTS } from '@/services/endpoints';
+import { useTheme } from '@/contexts/ThemeContext';
 
 
 type DataFormat = 'CSV' | 'JSON' | 'SQL' | 'Parquet';
@@ -140,7 +141,7 @@ const popularTopics = [
   'student grades',
 ];
 
-const ReorderItem = ({ col, updateColumn, removeColumn, setShowDataTypeModal, dataTypeColors }: any) => {
+const ReorderItem = ({ col, updateColumn, removeColumn, setShowDataTypeModal, dataTypeColors, theme }: any) => {
   const controls = useDragControls();
 
   return (
@@ -149,7 +150,12 @@ const ReorderItem = ({ col, updateColumn, removeColumn, setShowDataTypeModal, da
       layout
       dragListener={false}
       dragControls={controls}
-      className="group grid grid-cols-[32px_2fr_1.5fr_40px] items-center gap-4 p-3 rounded-xl bg-card border border-border/50 hover:border-primary/30 hover:shadow-sm transition-colors cursor-default"
+      className={cn(
+        "group grid grid-cols-[32px_2fr_1.5fr_40px] items-center gap-4 p-3 rounded-xl transition-all cursor-default border",
+        theme === 'dark'
+          ? "bg-zinc-900/40 border-white/10 hover:border-primary/40 hover:bg-zinc-900/60 hover:shadow-xl hover:shadow-primary/5"
+          : "bg-card border-border/50 hover:border-primary/30 hover:shadow-sm"
+      )}
     >
       <div
         onPointerDown={(e) => controls.start(e)}
@@ -191,6 +197,7 @@ const ReorderItem = ({ col, updateColumn, removeColumn, setShowDataTypeModal, da
 
 const CustomGenerator = () => {
   const { isAnonymous } = useAuth();
+  const { theme } = useTheme();
   const [columns, setColumns] = useState<Column[]>([
     { id: '1', name: 'first_name', dataType: 'First Name' },
     { id: '2', name: 'email', dataType: 'Email' },
@@ -390,7 +397,10 @@ const CustomGenerator = () => {
                 onChange={(e) => setContext(e.target.value)}
                 disabled={sourceType === 'Library'}
                 className={cn(
-                  "min-h-[100px] text-xs bg-background/50 border-primary/20 focus-visible:ring-primary/30 resize-none transition-all",
+                  "min-h-[100px] text-xs resize-none transition-all placeholder:text-muted-foreground/50",
+                  theme === 'dark'
+                    ? "bg-slate-900/40 border-white/10 focus-visible:ring-primary/40"
+                    : "bg-background/50 border-primary/20 focus-visible:ring-primary/30",
                   sourceType === 'Library' && "opacity-50 cursor-not-allowed bg-secondary/20"
                 )}
               />
@@ -497,7 +507,10 @@ const CustomGenerator = () => {
             {/* Row Count */}
             <div className="space-y-3">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Quantity (Rows)</label>
-              <div className="flex items-center gap-1 bg-background/50 p-1 rounded-xl border border-border/50">
+              <div className={cn(
+                "flex items-center gap-1 p-1 rounded-xl border",
+                theme === 'dark' ? "bg-zinc-900/40 border-white/10" : "bg-background/50 border-border/50"
+              )}>
                 <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" onClick={() => setRowCount(Math.max(1, rowCount - 100))}>-</Button>
                 <Input
                   type="number"
@@ -518,10 +531,12 @@ const CustomGenerator = () => {
                     key={fmt}
                     onClick={() => setDataFormat(fmt)}
                     className={cn(
-                      "flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition-all",
+                      "flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition-all shadow-sm",
                       dataFormat === fmt
-                        ? "bg-primary/5 border-primary/30 text-primary shadow-sm"
-                        : "bg-background/30 border-border/40 hover:bg-background/50 hover:border-border/60 text-muted-foreground"
+                        ? "bg-primary/10 border-primary/40 text-primary"
+                        : theme === 'dark'
+                          ? "bg-zinc-900/40 border-white/10 hover:border-white/20 hover:bg-zinc-900/60 text-muted-foreground"
+                          : "bg-background/30 border-border/40 hover:bg-background/50 hover:border-border/60 text-muted-foreground"
                     )}
                   >
                     <cfg.icon className={cn("w-5 h-5", dataFormat === fmt ? cfg.color : "opacity-70")} />
@@ -557,7 +572,10 @@ const CustomGenerator = () => {
               </div>
 
               <div className="space-y-3">
-                <div className="grid grid-cols-[32px_2fr_1.5fr_40px] gap-4 px-4 py-2 text-xs font-semibold text-muted-foreground bg-secondary/30 rounded-lg border border-border/40 uppercase tracking-wider">
+                <div className={cn(
+                  "grid grid-cols-[32px_2fr_1.5fr_40px] gap-4 px-4 py-2 text-xs font-semibold text-muted-foreground rounded-lg border uppercase tracking-wider",
+                  theme === 'dark' ? "bg-zinc-900/60 border-white/10" : "bg-secondary/30 border-border/40"
+                )}>
                   <div className="flex justify-center text-center">#</div>
                   <div className="pl-3">Column Name</div>
                   <div className="pl-3">Data Type</div>
@@ -566,13 +584,25 @@ const CustomGenerator = () => {
 
                 <Reorder.Group as="ul" axis="y" values={columns} onReorder={setColumns} className="flex flex-col gap-3 list-none p-0 m-0">
                   {columns.map((col) => (
-                    <ReorderItem key={col.id} col={col} updateColumn={updateColumn} removeColumn={removeColumn} setShowDataTypeModal={setShowDataTypeModal} dataTypeColors={dataTypeColors} />
+                    <ReorderItem
+                      key={col.id}
+                      col={col}
+                      updateColumn={updateColumn}
+                      removeColumn={removeColumn}
+                      setShowDataTypeModal={setShowDataTypeModal}
+                      dataTypeColors={dataTypeColors}
+                      theme={theme}
+                    />
                   ))}
                 </Reorder.Group>
 
                 <button
                   onClick={addColumn}
-                  className="w-full py-3 rounded-xl border border-dashed border-border/50 text-muted-foreground/70 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all flex items-center justify-center gap-2 text-sm font-medium mt-4"
+                  className={cn(
+                    "w-full py-4 rounded-xl border border-dashed transition-all flex items-center justify-center gap-2 text-sm font-bold mt-4",
+                    "text-muted-foreground/70 hover:text-primary hover:border-primary/40 hover:bg-primary/5",
+                    theme === 'dark' ? "border-white/20" : "border-border/50"
+                  )}
                 >
                   <Plus className="w-4 h-4" />
                   Add New Column
@@ -684,10 +714,10 @@ const CustomGenerator = () => {
             </div>
           </div>
         </div>
-      </div>
+      </div >
 
       {/* Auto Fill Modal */}
-      <Dialog open={showAutoFillModal} onOpenChange={setShowAutoFillModal}>
+      < Dialog open={showAutoFillModal} onOpenChange={setShowAutoFillModal} >
         <DialogContent className="max-w-lg glass-panel p-0 overflow-hidden border-border/50 shadow-2xl">
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
@@ -868,10 +898,10 @@ const CustomGenerator = () => {
             </div>
           </div>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
       {/* Data Type Modal */}
-      <Dialog open={!!showDataTypeModal} onOpenChange={() => setShowDataTypeModal(null)}>
+      < Dialog open={!!showDataTypeModal} onOpenChange={() => setShowDataTypeModal(null)}>
         <DialogContent className="max-w-2xl glass-panel border-border/50 h-[500px] flex flex-col p-0 overflow-hidden shadow-2xl">
           <div className="p-4 border-b border-border/40 flex items-center gap-3 bg-secondary/10">
             <div className="p-2 rounded-lg bg-primary/10">
@@ -959,10 +989,10 @@ const CustomGenerator = () => {
             </div>
           </div>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
       {/* Preview Modal */}
-      <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
+      < Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal} >
         <DialogContent className="max-w-4xl glass-panel border-border/40 p-0 overflow-hidden flex flex-col max-h-[85vh] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)]">
           <div className="p-5 border-b border-border/40 flex items-center justify-between bg-secondary/10 backdrop-blur-md">
             <div className="flex items-center gap-3">
@@ -1055,7 +1085,7 @@ const CustomGenerator = () => {
             </Button>
           </div>
         </DialogContent>
-      </Dialog>
+      </Dialog >
     </div >
   );
 };

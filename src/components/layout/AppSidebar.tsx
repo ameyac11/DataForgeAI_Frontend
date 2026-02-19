@@ -124,7 +124,7 @@ export function AppSidebar({ collapsed, onToggle, isMobile = false, onItemClick 
                   className="w-10 h-10 shrink-0"
                 />
                 <div className="flex flex-col min-w-0">
-                  <span className="font-bold text-xs text-sidebar-foreground truncate">DataForgeAI</span>
+                  <span className="font-bold text-base text-sidebar-foreground tracking-tight truncate">DataForgeAI</span>
                   <div className="flex items-center">
                     <span className="text-[9px] bg-green-500/10 text-green-500 border border-green-500/20 px-1.5 py-0.5 rounded-full flex items-center gap-1 shadow-[0_0_8px_rgba(34,197,94,0.15)] scale-90 origin-left">
                       <span className="relative flex h-1 w-1">

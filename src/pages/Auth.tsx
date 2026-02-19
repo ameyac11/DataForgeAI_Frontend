@@ -116,7 +116,7 @@ const Auth = () => {
 
     try {
       await signup(email, password, username);
-      navigate('/app');
+      navigate('/onboarding');
     } catch {
       setError('Failed to create account');
     }
@@ -141,7 +141,7 @@ const Auth = () => {
     setIsLoading(true);
     await new Promise(resolve => setTimeout(resolve, 800));
     await login(`${provider}@example.com`, 'oauth');
-    navigate('/app');
+    navigate('/onboarding');
   };
 
   const goBack = () => {
@@ -162,23 +162,23 @@ const Auth = () => {
   return (
     <div className={cn(
       "min-h-screen w-full flex items-center justify-center relative overflow-hidden transition-colors duration-500",
-      theme === 'dark' ? "bg-[#0a0a16]" : "bg-gray-100"
+      theme === 'dark' ? "bg-[#0a0a16]" : "bg-slate-50"
     )}>
       {/* Background Image */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <img
           src={background}
           alt="Background"
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover scale-105"
         />
         <div className={cn(
           "absolute inset-0 transition-all duration-1000",
-          theme === 'dark' ? "bg-black/40" : "bg-white/40 backdrop-blur-[2px]"
+          theme === 'dark' ? "bg-[#0a0a16]/40" : "bg-white/20 backdrop-blur-[1px]"
         )} />
       </div>
 
       {/* Shapes for extra depth */}
-      <div className="absolute inset-0 z-0 opacity-30" style={{ backgroundImage: 'radial-gradient(circle at 10% 20%, rgba(120,120,120,0.1) 0%, transparent 20%), radial-gradient(circle at 90% 80%, rgba(120,120,120,0.1) 0%, transparent 20%)' }}></div>
+      <div className="absolute inset-0 z-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 10% 20%, rgba(120,120,120,0.1) 0%, transparent 20%), radial-gradient(circle at 90% 80%, rgba(120,120,120,0.1) 0%, transparent 20%)' }}></div>
 
       {/* Theme Toggle */}
       <Button
@@ -186,7 +186,7 @@ const Auth = () => {
         size="icon"
         onClick={toggleTheme}
         className={cn(
-          "absolute top-6 right-6 h-10 w-10 z-20 hover:bg-white/10 transition-colors",
+          "absolute top-6 right-6 h-10 w-10 z-20 hover:bg-white/10 transition-colors rounded-full",
           theme === 'dark' ? "text-white/70 hover:text-white" : "text-gray-600 hover:text-gray-900"
         )}
       >
@@ -196,14 +196,14 @@ const Auth = () => {
       <div className="relative z-10 w-full max-w-[450px] p-4">
         {/* Glass Card */}
         <div className={cn(
-          "backdrop-blur-xl border rounded-3xl shadow-2xl p-8 overflow-hidden relative transition-colors duration-500",
+          "backdrop-blur-2xl border rounded-[2rem] shadow-2xl p-10 overflow-hidden relative transition-all duration-500",
           theme === 'dark'
-            ? "bg-white/5 border-white/10"
-            : "bg-white/60 border-white/40 shadow-xl"
+            ? "bg-slate-900/40 border-white/10 shadow-black/40"
+            : "bg-white/60 border-white/40 shadow-slate-200/50"
         )}>
 
           {/* Subtle sheen */}
-          <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent pointer-events-none" />
 
           <AnimatePresence mode="wait">
             <motion.div
@@ -212,23 +212,23 @@ const Auth = () => {
               initial="initial"
               animate="animate"
               exit="exit"
-              transition={{ duration: 0.25, ease: "easeInOut" }}
+              transition={{ duration: 0.3, ease: "circOut" }}
               className="relative z-10"
             >
               {/* Header inside card */}
-              <div className="text-center mb-8">
-                <div className="w-16 h-16 flex items-center justify-center mx-auto mb-6">
-                  <ThemeLogo size="custom" className="w-full h-full object-contain drop-shadow-lg" />
+              <div className="text-center mb-10">
+                <div className="w-20 h-20 flex items-center justify-center mx-auto mb-6 bg-slate-900/10 dark:bg-white/5 rounded-2xl backdrop-blur-md border border-white/10">
+                  <ThemeLogo size="custom" className="w-12 h-12 object-contain drop-shadow-2xl" />
                 </div>
                 <h1 className={cn(
-                  "text-3xl font-bold bg-clip-text text-transparent mb-2 bg-gradient-to-br",
-                  theme === 'dark' ? "from-white to-white/60" : "from-gray-900 to-gray-600"
+                  "text-4xl font-bold mb-3 tracking-tight",
+                  theme === 'dark' ? "text-white" : "text-slate-900"
                 )}>
                   DataForgeAI
                 </h1>
                 <p className={cn(
-                  "text-sm transition-colors",
-                  theme === 'dark' ? "text-white/50" : "text-gray-500"
+                  "text-base font-medium opacity-60",
+                  theme === 'dark' ? "text-slate-300" : "text-slate-500"
                 )}>
                   {step === 'method' && (isSignUp ? "Join the future of synthetic data." : "Enterprise-grade synthetic data generation.")}
                   {step !== 'method' && (isSignUp ? "Create your account" : "Welcome back")}
@@ -240,10 +240,10 @@ const Auth = () => {
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full h-12 justify-start font-normal transition-all backdrop-blur-md",
+                      "w-full h-14 justify-start px-6 rounded-2xl font-medium transition-all backdrop-blur-sm border-0",
                       theme === 'dark'
-                        ? "bg-white/5 border-white/10 text-white hover:bg-white/10 hover:text-white"
-                        : "bg-white/50 border-gray-200 text-gray-700 hover:bg-white/80"
+                        ? "bg-white/10 text-white hover:bg-white/20"
+                        : "bg-slate-900/5 text-slate-900 hover:bg-slate-900/10"
                     )}
                     onClick={() => handleOAuthLogin('google')}
                     disabled={isLoading}
@@ -260,10 +260,10 @@ const Auth = () => {
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full h-12 justify-start font-normal transition-all backdrop-blur-md",
+                      "w-full h-14 justify-start px-6 rounded-2xl font-medium transition-all backdrop-blur-sm border-0",
                       theme === 'dark'
-                        ? "bg-white/5 border-white/10 text-white hover:bg-white/10 hover:text-white"
-                        : "bg-white/50 border-gray-200 text-gray-700 hover:bg-white/80"
+                        ? "bg-white/10 text-white hover:bg-white/20"
+                        : "bg-slate-900/5 text-slate-900 hover:bg-slate-900/10"
                     )}
                     onClick={() => handleOAuthLogin('github')}
                     disabled={isLoading}
@@ -274,14 +274,14 @@ const Auth = () => {
                     Continue with GitHub
                   </Button>
 
-                  <div className="relative my-6">
+                  <div className="relative my-8">
                     <div className="absolute inset-0 flex items-center">
-                      <div className={cn("w-full border-t", theme === 'dark' ? "border-white/10" : "border-gray-200")} />
+                      <div className={cn("w-full border-t", theme === 'dark' ? "border-white/10" : "border-slate-200")} />
                     </div>
-                    <div className="relative flex justify-center text-xs">
+                    <div className="relative flex justify-center text-[10px]">
                       <span className={cn(
-                        "px-4 font-medium tracking-wide backdrop-blur-sm rounded-full",
-                        theme === 'dark' ? "text-white/40 bg-[#0f0f13]/50" : "text-gray-500 bg-white/50"
+                        "px-4 font-bold tracking-[0.2em] rounded-full",
+                        theme === 'dark' ? "text-white/40 bg-transparent" : "text-slate-400 bg-transparent"
                       )}>OR CONTINUE WITH EMAIL</span>
                     </div>
                   </div>
@@ -289,23 +289,23 @@ const Auth = () => {
                   <Button
                     variant="default"
                     className={cn(
-                      "w-full h-12 font-medium transition-all shadow-lg",
+                      "w-full h-14 rounded-2xl font-bold transition-all shadow-xl",
                       theme === 'dark'
-                        ? "bg-white text-black hover:bg-white/90 shadow-white/10"
-                        : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/20"
+                        ? "bg-white text-slate-950 hover:bg-slate-100 shadow-white/5"
+                        : "bg-slate-900 text-white hover:bg-slate-800 shadow-slate-900/10"
                     )}
                     onClick={() => setStep(isSignUp ? 'signup-details' : 'email')}
                   >
                     Continue with email
                   </Button>
 
-                  <div className="text-center pt-4">
-                    <span className={cn("text-sm", theme === 'dark' ? "text-white/50" : "text-gray-500")}>
+                  <div className="text-center pt-6">
+                    <span className={cn("text-sm", theme === 'dark' ? "text-slate-400" : "text-slate-500")}>
                       {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
                     </span>
                     <button type="button" onClick={switchMode} className={cn(
-                      "text-sm hover:underline font-medium",
-                      theme === 'dark' ? "text-white" : "text-primary"
+                      "text-sm hover:underline font-bold transition-colors",
+                      theme === 'dark' ? "text-white" : "text-slate-900"
                     )}>
                       {isSignUp ? 'Sign in' : 'Sign up'}
                     </button>
@@ -314,10 +314,10 @@ const Auth = () => {
               )}
 
               {step === 'email' && (
-                <form onSubmit={handleEmailSubmit} className="space-y-5">
+                <form onSubmit={handleEmailSubmit} className="space-y-6">
                   <button type="button" onClick={goBack} className={cn(
-                    "flex items-center text-sm transition-colors mb-2",
-                    theme === 'dark' ? "text-white/50 hover:text-white" : "text-gray-500 hover:text-gray-900"
+                    "flex items-center text-xs font-bold uppercase tracking-wider transition-colors mb-4",
+                    theme === 'dark' ? "text-white/50 hover:text-white" : "text-slate-500 hover:text-slate-900"
                   )}>
                     <ArrowLeft className="w-4 h-4 mr-2" /> Back
                   </button>
@@ -327,17 +327,17 @@ const Auth = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className={cn(
-                      "h-12 backdrop-blur-md",
+                      "h-14 rounded-2xl px-6 backdrop-blur-md border-0",
                       theme === 'dark'
-                        ? "bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-white/20 focus-visible:border-white/20"
-                        : "bg-white/50 border-gray-200 text-gray-900 placeholder:text-gray-400"
+                        ? "bg-white/10 text-white placeholder:text-white/20 focus-visible:ring-2 focus-visible:ring-white/20"
+                        : "bg-slate-900/5 text-slate-900 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-900/10"
                     )}
                     autoFocus
                   />
-                  {error && <p className="text-red-400 text-sm">{error}</p>}
+                  {error && <p className="text-red-400 text-sm font-medium px-2">{error}</p>}
                   <Button type="submit" className={cn(
-                    "w-full h-12",
-                    theme === 'dark' ? "bg-white text-black hover:bg-white/90" : "bg-primary text-primary-foreground hover:bg-primary/90"
+                    "w-full h-14 rounded-2xl font-bold transition-all",
+                    theme === 'dark' ? "bg-white text-slate-950 hover:bg-slate-100" : "bg-slate-900 text-white hover:bg-slate-800"
                   )} disabled={isLoading}>
                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Continue <ArrowRight className="w-4 h-4 ml-2" /></>}
                   </Button>
@@ -345,15 +345,16 @@ const Auth = () => {
               )}
 
               {step === 'password' && (
-                <form onSubmit={handlePasswordSubmit} className="space-y-5">
+                <form onSubmit={handlePasswordSubmit} className="space-y-6">
                   <button type="button" onClick={goBack} className={cn(
-                    "flex items-center text-sm transition-colors mb-2",
-                    theme === 'dark' ? "text-white/50 hover:text-white" : "text-gray-500 hover:text-gray-900"
+                    "flex items-center text-xs font-bold uppercase tracking-wider transition-colors mb-4",
+                    theme === 'dark' ? "text-white/50 hover:text-white" : "text-slate-500 hover:text-slate-900"
                   )}>
                     <ArrowLeft className="w-4 h-4 mr-2" /> Back
                   </button>
-                  <div className="text-center mb-4">
-                    <p className={cn("text-sm font-medium", theme === 'dark' ? "text-white/70" : "text-gray-600")}>{email}</p>
+                  <div className="bg-white/5 rounded-2xl p-3 px-5 mb-4 border border-white/5">
+                    <p className={cn("text-xs font-bold opacity-60 uppercase tracking-widest mb-1", theme === 'dark' ? "text-white/50" : "text-slate-500")}>Signing in as</p>
+                    <p className={cn("text-sm font-bold truncate", theme === 'dark' ? "text-white" : "text-slate-900")}>{email}</p>
                   </div>
                   <div className="relative">
                     <Input
@@ -362,30 +363,30 @@ const Auth = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className={cn(
-                        "h-12 pr-12 backdrop-blur-md",
+                        "h-14 rounded-2xl px-6 pr-14 backdrop-blur-md border-0",
                         theme === 'dark'
-                          ? "bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-white/20 focus-visible:border-white/20"
-                          : "bg-white/50 border-gray-200 text-gray-900 placeholder:text-gray-400"
+                          ? "bg-white/10 text-white placeholder:text-white/20 focus-visible:ring-2 focus-visible:ring-white/20"
+                          : "bg-slate-900/5 text-slate-900 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-900/10"
                       )}
                       autoFocus
                     />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className={cn(
-                      "absolute right-4 top-1/2 -translate-y-1/2",
-                      theme === 'dark' ? "text-white/50 hover:text-white" : "text-gray-500 hover:text-gray-900"
+                      "absolute right-5 top-1/2 -translate-y-1/2",
+                      theme === 'dark' ? "text-white/40 hover:text-white" : "text-slate-400 hover:text-slate-900"
                     )}>
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
-                  {error && <p className="text-red-400 text-sm">{error}</p>}
+                  {error && <p className="text-red-400 text-sm font-medium px-2">{error}</p>}
                   <Button type="submit" className={cn(
-                    "w-full h-12",
-                    theme === 'dark' ? "bg-white text-black hover:bg-white/90" : "bg-primary text-primary-foreground hover:bg-primary/90"
+                    "w-full h-14 rounded-2xl font-bold transition-all",
+                    theme === 'dark' ? "bg-white text-slate-950 hover:bg-slate-100" : "bg-slate-900 text-white hover:bg-slate-800"
                   )} disabled={isLoading}>
                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sign in'}
                   </Button>
                   <button type="button" onClick={() => { setError(''); setStep('forgot'); }} className={cn(
-                    "w-full text-sm py-2",
-                    theme === 'dark' ? "text-white/50 hover:text-white" : "text-gray-500 hover:text-gray-900"
+                    "w-full text-xs font-bold uppercase tracking-widest py-2 transition-colors",
+                    theme === 'dark' ? "text-white/30 hover:text-white" : "text-slate-400 hover:text-slate-900"
                   )}>
                     Forgot password?
                   </button>
@@ -393,10 +394,10 @@ const Auth = () => {
               )}
 
               {step === 'forgot' && (
-                <form onSubmit={handleForgotPassword} className="space-y-5">
+                <form onSubmit={handleForgotPassword} className="space-y-6">
                   <button type="button" onClick={goBack} className={cn(
-                    "flex items-center text-sm transition-colors mb-2",
-                    theme === 'dark' ? "text-white/50 hover:text-white" : "text-gray-500 hover:text-gray-900"
+                    "flex items-center text-xs font-bold uppercase tracking-wider transition-colors mb-4",
+                    theme === 'dark' ? "text-white/50 hover:text-white" : "text-slate-500 hover:text-slate-900"
                   )}>
                     <ArrowLeft className="w-4 h-4 mr-2" /> Back
                   </button>
@@ -406,17 +407,17 @@ const Auth = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className={cn(
-                      "h-12 backdrop-blur-md",
+                      "h-14 rounded-2xl px-6 backdrop-blur-md border-0",
                       theme === 'dark'
-                        ? "bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-white/20 focus-visible:border-white/20"
-                        : "bg-white/50 border-gray-200 text-gray-900 placeholder:text-gray-400"
+                        ? "bg-white/10 text-white placeholder:text-white/20 focus-visible:ring-2 focus-visible:ring-white/20"
+                        : "bg-slate-900/5 text-slate-900 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-900/10"
                     )}
                     autoFocus
                   />
-                  {error && <p className="text-red-400 text-sm">{error}</p>}
+                  {error && <p className="text-red-400 text-sm font-medium px-2">{error}</p>}
                   <Button type="submit" className={cn(
-                    "w-full h-12",
-                    theme === 'dark' ? "bg-white text-black hover:bg-white/90" : "bg-primary text-primary-foreground hover:bg-primary/90"
+                    "w-full h-14 rounded-2xl font-bold transition-all",
+                    theme === 'dark' ? "bg-white text-slate-950 hover:bg-slate-100" : "bg-slate-900 text-white hover:bg-slate-800"
                   )} disabled={isLoading}>
                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Send reset link'}
                   </Button>
@@ -426,8 +427,8 @@ const Auth = () => {
               {step === 'signup-details' && (
                 <form onSubmit={handleSignupDetailsSubmit} className="space-y-5">
                   <button type="button" onClick={goBack} className={cn(
-                    "flex items-center text-sm transition-colors mb-2",
-                    theme === 'dark' ? "text-white/50 hover:text-white" : "text-gray-500 hover:text-gray-900"
+                    "flex items-center text-xs font-bold uppercase tracking-wider transition-colors mb-4",
+                    theme === 'dark' ? "text-white/50 hover:text-white" : "text-slate-500 hover:text-slate-900"
                   )}>
                     <ArrowLeft className="w-4 h-4 mr-2" /> Back
                   </button>
@@ -437,10 +438,10 @@ const Auth = () => {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     className={cn(
-                      "h-12 backdrop-blur-md",
+                      "h-14 rounded-2xl px-6 backdrop-blur-md border-0",
                       theme === 'dark'
-                        ? "bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-white/20 focus-visible:border-white/20"
-                        : "bg-white/50 border-gray-200 text-gray-900 placeholder:text-gray-400"
+                        ? "bg-white/10 text-white placeholder:text-white/20 focus-visible:ring-2 focus-visible:ring-white/20"
+                        : "bg-slate-900/5 text-slate-900 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-900/10"
                     )}
                     autoFocus
                   />
@@ -450,16 +451,16 @@ const Auth = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className={cn(
-                      "h-12 backdrop-blur-md",
+                      "h-14 rounded-2xl px-6 backdrop-blur-md border-0",
                       theme === 'dark'
-                        ? "bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-white/20 focus-visible:border-white/20"
-                        : "bg-white/50 border-gray-200 text-gray-900 placeholder:text-gray-400"
+                        ? "bg-white/10 text-white placeholder:text-white/20 focus-visible:ring-2 focus-visible:ring-white/20"
+                        : "bg-slate-900/5 text-slate-900 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-900/10"
                     )}
                   />
-                  {error && <p className="text-red-400 text-sm">{error}</p>}
+                  {error && <p className="text-red-400 text-sm font-medium px-2">{error}</p>}
                   <Button type="submit" className={cn(
-                    "w-full h-12",
-                    theme === 'dark' ? "bg-white text-black hover:bg-white/90" : "bg-primary text-primary-foreground hover:bg-primary/90"
+                    "w-full h-14 rounded-2xl font-bold transition-all",
+                    theme === 'dark' ? "bg-white text-slate-950 hover:bg-slate-100" : "bg-slate-900 text-white hover:bg-slate-800"
                   )} disabled={isLoading}>
                     Continue <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
@@ -469,8 +470,8 @@ const Auth = () => {
               {step === 'signup-password' && (
                 <form onSubmit={handleSignupPasswordSubmit} className="space-y-5">
                   <button type="button" onClick={goBack} className={cn(
-                    "flex items-center text-sm transition-colors mb-2",
-                    theme === 'dark' ? "text-white/50 hover:text-white" : "text-gray-500 hover:text-gray-900"
+                    "flex items-center text-xs font-bold uppercase tracking-wider transition-colors mb-4",
+                    theme === 'dark' ? "text-white/50 hover:text-white" : "text-slate-500 hover:text-slate-900"
                   )}>
                     <ArrowLeft className="w-4 h-4 mr-2" /> Back
                   </button>
@@ -481,16 +482,16 @@ const Auth = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className={cn(
-                        "h-12 pr-12 backdrop-blur-md",
+                        "h-14 rounded-2xl px-6 pr-14 backdrop-blur-md border-0",
                         theme === 'dark'
-                          ? "bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-white/20 focus-visible:border-white/20"
-                          : "bg-white/50 border-gray-200 text-gray-900 placeholder:text-gray-400"
+                          ? "bg-white/10 text-white placeholder:text-white/20 focus-visible:ring-2 focus-visible:ring-white/20"
+                          : "bg-slate-900/5 text-slate-900 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-900/10"
                       )}
                       autoFocus
                     />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className={cn(
-                      "absolute right-4 top-1/2 -translate-y-1/2",
-                      theme === 'dark' ? "text-white/50 hover:text-white" : "text-gray-500 hover:text-gray-900"
+                      "absolute right-5 top-1/2 -translate-y-1/2",
+                      theme === 'dark' ? "text-white/40 hover:text-white" : "text-slate-400 hover:text-slate-900"
                     )}>
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
@@ -501,16 +502,16 @@ const Auth = () => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className={cn(
-                      "h-12 backdrop-blur-md",
+                      "h-14 rounded-2xl px-6 backdrop-blur-md border-0",
                       theme === 'dark'
-                        ? "bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-white/20 focus-visible:border-white/20"
-                        : "bg-white/50 border-gray-200 text-gray-900 placeholder:text-gray-400"
+                        ? "bg-white/10 text-white placeholder:text-white/20 focus-visible:ring-2 focus-visible:ring-white/20"
+                        : "bg-slate-900/5 text-slate-900 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-900/10"
                     )}
                   />
-                  {error && <p className="text-red-400 text-sm">{error}</p>}
+                  {error && <p className="text-red-400 text-sm font-medium px-2">{error}</p>}
                   <Button type="submit" className={cn(
-                    "w-full h-12",
-                    theme === 'dark' ? "bg-white text-black hover:bg-white/90" : "bg-primary text-primary-foreground hover:bg-primary/90"
+                    "w-full h-14 rounded-2xl font-bold transition-all",
+                    theme === 'dark' ? "bg-white text-slate-950 hover:bg-slate-100" : "bg-slate-900 text-white hover:bg-slate-800"
                   )} disabled={isLoading}>
                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create account'}
                   </Button>
@@ -520,14 +521,16 @@ const Auth = () => {
           </AnimatePresence>
         </div>
 
-        <p className={cn(
-          "text-center text-xs mt-8 transition-colors",
-          theme === 'dark' ? "text-white/30" : "text-gray-400"
-        )}>
-          By continuing, you agree to our{' '}
-          <Link to="/terms" className="underline hover:text-foreground transition-colors">Terms</Link> and{' '}
-          <Link to="/privacy" className="underline hover:text-foreground transition-colors">Privacy Policy</Link>
-        </p>
+        <div className="mt-12 text-center space-y-4">
+          <p className={cn(
+            "text-[10px] font-bold uppercase tracking-[0.2em] transition-colors",
+            theme === 'dark' ? "text-white/20" : "text-slate-400"
+          )}>
+            By continuing, you agree to our{' '}
+            <Link to="/terms" className="text-white/50 hover:text-white underline-offset-4 hover:underline transition-all">Terms</Link> and{' '}
+            <Link to="/privacy" className="text-white/50 hover:text-white underline-offset-4 hover:underline transition-all">Privacy Policy</Link>
+          </p>
+        </div>
       </div>
     </div>
   );

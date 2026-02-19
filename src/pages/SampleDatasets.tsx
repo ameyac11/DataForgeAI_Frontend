@@ -31,12 +31,18 @@ const SampleDatasets = () => {
   return (
     <div className="h-full overflow-y-auto p-6">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
+        {/* Compact Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold mb-2">Sample Datasets</h1>
-          <p className="text-muted-foreground">
-            Browse our collection of ready-to-use datasets
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-9 h-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center border border-zinc-200 dark:border-zinc-700">
+              <Database className="w-4.5 h-4.5 text-zinc-900 dark:text-zinc-100" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight">Sample Datasets</h1>
+          </div>
+          <p className="text-sm text-muted-foreground max-w-2xl mb-4">
+            Accelerate your workflow with our professionally curated collection of synthetic datasets. Ready to jumpstart your AI development.
           </p>
+          <div className="h-px bg-zinc-200 dark:bg-zinc-800 w-full" />
         </div>
 
         {/* Filters */}

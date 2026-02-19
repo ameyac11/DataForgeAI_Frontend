@@ -41,10 +41,10 @@ const models = [
 ];
 
 const dataFormats = [
-  { value: 'JSON', label: 'JSON', icon: FileJson },
-  { value: 'CSV', label: 'CSV', icon: Table },
-  { value: 'SQL', label: 'SQL', icon: Database },
-  { value: 'Parquet', label: 'Parquet', icon: Zap },
+  { value: 'JSON', label: 'JSON', icon: FileJson, color: 'text-amber-500' },
+  { value: 'CSV', label: 'CSV', icon: Table, color: 'text-green-500' },
+  { value: 'SQL', label: 'SQL', icon: Database, color: 'text-blue-500' },
+  { value: 'Parquet', label: 'Parquet', icon: Zap, color: 'text-indigo-500' },
 ];
 
 const dataModes = [
@@ -352,7 +352,7 @@ export default function DetNest() {
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border ml-1",
                 "bg-background/50 border-border/50 text-muted-foreground hover:text-foreground hover:border-border hover:bg-background hover:shadow-sm active:scale-95"
               )}>
-                <currentFormat.icon className="w-3.5 h-3.5" />
+                <currentFormat.icon className={cn("w-3.5 h-3.5", currentFormat.color)} />
                 <span>{currentFormat.label}</span>
                 <ChevronDown className="w-3 h-3 opacity-50" />
               </button>
@@ -361,7 +361,7 @@ export default function DetNest() {
               <DropdownMenuLabel className="text-[10px] text-muted-foreground uppercase opacity-70">Output Format</DropdownMenuLabel>
               {dataFormats.map(f => (
                 <DropdownMenuItem key={f.value} onClick={() => setDataFormat(f.value as DataFormat)} className="gap-2">
-                  <f.icon className="w-3.5 h-3.5" />
+                  <f.icon className={cn("w-3.5 h-3.5", f.color)} />
                   {f.label}
                 </DropdownMenuItem>
               ))}
@@ -440,9 +440,9 @@ export default function DetNest() {
             <TooltipTrigger asChild>
               <button
                 onClick={() => setShowDownloadModal(true)}
-                className="w-11 h-11 rounded-2xl flex items-center justify-center bg-purple-500/10 border border-purple-500/20 text-purple-600 hover:bg-purple-600 hover:text-white hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300 active:scale-90 group animate-in slide-in-from-right-4 fade-in duration-500"
+                className="w-11 h-11 rounded-2xl flex items-center justify-center bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 text-white hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300 active:scale-90 group animate-in slide-in-from-right-4 fade-in duration-500 border-0"
               >
-                <Download className="w-5 h-5 fill-purple-600/20 group-hover:scale-110 transition-transform" />
+                <Download className="w-5 h-5 group-hover:scale-110 transition-transform" />
               </button>
             </TooltipTrigger>
             <TooltipContent side="top">Download Dataset</TooltipContent>
