@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Reorder, useDragControls } from 'framer-motion';
 import {
   Plus,
   Trash2,
@@ -31,7 +31,10 @@ import {
   Globe,
   Landmark,
   FileText,
-  Box
+  Box,
+  Shuffle,
+  Server,
+  PackageCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -145,6 +148,55 @@ const popularTopics = [
   'student grades',
 ];
 
+const ReorderItem = ({ col, updateColumn, removeColumn, setShowDataTypeModal, dataTypeColors }: any) => {
+  const controls = useDragControls();
+
+  return (
+    <Reorder.Item
+      value={col}
+      layout
+      dragListener={false}
+      dragControls={controls}
+      className="group grid grid-cols-[32px_2fr_1.5fr_40px] items-center gap-4 p-3 rounded-xl bg-card border border-border/50 hover:border-primary/30 hover:shadow-sm transition-colors cursor-default"
+    >
+      <div
+        onPointerDown={(e) => controls.start(e)}
+        className="flex items-center justify-center text-muted-foreground/50 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing"
+      >
+        <GripVertical className="w-4 h-4" />
+      </div>
+
+      <div>
+        <Input
+          value={col.name}
+          onChange={e => updateColumn(col.id, 'name', e.target.value)}
+          className="h-9 bg-transparent border-transparent hover:bg-secondary/50 focus:bg-background focus:border-primary/20 transition-all font-medium"
+          placeholder="column_name"
+        />
+      </div>
+
+      <div>
+        <button
+          onClick={() => setShowDataTypeModal(col.id)}
+          className="w-full h-10 px-3 rounded-lg bg-secondary/30 border border-border/30 hover:bg-secondary/50 hover:border-primary/30 flex items-center justify-between text-base transition-all group-hover:shadow-inner"
+        >
+          <span className={dataTypeColors[col.dataType]}>{col.dataType}</span>
+          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground/50" />
+        </button>
+      </div>
+
+      <div className="flex justify-end">
+        <button
+          onClick={() => removeColumn(col.id)}
+          className="p-2 rounded-lg text-muted-foreground/50 hover:text-red-500 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+    </Reorder.Item>
+  );
+};
+
 const CustomGenerator = () => {
   const { isAnonymous } = useAuth();
   const [columns, setColumns] = useState<Column[]>([
@@ -168,6 +220,54 @@ const CustomGenerator = () => {
 
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [context, setContext] = useState('');
+
+  // Generation State
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [genProgress, setGenProgress] = useState(0);
+  const [genStep, setGenStep] = useState(0);
+  const [genDone, setGenDone] = useState(false);
+
+  const genSteps = [
+    { icon: Search, label: 'Analyzing schema & configuration...', color: 'text-blue-400' },
+    { icon: Brain, label: 'Initializing model & field correlations...', color: 'text-cyan-400' },
+    { icon: Shuffle, label: `Generating ${rowCount.toLocaleString()} records...`, color: 'text-indigo-400' },
+    { icon: Server, label: 'Optimizing data distributions...', color: 'text-violet-400' },
+    { icon: PackageCheck, label: `Formatting output to ${dataFormat}...`, color: 'text-primary' },
+  ];
+
+  React.useEffect(() => {
+    if (!isGenerating) {
+      if (!genDone) {
+        setGenProgress(0);
+        setGenStep(0);
+      }
+      return;
+    }
+    let p = 0;
+    const interval = setInterval(() => {
+      p += Math.random() * 2 + 0.5;
+      if (p >= 100) {
+        p = 100;
+        clearInterval(interval);
+        setGenDone(true);
+        setIsGenerating(false);
+      }
+      setGenProgress(p);
+      setGenStep(Math.min(Math.floor((Math.min(p, 99)) / 20), genSteps.length - 1));
+    }, 150);
+    return () => clearInterval(interval);
+  }, [isGenerating, rowCount, dataFormat]);
+
+  const handleGenerate = () => {
+    if (genDone) {
+      // Logic to actually download would go here
+      setGenDone(false);
+      setGenProgress(0);
+      return;
+    }
+    setIsGenerating(true);
+    setGenDone(false);
+  };
 
   const dataTypeCategories: Record<string, string[]> = {
     'Personal': ['First Name', 'Last Name', 'Full Name', 'Email', 'Phone', 'Age', 'Gender', 'Username'],
@@ -427,98 +527,150 @@ const CustomGenerator = () => {
         </div>
 
         {/* 3. Main Schema Content */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-background/50">
-          <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex-1 flex flex-col overflow-hidden bg-background/50">
+          <motion.div layoutScroll className="flex-1 overflow-y-auto p-4 md:p-8">
+            <div className="max-w-4xl mx-auto space-y-6">
 
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <LayoutTemplate className="w-5 h-5 text-primary" />
-                Schema Definition
-              </h2>
-              <Button
-                onClick={() => setShowAutoFillModal(true)}
-                variant="ghost"
-                className="h-8 gap-2 text-xs text-muted-foreground hover:text-primary"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                Auto-Fill Columns
-              </Button>
-            </div>
-
-            <div className="space-y-3">
-              <div className="grid grid-cols-[32px_2fr_1.5fr_40px] gap-4 px-4 py-2 text-xs font-semibold text-muted-foreground bg-secondary/30 rounded-lg border border-border/40 uppercase tracking-wider">
-                <div className="flex justify-center text-center">#</div>
-                <div className="pl-3">Column Name</div>
-                <div className="pl-3">Data Type</div>
-                <div className="text-right pr-2">Actions</div>
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <LayoutTemplate className="w-5 h-5 text-primary" />
+                  Schema Definition
+                </h2>
+                <Button
+                  onClick={() => setShowAutoFillModal(true)}
+                  variant="ghost"
+                  className="h-8 gap-2 text-xs text-muted-foreground hover:text-primary"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Auto-Fill Columns
+                </Button>
               </div>
 
-              {columns.map((col, idx) => (
-                <div
-                  key={col.id}
-                  className="group grid grid-cols-[32px_2fr_1.5fr_40px] items-center gap-4 p-3 rounded-xl bg-card border border-border/50 hover:border-primary/30 hover:shadow-sm transition-all animate-fadeIn"
-                >
-                  <div className="flex items-center justify-center text-muted-foreground/50 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing">
-                    <GripVertical className="w-4 h-4" />
-                  </div>
-
-                  <div>
-                    <Input
-                      value={col.name}
-                      onChange={e => updateColumn(col.id, 'name', e.target.value)}
-                      className="h-9 bg-transparent border-transparent hover:bg-secondary/50 focus:bg-background focus:border-primary/20 transition-all font-medium"
-                      placeholder="column_name"
-                    />
-                  </div>
-
-                  <div>
-                    <button
-                      onClick={() => setShowDataTypeModal(col.id)}
-                      className="w-full h-9 px-3 rounded-lg bg-secondary/30 border border-border/30 hover:bg-secondary/50 hover:border-primary/30 flex items-center justify-between text-sm transition-all group-hover:shadow-inner"
-                    >
-                      <span className={dataTypeColors[col.dataType]}>{col.dataType}</span>
-                      <ChevronDown className="w-3.5 h-3.5 text-muted-foreground/50" />
-                    </button>
-                  </div>
-
-                  <div className="flex justify-end">
-                    <button
-                      onClick={() => removeColumn(col.id)}
-                      className="p-2 rounded-lg text-muted-foreground/50 hover:text-red-500 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+              <div className="space-y-3">
+                <div className="grid grid-cols-[32px_2fr_1.5fr_40px] gap-4 px-4 py-2 text-xs font-semibold text-muted-foreground bg-secondary/30 rounded-lg border border-border/40 uppercase tracking-wider">
+                  <div className="flex justify-center text-center">#</div>
+                  <div className="pl-3">Column Name</div>
+                  <div className="pl-3">Data Type</div>
+                  <div className="text-right pr-2">Actions</div>
                 </div>
-              ))}
 
-              <button
-                onClick={addColumn}
-                className="w-full py-3 rounded-xl border border-dashed border-border/50 text-muted-foreground/70 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all flex items-center justify-center gap-2 text-sm font-medium mt-4"
-              >
-                <Plus className="w-4 h-4" />
-                Add New Column
-              </button>
+                <Reorder.Group as="ul" axis="y" values={columns} onReorder={setColumns} className="flex flex-col gap-3 list-none p-0 m-0">
+                  {columns.map((col) => (
+                    <ReorderItem key={col.id} col={col} updateColumn={updateColumn} removeColumn={removeColumn} setShowDataTypeModal={setShowDataTypeModal} dataTypeColors={dataTypeColors} />
+                  ))}
+                </Reorder.Group>
+
+                <button
+                  onClick={addColumn}
+                  className="w-full py-3 rounded-xl border border-dashed border-border/50 text-muted-foreground/70 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all flex items-center justify-center gap-2 text-sm font-medium mt-4"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add New Column
+                </button>
+              </div>
+
             </div>
+          </motion.div>
 
-
-            <div className="p-4 border-t border-border/40 bg-background/50 backdrop-blur-sm sticky bottom-0 z-10">
-              <div className="max-w-4xl mx-auto grid grid-cols-2 gap-4">
+          {/* Action Buttons - outside the scroll container */}
+          <div className="p-4 border-t border-border/40 bg-background">
+            <div className="max-w-4xl mx-auto space-y-4">
+              <motion.div
+                animate={isGenerating || genDone ? { y: -2 } : { y: 0 }}
+                className="grid grid-cols-2 gap-4"
+              >
                 <Button
                   variant="outline"
                   onClick={() => setShowPreviewModal(true)}
+                  disabled={isGenerating}
                   className="h-11 border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary w-full"
                 >
                   <Eye className="w-4 h-4 mr-2" />
                   Preview Data
                 </Button>
                 <Button
-                  className="h-11 bg-gradient-to-r from-purple-600 to-orange-500 hover:from-purple-700 hover:to-orange-600 text-white shadow-lg shadow-purple-500/20 w-full"
+                  onClick={handleGenerate}
+                  disabled={isGenerating}
+                  className={cn(
+                    "h-11 shadow-lg transition-all duration-500 w-full",
+                    genDone
+                      ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20"
+                      : "bg-gradient-to-r from-purple-600 to-orange-500 hover:from-purple-700 hover:to-orange-600 text-white shadow-purple-500/20"
+                  )}
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  Generate
+                  {genDone ? (
+                    <>
+                      <Check className="w-4 h-4 mr-2" />
+                      Download {dataFormat} File
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 mr-2" />
+                      {isGenerating ? 'Generating...' : 'Generate Dataset'}
+                    </>
+                  )}
                 </Button>
-              </div>
+              </motion.div>
+
+              <AnimatePresence>
+                {(isGenerating || genDone) && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pt-2 pb-1 space-y-4">
+                      {/* Progress Header */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {React.createElement(genSteps[genStep].icon, {
+                            className: cn("w-4 h-4 animate-pulse", genSteps[genStep].color)
+                          })}
+                          <span className="text-xs font-bold text-foreground/90">
+                            {genDone ? 'Dataset ready for download' : genSteps[genStep].label}
+                          </span>
+                        </div>
+                        <span className="text-xs font-mono font-bold text-primary">
+                          {Math.round(genProgress)}%
+                        </span>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div className="h-1.5 w-full bg-secondary/40 rounded-full overflow-hidden">
+                        <motion.div
+                          className="h-full bg-gradient-to-r from-primary via-purple-500 to-primary rounded-full"
+                          animate={{ width: `${genProgress}%` }}
+                          transition={{ type: "spring", bounce: 0, duration: 0.5 }}
+                        />
+                      </div>
+
+                      {/* Status Grid (mini versions of the steps) */}
+                      <div className="grid grid-cols-5 gap-2">
+                        {genSteps.map((s, i) => {
+                          const Icon = s.icon;
+                          const isActive = i === genStep && !genDone;
+                          const isComplete = i < genStep || genDone;
+                          return (
+                            <div key={i} className="flex flex-col items-center gap-1.5">
+                              <div className={cn(
+                                "w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-500",
+                                isComplete ? "bg-primary/10 text-primary" : isActive ? "bg-secondary/80 animate-pulse text-foreground" : "bg-secondary/20 text-muted-foreground/30"
+                              )}>
+                                <Icon className="w-3.5 h-3.5" />
+                              </div>
+                              <div className={cn(
+                                "h-0.5 w-full rounded-full transition-all duration-500",
+                                isComplete ? "bg-primary" : isActive ? "bg-primary/30" : "bg-border/20"
+                              )} />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </div>
@@ -536,7 +688,7 @@ const CustomGenerator = () => {
                   </div>
                   Auto-Fill Schema
                 </h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Smartly populate your dataset structure</p>
+                <p className="text-sm text-muted-foreground mt-0.5">Smartly populate your dataset structure</p>
               </div>
             </div>
 
@@ -560,8 +712,8 @@ const CustomGenerator = () => {
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="font-bold text-xs">AI Agent</div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5 px-1 truncate font-medium">Generate with AI</div>
+                  <div className="font-bold text-sm">AI Agent</div>
+                  <div className="text-xs text-muted-foreground mt-0.5 px-1 truncate font-medium">Generate with AI</div>
                 </div>
                 {autoFillMode === 'ai' && (
                   <motion.div
@@ -591,8 +743,8 @@ const CustomGenerator = () => {
                   <LayoutTemplate className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="font-bold text-xs">Templates</div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5 px-1 truncate font-medium">Industry Standards</div>
+                  <div className="font-bold text-sm">Templates</div>
+                  <div className="text-xs text-muted-foreground mt-0.5 px-1 truncate font-medium">Industry Standards</div>
                 </div>
                 {autoFillMode === 'template' && (
                   <motion.div
@@ -622,18 +774,18 @@ const CustomGenerator = () => {
                       placeholder="e.g. 'Create a medical records database for a private clinic...'"
                       value={autoFillTopic}
                       onChange={e => setAutoFillTopic(e.target.value)}
-                      className="min-h-[100px] pl-10 text-xs bg-background/50 border-primary/20 focus-visible:ring-primary/30 rounded-xl resize-none py-3"
+                      className="min-h-[100px] pl-10 text-sm bg-background/50 border-primary/20 focus-visible:ring-primary/30 rounded-xl resize-none py-3"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest px-1">Quick Starters</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest px-1">Quick Starters</p>
                     <div className="flex flex-wrap gap-1.5">
                       {popularTopics.map(topic => (
                         <button
                           key={topic}
                           onClick={() => setAutoFillTopic(topic)}
-                          className="px-3 py-1.5 rounded-lg text-xs bg-primary/5 hover:bg-primary/10 text-primary border border-primary/10 hover:border-primary/20 transition-all font-medium"
+                          className="px-3 py-1.5 rounded-lg text-sm bg-primary/5 hover:bg-primary/10 text-primary border border-primary/10 hover:border-primary/20 transition-all font-medium"
                         >
                           {topic}
                         </button>
@@ -669,8 +821,8 @@ const CustomGenerator = () => {
                           <t.icon className="w-5 h-5" />
                         </div>
                         <div className="flex-1">
-                          <div className={cn("font-bold text-xs transition-colors", isSelected ? "text-primary" : "group-hover:text-primary")}>{t.name}</div>
-                          <div className="text-[10px] text-muted-foreground line-clamp-1">{t.description}</div>
+                          <div className={cn("font-bold text-sm transition-colors", isSelected ? "text-primary" : "group-hover:text-primary")}>{t.name}</div>
+                          <div className="text-xs text-muted-foreground line-clamp-1">{t.description}</div>
                         </div>
                         <div className={cn("transition-all", isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0")}>
                           <ChevronRight className="w-3.5 h-3.5 text-primary" />
@@ -686,12 +838,12 @@ const CustomGenerator = () => {
               <Button
                 variant="ghost"
                 onClick={() => setShowAutoFillModal(false)}
-                className="h-10 rounded-lg hover:bg-secondary/40 text-xs font-semibold"
+                className="h-10 rounded-lg hover:bg-secondary/40 text-sm font-semibold"
               >
                 Cancel
               </Button>
               <Button
-                className="h-10 rounded-lg font-bold shadow-md bg-primary hover:bg-primary/90 text-primary-foreground text-xs"
+                className="h-10 rounded-lg font-bold shadow-md bg-primary hover:bg-primary/90 text-primary-foreground text-sm"
                 disabled={autoFillMode === 'ai' ? !autoFillTopic : !selectedTemplate}
                 onClick={() => {
                   if (autoFillMode === 'ai') {
@@ -717,7 +869,7 @@ const CustomGenerator = () => {
             </div>
             <input
               placeholder="Search 50+ data types..."
-              className="flex-1 bg-transparent border-none outline-none text-sm font-medium placeholder:text-muted-foreground/50"
+              className="flex-1 bg-transparent border-none outline-none text-base font-medium placeholder:text-muted-foreground/50"
               value={dataTypeSearch}
               onChange={e => setDataTypeSearch(e.target.value)}
               autoFocus
@@ -737,7 +889,7 @@ const CustomGenerator = () => {
                       setDataTypeSearch('');
                     }}
                     className={cn(
-                      "relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group",
+                      "relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all group",
                       isActive
                         ? "text-primary"
                         : "text-muted-foreground hover:bg-primary/5 hover:text-primary"
@@ -782,7 +934,7 @@ const CustomGenerator = () => {
                         "w-2 h-2 rounded-full transition-transform group-hover:scale-125",
                         dataTypeColors[type]?.replace('text-', 'bg-') || 'bg-slate-400'
                       )} />
-                      <span className="text-xs font-semibold group-hover:text-primary transition-colors">{type}</span>
+                      <span className="text-sm font-semibold group-hover:text-primary transition-colors">{type}</span>
                       <ChevronRight className="w-3 h-3 ml-auto opacity-0 group-hover:opacity-100 transition-all -translate-x-1 group-hover:translate-x-0 text-primary" />
                     </button>
                   ))}
@@ -894,7 +1046,7 @@ const CustomGenerator = () => {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </div >
   );
 };
 

@@ -15,7 +15,6 @@ interface AuthContextType {
   isAnonymous: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, username: string) => Promise<void>;
-  loginAsGuest: () => void;
   signOut: () => void;
 }
 
@@ -48,15 +47,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const loginAsGuest = () => {
-    setUser({
-      id: 'guest',
-      email: '',
-      username: 'Guest',
-      displayName: 'Guest User',
-      isAnonymous: true,
-    });
-  };
 
   const signOut = () => {
     setUser(null);
@@ -70,7 +60,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAnonymous: user?.isAnonymous ?? false,
         login,
         signup,
-        loginAsGuest,
         signOut,
       }}
     >

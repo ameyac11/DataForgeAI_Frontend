@@ -6,7 +6,6 @@ import { ThemeLogo } from '@/components/ThemeLogo';
 import { motion } from 'framer-motion';
 
 export function Hero() {
-  const { loginAsGuest } = useAuth();
 
   return (
     <section className="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden">
@@ -83,17 +82,6 @@ export function Hero() {
                 Get Started Free
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Link>
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="w-full sm:w-auto h-12 sm:h-14 px-6 sm:px-10 text-base sm:text-lg font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-full transition-all duration-300 hover:scale-105"
-              onClick={() => {
-                loginAsGuest();
-                window.location.href = '/app';
-              }}
-            >
-              Try as Guest
             </Button>
           </motion.div>
 

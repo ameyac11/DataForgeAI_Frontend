@@ -9,9 +9,9 @@ async function fetchApi<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
-  
+
   const token = localStorage.getItem('auth_token');
-  
+
   const defaultHeaders: HeadersInit = {
     'Content-Type': 'application/json',
     ...(token && { 'Authorization': `Bearer ${token}` }),
@@ -137,10 +137,6 @@ export const authApi = {
       body: JSON.stringify({ email, password, username }),
     }),
 
-  loginAsGuest: () =>
-    fetchApi<AuthResponse>('/auth/guest', {
-      method: 'POST',
-    }),
 
   logout: () =>
     fetchApi<{ success: boolean }>('/auth/logout', {
@@ -190,15 +186,15 @@ export const datasetsApi = {
   download: async (id: string, format: string) => {
     const url = `${API_BASE_URL}/datasets/${id}/download?format=${format}`;
     const token = localStorage.getItem('auth_token');
-    
+
     const response = await fetch(url, {
       headers: token ? { 'Authorization': `Bearer ${token}` } : {},
     });
-    
+
     if (!response.ok) {
       throw new ApiError(response.status, 'Download failed');
     }
-    
+
     return response.blob();
   },
 
@@ -246,19 +242,19 @@ export const chatApi = {
   uploadFile: async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-    
+
     const token = localStorage.getItem('auth_token');
-    
+
     const response = await fetch(`${API_BASE_URL}/chat/upload`, {
       method: 'POST',
       body: formData,
       headers: token ? { 'Authorization': `Bearer ${token}` } : {},
     });
-    
+
     if (!response.ok) {
       throw new ApiError(response.status, 'File upload failed');
     }
-    
+
     return response.json() as Promise<{ id: string; name: string; type: string }>;
   },
 };

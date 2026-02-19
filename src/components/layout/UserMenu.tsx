@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogOut, User, Settings, ChevronsLeftRight } from 'lucide-react';
+import { LogOut, User, Settings } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -47,9 +47,7 @@ export function UserMenu({ collapsed }: UserMenuProps) {
                             </div>
                         )}
 
-                        {!collapsed && (
-                            <ChevronsLeftRight className="ml-auto size-4 text-muted-foreground rotate-90" />
-                        )}
+
                     </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent

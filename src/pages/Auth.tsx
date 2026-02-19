@@ -140,7 +140,7 @@ const Auth = () => {
   const handleOAuthLogin = async (provider: 'google' | 'github') => {
     setIsLoading(true);
     await new Promise(resolve => setTimeout(resolve, 800));
-    login(`${provider}@example.com`, 'oauth');
+    await login(`${provider}@example.com`, 'oauth');
     navigate('/app');
   };
 

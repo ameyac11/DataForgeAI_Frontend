@@ -8,7 +8,7 @@ import { OnboardingFlow } from '@/components/OnboardingFlow';
 import { GuideTour } from '@/components/GuideTour';
 
 const Dashboard = () => {
-  const { isAuthenticated, isAnonymous, loginAsGuest, user } = useAuth();
+  const { isAuthenticated, isAnonymous, user } = useAuth();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showGuideTour, setShowGuideTour] = useState(false);
@@ -16,12 +16,12 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Auto-login as guest if not authenticated
+  // Redirect to login if not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
-      loginAsGuest();
+      navigate('/auth');
     }
-  }, [isAuthenticated, loginAsGuest]);
+  }, [isAuthenticated, navigate]);
 
   // Check if user needs onboarding (new authenticated user)
   useEffect(() => {

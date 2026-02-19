@@ -19,7 +19,6 @@ export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
-  const { loginAsGuest } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -29,10 +28,6 @@ export function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleTryAsGuest = () => {
-    loginAsGuest();
-    window.location.href = '/app';
-  };
 
   return (
     <header
@@ -75,14 +70,6 @@ export function Navbar() {
             {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </Button>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            className="hidden md:inline-flex h-9 hover:bg-accent/50 transition-all duration-300 hover:scale-105"
-            onClick={handleTryAsGuest}
-          >
-            Try as Guest
-          </Button>
 
           <Button
             asChild
@@ -125,9 +112,6 @@ export function Navbar() {
                 {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </Button>
             </div>
-            <Button className="h-11 w-full shadow-md hover:shadow-lg transition-all" onClick={handleTryAsGuest}>
-              Try as Guest
-            </Button>
             <Button asChild variant="outline" className="h-11 w-full border-2">
               <Link to="/auth">Sign In</Link>
             </Button>

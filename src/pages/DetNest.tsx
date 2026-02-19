@@ -120,10 +120,10 @@ function DownloadModal({ open, onClose, messages, dataFormat }: { open: boolean;
   const [done, setDone] = useState(false);
 
   const steps = [
-    { icon: Search, label: 'Analyzing chat history...', color: 'text-blue-500' },
-    { icon: Brain, label: 'Inferring schema & data types...', color: 'text-violet-500' },
-    { icon: Shuffle, label: 'Generating synthetic records...', color: 'text-orange-500' },
-    { icon: Server, label: 'Packaging dataset...', color: 'text-emerald-500' },
+    { icon: Search, label: 'Analyzing chat history...', color: 'text-blue-400' },
+    { icon: Brain, label: 'Inferring schema & data types...', color: 'text-cyan-400' },
+    { icon: Shuffle, label: 'Generating synthetic records...', color: 'text-indigo-400' },
+    { icon: Server, label: 'Packaging dataset...', color: 'text-violet-400' },
     { icon: PackageCheck, label: 'Finalizing & compressing...', color: 'text-primary' },
   ];
 
@@ -176,7 +176,7 @@ function DownloadModal({ open, onClose, messages, dataFormat }: { open: boolean;
             const isActive = i === step && !done;
             const isComplete = i < step || done;
             return (
-              <div key={i} className={`flex items-center gap-3 transition-all duration-500 ${i > step && !done ? 'opacity-25' : 'opacity-100'}`}>
+              <div key={i} className={`flex items-center gap-3 transition-all duration-500 ${i > step && !done ? 'opacity-50' : 'opacity-100'}`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 ${isComplete ? 'bg-primary/10' : isActive ? 'bg-secondary/80 animate-pulse' : 'bg-secondary/30'
                   }`}>
                   {isComplete
