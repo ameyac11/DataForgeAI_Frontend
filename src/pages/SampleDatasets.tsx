@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Search, Download, Database, FileSpreadsheet, FileJson, FileCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { sampleDatasets } from '@/data/mockData';
+import { localDatasets } from '@/data/localDatasets';
 
 const formatIcons: Record<string, typeof FileSpreadsheet> = {
   CSV: FileSpreadsheet,
@@ -16,9 +16,12 @@ const SampleDatasets = () => {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  const categories = [...new Set(sampleDatasets.map(d => d.category))];
+  // Use local datasets directly
+  const datasets = localDatasets;
 
-  const filteredDatasets = sampleDatasets.filter(dataset => {
+  const categories = [...new Set(datasets.map((d: any) => d.category))];
+
+  const filteredDatasets = datasets.filter((dataset: any) => {
     const matchesSearch = dataset.name.toLowerCase().includes(search.toLowerCase()) ||
       dataset.description.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = !selectedCategory || dataset.category === selectedCategory;
@@ -100,9 +103,11 @@ const SampleDatasets = () => {
                     <span>•</span>
                     <span>{dataset.format}</span>
                   </div>
-                  <Button size="sm" variant="outline" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Download className="w-4 h-4 mr-1" />
-                    Download
+                  <Button size="sm" variant="outline" className="opacity-0 group-hover:opacity-100 transition-opacity" asChild>
+                    <a href={dataset.path} download>
+                      <Download className="w-4 h-4 mr-1" />
+                      Download
+                    </a>
                   </Button>
                 </div>
               </motion.div>

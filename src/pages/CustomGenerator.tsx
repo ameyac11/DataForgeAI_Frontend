@@ -10,6 +10,7 @@ import {
   FileSpreadsheet,
   FileJson,
   FileCode,
+  Database,
   Cpu,
   X,
   ChevronRight,
@@ -53,7 +54,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
-import { templateColumns } from '@/data/mockData';
+import { api } from '@/services/api';
+import { ENDPOINTS } from '@/services/endpoints';
+
 
 type DataFormat = 'CSV' | 'JSON' | 'SQL' | 'Parquet';
 type SourceType = 'AI' | 'Library';
@@ -114,31 +117,20 @@ const models = [
   { value: 'GPT-4o Mini', label: 'GPT-4o Mini', secondaryBadge: 'Vision', color: 'text-blue-500' },
 ];
 
-const templateExamples = [
-  {
-    id: 'user-profile',
-    name: 'User Profile',
-    description: 'Common fields for user information',
-    icon: User,
-    columns: templateColumns['User Profile']
-  },
-  {
-    id: 'product-catalog',
-    name: 'Product Catalog',
-    description: 'Standard product listing fields',
-    icon: ShoppingCart,
-    columns: templateColumns['Product Catalog']
-  },
-  {
-    id: 'financial-transaction',
-    name: 'Financial Transaction',
-    description: 'Banking and payment record fields',
-    icon: CreditCard,
-    columns: templateColumns['Financial Transaction']
-  },
-];
+const iconMap: Record<string, any> = {
+  'user-profile': User,
+  'product-catalog': ShoppingCart,
+  'financial-transaction': CreditCard,
+};
 
-type TemplateExample = typeof templateExamples[0];
+interface TemplateExample {
+  id: string;
+  name: string;
+  description: string;
+  icon: any;
+  columns: Column[];
+}
+
 
 const popularTopics = [
   'e-commerce orders',
@@ -212,7 +204,25 @@ const CustomGenerator = () => {
   const [showAutoFillModal, setShowAutoFillModal] = useState(false);
   const [autoFillMode, setAutoFillMode] = useState<AutoFillMode>('ai');
   const [autoFillTopic, setAutoFillTopic] = useState('');
+  const [templates, setTemplates] = useState<TemplateExample[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateExample | null>(null);
+
+  React.useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const data = await api.get<any[]>(ENDPOINTS.TEMPLATES);
+        const processed = data?.map(t => ({
+          ...t,
+          icon: iconMap[t.id] || Database // Fallback icon
+        })) || [];
+        setTemplates(processed);
+      } catch (error) {
+        console.error('Failed to fetch templates:', error);
+      }
+    };
+    fetchTemplates();
+  }, []);
+
   const [showDataTypeModal, setShowDataTypeModal] = useState<string | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('Personal');
@@ -323,7 +333,7 @@ const CustomGenerator = () => {
     }
   };
 
-  const applyTemplate = (template: typeof templateExamples[0]) => {
+  const applyTemplate = (template: TemplateExample) => {
     setColumns(template.columns.map((col, i) => ({
       id: Date.now().toString() + i,
       name: col.name,
@@ -801,7 +811,7 @@ const CustomGenerator = () => {
                   exit={{ opacity: 0, y: -10 }}
                   className="grid grid-cols-1 gap-2 overflow-y-auto max-h-[250px] pr-1.5 -mr-1.5 custom-scrollbar"
                 >
-                  {templateExamples.map(t => {
+                  {templates.map(t => {
                     const isSelected = selectedTemplate?.id === t.id;
                     return (
                       <button
