@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/services/api';
+import { ENDPOINTS } from '@/services/endpoints';
 import logoLight from '@/assets/logo-light-theme.png';
 import logoDark from '@/assets/logo-dark-theme.png';
 import background from '@/assets/background.png';
@@ -23,13 +26,25 @@ const USAGE_OPTIONS = [
 
 export function OnboardingFlow({ open, onComplete }: OnboardingFlowProps) {
   const { theme, toggleTheme } = useTheme();
+  const { refreshUser } = useAuth();
 
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
   const [usage, setUsage] = useState<string[]>([]);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step === 3) {
+      try {
+        const goals = usage.map(id => USAGE_OPTIONS.find(o => o.id === id)?.label || id);
+        await api.post(ENDPOINTS.ONBOARDING_COMPLETE, {
+          name,
+          role: 'user',
+          purpose: goals.join(', '),
+        });
+        await refreshUser();
+      } catch (err) {
+        console.error('Failed to save onboarding:', err);
+      }
       onComplete();
     } else {
       setStep(prev => prev + 1);

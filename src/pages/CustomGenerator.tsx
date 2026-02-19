@@ -243,6 +243,7 @@ const CustomGenerator = () => {
   const [genProgress, setGenProgress] = useState(0);
   const [genStep, setGenStep] = useState(0);
   const [genDone, setGenDone] = useState(false);
+  const [generatedData, setGeneratedData] = useState<any>(null);
 
   const genSteps = [
     { icon: Search, label: 'Analyzing schema & configuration...', color: 'text-blue-400' },
@@ -252,6 +253,7 @@ const CustomGenerator = () => {
     { icon: PackageCheck, label: `Formatting output to ${dataFormat}...`, color: 'text-primary' },
   ];
 
+  // Visual-only progress bar for when API call is in progress
   React.useEffect(() => {
     if (!isGenerating) {
       if (!genDone) {
@@ -262,12 +264,11 @@ const CustomGenerator = () => {
     }
     let p = 0;
     const interval = setInterval(() => {
-      p += Math.random() * 2 + 0.5;
-      if (p >= 100) {
-        p = 100;
+      p += Math.random() * 1.5 + 0.3;
+      if (p >= 95) {
+        // cap at 95% — the API completion will push to 100%
+        p = 95;
         clearInterval(interval);
-        setGenDone(true);
-        setIsGenerating(false);
       }
       setGenProgress(p);
       setGenStep(Math.min(Math.floor((Math.min(p, 99)) / 20), genSteps.length - 1));
@@ -275,15 +276,58 @@ const CustomGenerator = () => {
     return () => clearInterval(interval);
   }, [isGenerating, rowCount, dataFormat]);
 
-  const handleGenerate = () => {
-    if (genDone) {
-      // Logic to actually download would go here
+  const handleGenerate = async () => {
+    if (genDone && generatedData) {
+      // Download the generated data
+      const blob = new Blob([
+        typeof generatedData === 'string' ? generatedData : JSON.stringify(generatedData, null, 2)
+      ], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `dataset.${dataFormat.toLowerCase()}`;
+      a.click();
+      URL.revokeObjectURL(url);
       setGenDone(false);
       setGenProgress(0);
+      setGeneratedData(null);
       return;
     }
+
     setIsGenerating(true);
     setGenDone(false);
+    setGeneratedData(null);
+
+    try {
+      const modelMap: Record<string, string> = {
+        'Compound': 'compound',
+        'Compound Mini': 'compound-mini',
+        'Llama 4 Scout': 'llama-scout-4',
+        'GPT OSS 120B': 'gpt-oss-120b',
+        'GPT-4.1': 'gpt-4.1',
+        'GPT-4o Mini': 'gpt-4o-mini',
+      };
+
+      const res = await api.post<{ status: string; data: any }>(ENDPOINTS.GENERATE_DOWNLOAD, {
+        columns: columns.map(c => ({ name: c.name, type: c.dataType })),
+        rows: rowCount,
+        format: dataFormat.toLowerCase(),
+        source: sourceType,
+        context: context || specialPrompt,
+        model_id: sourceType === 'AI' ? modelMap[model] : undefined,
+      });
+
+      setGeneratedData(res.data);
+      setGenProgress(100);
+      setGenStep(genSteps.length - 1);
+      setGenDone(true);
+    } catch (err: any) {
+      console.error('Generation failed:', err);
+      setGenDone(false);
+      setGenProgress(0);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const dataTypeCategories: Record<string, string[]> = {
@@ -350,22 +394,46 @@ const CustomGenerator = () => {
     setShowAutoFillModal(false);
   };
 
-  const generatePreviewData = () => {
-    const mockValues: Record<string, string[]> = {
-      'First Name': ['John', 'Sarah', 'Mike', 'Emily', 'David'],
-      'Last Name': ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones'],
-      'Email': ['john@example.com', 'sarah@mail.com', 'mike@test.com', 'emily@demo.com', 'david@sample.com'],
-      'Address': ['123 Main St', '456 Oak Ave', '789 Pine Rd', '321 Elm Blvd', '654 Cedar Ln'],
-      'Phone': ['555-0101', '555-0102', '555-0103', '555-0104', '555-0105'],
-      'Company': ['Acme Inc', 'TechCorp', 'DataSoft', 'CloudBase', 'NetWorks'],
-    };
+  const [previewData, setPreviewData] = useState<string[][]>([]);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
-    return Array.from({ length: 5 }, (_, rowIndex) =>
-      columns.map(col => {
-        const values = mockValues[col.dataType] || ['Sample data'];
-        return values[rowIndex % values.length];
-      })
-    );
+  const loadPreviewData = async () => {
+    setPreviewLoading(true);
+    try {
+      const modelMap: Record<string, string> = {
+        'Compound': 'compound',
+        'Compound Mini': 'compound-mini',
+        'Llama 4 Scout': 'llama-scout-4',
+        'GPT OSS 120B': 'gpt-oss-120b',
+        'GPT-4.1': 'gpt-4.1',
+        'GPT-4o Mini': 'gpt-4o-mini',
+      };
+
+      const res = await api.post<{ status: string; data: any }>(ENDPOINTS.GENERATE_PREVIEW, {
+        columns: columns.map(c => ({ name: c.name, type: c.dataType })),
+        source: sourceType,
+        context: context || specialPrompt,
+        model_id: sourceType === 'AI' ? modelMap[model] : undefined,
+      });
+
+      // Convert response data to 2D array for the table
+      if (Array.isArray(res.data)) {
+        const rows = res.data.map((row: any) =>
+          columns.map(col => String(row[col.name] ?? ''))
+        );
+        setPreviewData(rows);
+      } else {
+        setPreviewData([]);
+      }
+    } catch (err) {
+      console.error('Preview failed:', err);
+      // Fallback to simple placeholders
+      setPreviewData(
+        Array.from({ length: 5 }, () => columns.map(() => 'N/A'))
+      );
+    } finally {
+      setPreviewLoading(false);
+    }
   };
 
   return (
@@ -621,7 +689,7 @@ const CustomGenerator = () => {
               >
                 <Button
                   variant="outline"
-                  onClick={() => setShowPreviewModal(true)}
+                  onClick={() => { setShowPreviewModal(true); loadPreviewData(); }}
                   disabled={isGenerating}
                   className="h-11 border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary w-full"
                 >
@@ -885,8 +953,25 @@ const CustomGenerator = () => {
               <Button
                 className="h-10 rounded-lg font-bold shadow-md bg-primary hover:bg-primary/90 text-primary-foreground text-sm"
                 disabled={autoFillMode === 'ai' ? !autoFillTopic : !selectedTemplate}
-                onClick={() => {
+                onClick={async () => {
                   if (autoFillMode === 'ai') {
+                    // Call backend AI column suggestion
+                    try {
+                      const allTypes = Object.values(dataTypeCategories).flat();
+                      const res = await api.post<{ status: string; data: any }>(ENDPOINTS.GENERATE_COLUMNS, {
+                        topic: autoFillTopic,
+                        available_types: allTypes,
+                      });
+                      if (res.data && Array.isArray(res.data)) {
+                        setColumns(res.data.map((col: any, i: number) => ({
+                          id: Date.now().toString() + i,
+                          name: col.name || col.column_name || `col_${i}`,
+                          dataType: col.type || col.dataType || 'String',
+                        })));
+                      }
+                    } catch (err) {
+                      console.error('AI column suggestion failed:', err);
+                    }
                     setShowAutoFillModal(false);
                   } else if (selectedTemplate) {
                     applyTemplate(selectedTemplate);
@@ -1046,7 +1131,14 @@ const CustomGenerator = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
-                  {generatePreviewData().map((row, rowIndex) => (
+                  {previewLoading ? (
+                    <tr>
+                      <td colSpan={Math.min(columns.length, 5)} className="px-5 py-8 text-center text-sm text-muted-foreground">
+                        Loading preview...
+                      </td>
+                    </tr>
+                  ) : previewData.length > 0 ? (
+                    previewData.map((row, rowIndex) => (
                     <tr key={rowIndex} className="hover:bg-primary/5 transition-colors group">
                       {row.slice(0, 5).map((cell, cellIndex) => (
                         <td key={cellIndex} className="px-5 py-3.5 text-xs text-foreground/80 font-mono whitespace-nowrap">
@@ -1054,7 +1146,14 @@ const CustomGenerator = () => {
                         </td>
                       ))}
                     </tr>
-                  ))}
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={Math.min(columns.length, 5)} className="px-5 py-8 text-center text-sm text-muted-foreground">
+                        No preview data available
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

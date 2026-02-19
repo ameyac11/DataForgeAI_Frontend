@@ -185,7 +185,7 @@ export function SettingsDialog({ open, onOpenChange, defaultSection = 'general' 
                       <p className="text-xs text-muted-foreground leading-relaxed">You are using a temporary account. Sign in to sync your work across devices and unlock advanced synthetic data models.</p>
                     </div>
                     <Button
-                      onClick={() => { onOpenChange(false); navigate('/login'); }}
+                      onClick={() => { onOpenChange(false); navigate('/auth'); }}
                       className="w-full h-10 shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]"
                     >
                       Sign in to DataForgeAI
@@ -263,6 +263,7 @@ export function SettingsDialog({ open, onOpenChange, defaultSection = 'general' 
                   <p className="text-sm text-muted-foreground">Track your synthetic data consumption and plan details.</p>
                 </div>
 
+                {/* TODO: Fetch real usage stats from backend when endpoints are available */}
                 <div className="space-y-6">
                   <div className="p-5 rounded-2xl border border-border bg-gradient-to-br from-secondary/50 to-background shadow-sm">
                     <div className="flex items-center justify-between mb-4">

@@ -26,17 +26,13 @@ const Dashboard = () => {
   // Check if user needs onboarding (new authenticated user)
   useEffect(() => {
     if (isAuthenticated && !isAnonymous && user) {
-      const hasCompletedOnboarding = localStorage.getItem(`onboarding_${user.email}`);
-      if (!hasCompletedOnboarding) {
+      if (!user.onboarding_completed) {
         setShowOnboarding(true);
       }
     }
   }, [isAuthenticated, isAnonymous, user]);
 
   const handleOnboardingComplete = () => {
-    if (user?.email) {
-      localStorage.setItem(`onboarding_${user.email}`, 'true');
-    }
     setShowOnboarding(false);
     // Show guide tour after onboarding
     setShowGuideTour(true);

@@ -19,7 +19,7 @@ type AuthStep = 'method' | 'email' | 'password' | 'forgot' | 'signup-details' | 
 const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { login, signup } = useAuth();
+  const { login, signup, isAuthenticated, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   const initialMode = searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
@@ -41,6 +41,21 @@ const Auth = () => {
       document.body.style.overflow = 'auto';
     };
   }, []);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      navigate(user.onboarding_completed ? '/app' : '/onboarding', { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
+
+  // Handle OAuth error from query params
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (error) {
+      setError(decodeURIComponent(error));
+    }
+  }, [searchParams]);
 
   const switchMode = () => {
     const newMode = mode === 'signin' ? 'signup' : 'signin';
@@ -130,18 +145,19 @@ const Auth = () => {
       return;
     }
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Backend doesn't support password reset yet — show informational message
+    await new Promise(resolve => setTimeout(resolve, 500));
     setIsLoading(false);
     setError('');
-    alert('Password reset link sent to your email');
+    alert('Password reset is not available yet. Please contact support.');
     setStep('email');
   };
 
   const handleOAuthLogin = async (provider: 'google' | 'github') => {
-    setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    await login(`${provider}@example.com`, 'oauth');
-    navigate('/onboarding');
+    // Redirect to backend OAuth endpoint — backend handles the entire flow
+    // and redirects back to /app or /onboarding with cookies set
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+    window.location.href = `${apiUrl}/auth/${provider}`;
   };
 
   const goBack = () => {

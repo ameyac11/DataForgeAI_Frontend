@@ -13,26 +13,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useChat } from '@/contexts/ChatContext';
 import { cn } from '@/lib/utils';
 
-interface ChatItem {
-  id: string;
-  name: string;
-  timestamp: Date;
-  pinned: boolean;
-}
-
 const HistoryPage = () => {
   const navigate = useNavigate();
   const { isAnonymous } = useAuth();
-  const { chats: contextChats } = useChat();
+  const { chats, deleteChat, renameChat, pinChat, selectChat } = useChat();
   const [search, setSearch] = useState('');
-  const [chats, setChats] = useState<ChatItem[]>(
-    contextChats.map(c => ({
-      id: c.id,
-      name: c.name,
-      timestamp: c.date ? new Date(c.date) : new Date(),
-      pinned: c.pinned || false
-    }))
-  );
   const [filter, setFilter] = useState<'all' | 'pinned'>('all');
   const [sortBy, setSortBy] = useState<'recent' | 'name'>('recent');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -40,19 +25,19 @@ const HistoryPage = () => {
 
   const filteredChats = chats
     .filter(chat => {
-      const matchesSearch = chat.name.toLowerCase().includes(search.toLowerCase());
+      const matchesSearch = chat.title.toLowerCase().includes(search.toLowerCase());
       const matchesFilter = filter === 'all' || (filter === 'pinned' && chat.pinned);
       return matchesSearch && matchesFilter;
     })
     .sort((a, b) => {
-      if (sortBy === 'name') return a.name.localeCompare(b.name);
-      return b.timestamp.getTime() - a.timestamp.getTime();
+      if (sortBy === 'name') return a.title.localeCompare(b.title);
+      return b.updatedAt.getTime() - a.updatedAt.getTime();
     });
 
   // Group chats by date
   const groupedChats = filteredChats.reduce((groups, chat) => {
     const now = new Date();
-    const chatDate = chat.timestamp;
+    const chatDate = chat.updatedAt;
     const diffDays = Math.floor((now.getTime() - chatDate.getTime()) / (1000 * 60 * 60 * 24));
 
     let groupName: string;
@@ -65,7 +50,7 @@ const HistoryPage = () => {
     if (!groups[groupName]) groups[groupName] = [];
     groups[groupName].push(chat);
     return groups;
-  }, {} as Record<string, ChatItem[]>);
+  }, {} as Record<string, typeof filteredChats>);
 
   const groupOrder = ['Today', 'Yesterday', 'This Week', 'This Month', 'Older'];
 
@@ -77,7 +62,7 @@ const HistoryPage = () => {
 
   const saveRename = (id: string) => {
     if (editingName.trim()) {
-      setChats(chats.map(c => c.id === id ? { ...c, name: editingName.trim() } : c));
+      renameChat(id, editingName.trim());
     }
     setEditingId(null);
     setEditingName('');
@@ -90,12 +75,17 @@ const HistoryPage = () => {
 
   const handlePin = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setChats(chats.map(c => c.id === id ? { ...c, pinned: !c.pinned } : c));
+    pinChat(id);
   };
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setChats(chats.filter(c => c.id !== id));
+    deleteChat(id);
+  };
+
+  const handleSelectChat = (chatId: string) => {
+    selectChat(chatId);
+    navigate('/app');
   };
 
   const formatTime = (date: Date) => {
@@ -182,7 +172,7 @@ const HistoryPage = () => {
                   {groupChats.map((chat) => (
                     <div
                       key={chat.id}
-                      onClick={() => editingId !== chat.id && navigate(`/app/detnest?chat=${chat.id}`)}
+                      onClick={() => editingId !== chat.id && handleSelectChat(chat.id)}
                       className={cn(
                         "flex items-center gap-4 p-4 rounded-xl border border-border bg-card",
                         "hover:bg-accent/50 hover:border-accent transition-all cursor-pointer group",
@@ -230,7 +220,7 @@ const HistoryPage = () => {
                           </div>
                         ) : (
                           <h3 className="text-sm font-medium text-foreground truncate group-hover:text-foreground/90">
-                            {chat.name}
+                            {chat.title}
                           </h3>
                         )}
                       </div>
@@ -238,7 +228,7 @@ const HistoryPage = () => {
                       {/* Time */}
                       {editingId !== chat.id && (
                         <span className="text-xs text-muted-foreground flex-shrink-0">
-                          {formatTime(chat.timestamp)}
+                          {formatTime(chat.updatedAt)}
                         </span>
                       )}
 
@@ -248,7 +238,7 @@ const HistoryPage = () => {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={(e) => startRename(chat.id, chat.name, e)}
+                            onClick={(e) => startRename(chat.id, chat.title, e)}
                             className="h-8 w-8 text-muted-foreground hover:text-foreground"
                             title="Rename"
                           >

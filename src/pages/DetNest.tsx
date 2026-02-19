@@ -27,6 +27,8 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useChat, DataFormat, DataMode } from '@/contexts/ChatContext';
+import { api } from '@/services/api';
+import { ENDPOINTS } from '@/services/endpoints';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -114,10 +116,12 @@ const AnimatedDots = () => (
 );
 
 // ===== DOWNLOAD MODAL =====
-function DownloadModal({ open, onClose, messages, dataFormat }: { open: boolean; onClose: () => void; messages: any[]; dataFormat: string }) {
+function DownloadModal({ open, onClose, chatId, dataFormat }: { open: boolean; onClose: () => void; chatId: string | null; dataFormat: string }) {
   const [progress, setProgress] = useState(0);
   const [step, setStep] = useState(0);
   const [done, setDone] = useState(false);
+  const [downloadData, setDownloadData] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const steps = [
     { icon: Search, label: 'Analyzing chat history...', color: 'text-blue-400' },
@@ -128,18 +132,57 @@ function DownloadModal({ open, onClose, messages, dataFormat }: { open: boolean;
   ];
 
   useEffect(() => {
-    if (!open) { setProgress(0); setStep(0); setDone(false); return; }
+    if (!open || !chatId) { setProgress(0); setStep(0); setDone(false); setError(null); setDownloadData(null); return; }
+
+    let cancelled = false;
+
+    // Start visual progress
     let p = 0;
     const interval = setInterval(() => {
-      p += Math.random() * 1.5 + 0.5;
-      if (p >= 100) { p = 100; clearInterval(interval); setDone(true); }
-      setProgress(Math.min(p, 100));
+      if (cancelled) return;
+      p += Math.random() * 1.2 + 0.3;
+      if (p > 95) p = 95; // cap at 95% until API returns
+      setProgress(Math.min(p, 95));
       setStep(Math.min(Math.floor((Math.min(p, 99)) / 20), steps.length - 1));
     }, 180);
-    return () => clearInterval(interval);
-  }, [open]);
+
+    // Call backend
+    api.post<{ status: string; data: any }>(ENDPOINTS.CHAT_DOWNLOAD(chatId), {
+      format: dataFormat.toLowerCase(),
+      rows: 100,
+      source: 'AI',
+    }).then(res => {
+      if (cancelled) return;
+      clearInterval(interval);
+      setDownloadData(res.data);
+      setProgress(100);
+      setStep(steps.length - 1);
+      setDone(true);
+    }).catch(err => {
+      if (cancelled) return;
+      clearInterval(interval);
+      setError(err.message || 'Download failed');
+      setProgress(0);
+    });
+
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [open, chatId, dataFormat]);
 
   if (!open) return null;
+
+  const handleDownload = () => {
+    if (!downloadData) return;
+    const blob = new Blob([
+      typeof downloadData === 'string' ? downloadData : JSON.stringify(downloadData, null, 2)
+    ], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dataset.${dataFormat.toLowerCase()}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    onClose();
+  };
 
   const currentStep = steps[step];
   const StepIcon = currentStep.icon;
@@ -208,12 +251,15 @@ function DownloadModal({ open, onClose, messages, dataFormat }: { open: boolean;
           </div>
           {done && (
             <button
-              onClick={onClose}
+              onClick={handleDownload}
               className="mt-4 w-full flex items-center justify-center gap-2 h-10 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-colors shadow-md shadow-primary/20 animate-in fade-in slide-in-from-bottom-2 duration-300"
             >
               <Download className="w-4 h-4" />
               Download {dataFormat} File
             </button>
+          )}
+          {error && (
+            <div className="mt-4 text-center text-sm text-red-500">{error}</div>
           )}
         </div>
       </div>
@@ -223,7 +269,7 @@ function DownloadModal({ open, onClose, messages, dataFormat }: { open: boolean;
 
 // ===== MAIN COMPONENT =====
 export default function DetNest() {
-  const { messages, sendMessage, isLoading, loadingPhase, stopGeneration, dataFormat, setDataFormat, dataMode, setDataMode, model, setModel } = useChat();
+  const { messages, sendMessage, isLoading, loadingPhase, stopGeneration, dataFormat, setDataFormat, dataMode, setDataMode, model, setModel, currentChat } = useChat();
   const [input, setInput] = useState('');
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [webSearchEnabled, setWebSearchEnabled] = useState(false);
@@ -571,7 +617,7 @@ export default function DetNest() {
       <DownloadModal
         open={showDownloadModal}
         onClose={() => setShowDownloadModal(false)}
-        messages={messages}
+        chatId={currentChat?.id || null}
         dataFormat={dataFormat}
       />
     </div>

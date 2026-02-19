@@ -5,8 +5,11 @@ import { ArrowRight, Sparkles, Code2, LineChart, FlaskConical, LayoutTemplate, M
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { ThemeLogo } from '@/components/ThemeLogo';
 import { cn } from '@/lib/utils';
+import { api } from '@/services/api';
+import { ENDPOINTS } from '@/services/endpoints';
 import logoLight from '@/assets/logo-light-theme.png';
 import logoDark from '@/assets/logo-dark-theme.png';
 
@@ -29,6 +32,7 @@ const GOALS = [
 const Onboarding = () => {
     const navigate = useNavigate();
     const { theme } = useTheme();
+    const { refreshUser } = useAuth();
 
     const [step, setStep] = useState(0);
     const [name, setName] = useState('');
@@ -44,8 +48,20 @@ const Onboarding = () => {
         };
     }, []);
 
-    const handleNext = () => {
+    const handleNext = async () => {
         if (step === 3) {
+            // Submit onboarding data to backend
+            try {
+                await api.post(ENDPOINTS.ONBOARDING_COMPLETE, {
+                    name,
+                    role,
+                    purpose: goals.join(', '),
+                });
+                // Refresh user data so onboarding_completed flag updates
+                await refreshUser();
+            } catch (err) {
+                console.error('Failed to complete onboarding:', err);
+            }
             setIsExiting(true);
             setTimeout(() => navigate('/app'), 500);
         } else {
