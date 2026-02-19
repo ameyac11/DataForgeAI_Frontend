@@ -5,7 +5,8 @@ import {
   ChevronDown, Globe, ArrowUp, Brain, Search, Cog,
   CheckCircle2, Copy, ThumbsUp, ThumbsDown, RotateCcw,
   Share, MoreHorizontal, Loader2, FileText, ImageIcon, X,
-  Clock, Pin, FileType, Check, Cpu, LayoutGrid
+  Clock, Pin, FileType, Check, Cpu, LayoutGrid, Download,
+  FileDown, Server, Shuffle, PackageCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -53,10 +54,9 @@ const dataModes = [
 ];
 
 const suggestions = [
-  "Summarize my documents",
-  "Key findings?",
-  "Compare papers",
-  "Explain simply"
+  "Generate a user dataset",
+  "Analyze data schema",
+  "Create mock sales data"
 ];
 
 // --- Components ---
@@ -113,10 +113,119 @@ const AnimatedDots = () => (
   </span>
 );
 
+// ===== DOWNLOAD MODAL =====
+function DownloadModal({ open, onClose, messages, dataFormat }: { open: boolean; onClose: () => void; messages: any[]; dataFormat: string }) {
+  const [progress, setProgress] = useState(0);
+  const [step, setStep] = useState(0);
+  const [done, setDone] = useState(false);
+
+  const steps = [
+    { icon: Search, label: 'Analyzing chat history...', color: 'text-blue-500' },
+    { icon: Brain, label: 'Inferring schema & data types...', color: 'text-violet-500' },
+    { icon: Shuffle, label: 'Generating synthetic records...', color: 'text-orange-500' },
+    { icon: Server, label: 'Packaging dataset...', color: 'text-emerald-500' },
+    { icon: PackageCheck, label: 'Finalizing & compressing...', color: 'text-primary' },
+  ];
+
+  useEffect(() => {
+    if (!open) { setProgress(0); setStep(0); setDone(false); return; }
+    let p = 0;
+    const interval = setInterval(() => {
+      p += Math.random() * 1.5 + 0.5;
+      if (p >= 100) { p = 100; clearInterval(interval); setDone(true); }
+      setProgress(Math.min(p, 100));
+      setStep(Math.min(Math.floor((Math.min(p, 99)) / 20), steps.length - 1));
+    }, 180);
+    return () => clearInterval(interval);
+  }, [open]);
+
+  if (!open) return null;
+
+  const currentStep = steps[step];
+  const StepIcon = currentStep.icon;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-md" onClick={!done ? undefined : onClose} />
+
+      {/* Panel */}
+      <div className="relative w-full max-w-md rounded-2xl border border-border/50 bg-background shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in duration-300">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-border/30">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+              <FileDown className="w-4.5 h-4.5 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-bold tracking-tight">Generating Dataset</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">{dataFormat} format</p>
+            </div>
+          </div>
+          {done && (
+            <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Animated Steps */}
+        <div className="px-6 py-5 space-y-3">
+          {steps.map((s, i) => {
+            const Icon = s.icon;
+            const isActive = i === step && !done;
+            const isComplete = i < step || done;
+            return (
+              <div key={i} className={`flex items-center gap-3 transition-all duration-500 ${i > step && !done ? 'opacity-25' : 'opacity-100'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 ${isComplete ? 'bg-primary/10' : isActive ? 'bg-secondary/80 animate-pulse' : 'bg-secondary/30'
+                  }`}>
+                  {isComplete
+                    ? <Check className="w-4 h-4 text-primary" />
+                    : <Icon className={`w-4 h-4 transition-colors ${isActive ? s.color : 'text-muted-foreground/40'}`} />}
+                </div>
+                <p className={`text-xs font-semibold transition-colors ${isComplete ? 'text-primary' : isActive ? 'text-foreground' : 'text-muted-foreground/40'
+                  }`}>{s.label}</p>
+                {isActive && <Loader2 className="w-3. h-3.5 text-muted-foreground animate-spin ml-auto" />}
+                {isComplete && <Check className="w-3.5 h-3.5 text-primary ml-auto" />}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Progress Bar */}
+        <div className="px-6 pb-5">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+              {done ? 'Complete' : 'Processing...'}
+            </p>
+            <p className="text-xs font-mono font-bold text-primary">{Math.round(progress)}%</p>
+          </div>
+          <div className="h-2 w-full bg-secondary/50 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-primary to-purple-500 rounded-full transition-all duration-150 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          {done && (
+            <button
+              onClick={onClose}
+              className="mt-4 w-full flex items-center justify-center gap-2 h-10 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-colors shadow-md shadow-primary/20 animate-in fade-in slide-in-from-bottom-2 duration-300"
+            >
+              <Download className="w-4 h-4" />
+              Download {dataFormat} File
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ===== MAIN COMPONENT =====
 export default function DetNest() {
   const { messages, sendMessage, isLoading, loadingPhase, stopGeneration, dataFormat, setDataFormat, dataMode, setDataMode, model, setModel } = useChat();
   const [input, setInput] = useState('');
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [webSearchEnabled, setWebSearchEnabled] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -162,166 +271,184 @@ export default function DetNest() {
 
   // --- Render Search Bar (CorpusAI Style) ---
   const renderSearchBar = () => (
-    <div className="bg-secondary/40 dark:bg-secondary/60 border border-border/60 dark:border-border rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 backdrop-blur-sm group focus-within:shadow-md focus-within:border-border w-full max-w-2xl mx-auto">
-      {/* Input Row */}
-      <div className="flex items-end gap-2 px-4 py-3">
-        <button className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-background/80 transition-all duration-200 shrink-0 mb-1 active:scale-95">
-          <Plus className="w-5 h-5" />
-        </button>
+    <div className="flex items-start gap-3 w-full max-w-2xl mx-auto">
+      <div className="flex-1 bg-secondary/40 dark:bg-secondary/60 border border-border/60 dark:border-border rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 backdrop-blur-sm group focus-within:shadow-md focus-within:border-border">
+        {/* Input Row */}
+        <div className="flex items-end gap-2 px-4 py-3">
+          <button className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-background/80 transition-all duration-200 shrink-0 mb-1 active:scale-95">
+            <Plus className="w-5 h-5" />
+          </button>
 
-        <textarea
-          ref={textareaRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Ask anything..."
-          className="flex-1 bg-transparent border-0 resize-none focus:outline-none text-foreground placeholder:text-muted-foreground/70 min-h-[44px] max-h-[160px] text-sm py-2.5 leading-relaxed"
-          rows={1}
-        />
-      </div>
+          <textarea
+            ref={textareaRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask anything..."
+            className="flex-1 bg-transparent border-0 resize-none focus:outline-none text-foreground placeholder:text-muted-foreground/70 min-h-[44px] max-h-[160px] text-sm py-2.5 leading-relaxed"
+            rows={1}
+          />
+        </div>
 
-      {/* Controls Row - Bottom */}
-      <div className="flex items-center gap-2 px-3 pb-3 flex-wrap">
-        <div className="flex items-center gap-0.5 p-1 rounded-full bg-background/40 border border-border/30 shadow-sm transition-all duration-200 hover:shadow-md">
-          {/* Web Search Toggle */}
-          <TooltipProvider>
-            <Tooltip delayDuration={100}>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => setWebSearchEnabled(!webSearchEnabled)}
-                  className={cn(
-                    "w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 active:scale-95",
-                    webSearchEnabled
-                      ? "bg-purple-600 text-white shadow-md shadow-purple-500/20"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                  )}>
-                  <Globe className="w-3.5 h-3.5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="text-xs">
-                {webSearchEnabled ? 'Web Search Enabled' : 'Search Web'}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          <Separator orientation="vertical" className="h-4 bg-border/50 mx-0.5" />
-
-          {/* Data Generation Mode Selection (Database Icon) */}
-          <DropdownMenu>
+        {/* Controls Row - Bottom */}
+        <div className="flex items-center gap-2 px-3 pb-3 flex-wrap">
+          <div className="flex items-center gap-0.5 p-1 rounded-full bg-background/40 border border-border/30 shadow-sm transition-all duration-200 hover:shadow-md">
+            {/* Web Search Toggle */}
             <TooltipProvider>
               <Tooltip delayDuration={100}>
-                <DropdownMenuTrigger asChild>
-                  <TooltipTrigger asChild>
-                    <button className={cn(
-                      "w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-secondary active:scale-95",
-                      dataMode !== 'Synthetic' && "text-purple-600 dark:text-purple-400 bg-purple-500/10"
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setWebSearchEnabled(!webSearchEnabled)}
+                    className={cn(
+                      "w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 active:scale-95",
+                      webSearchEnabled
+                        ? "bg-purple-600 text-white shadow-md shadow-purple-500/20"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                     )}>
-                      <Database className="w-3.5 h-3.5" />
-                    </button>
-                  </TooltipTrigger>
-                </DropdownMenuTrigger>
-                <TooltipContent side="top" className="text-xs">Generation Mode: {currentMode.label}</TooltipContent>
+                    <Globe className="w-3.5 h-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  {webSearchEnabled ? 'Web Search Enabled' : 'Search Web'}
+                </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            <DropdownMenuContent align="start" className="w-[150px]">
-              <DropdownMenuLabel className="text-[10px] text-muted-foreground uppercase opacity-70">Generation Mode</DropdownMenuLabel>
-              {dataModes.map(m => (
-                <DropdownMenuItem key={m.value} onClick={() => setDataMode(m.value as DataMode)} className="gap-2">
-                  <m.icon className="w-3.5 h-3.5" />
-                  {m.label}
+
+            <Separator orientation="vertical" className="h-4 bg-border/50 mx-0.5" />
+
+            {/* Data Generation Mode Selection (Database Icon) */}
+            <DropdownMenu>
+              <TooltipProvider>
+                <Tooltip delayDuration={100}>
+                  <DropdownMenuTrigger asChild>
+                    <TooltipTrigger asChild>
+                      <button className={cn(
+                        "w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-secondary active:scale-95",
+                        dataMode !== 'Synthetic' && "text-purple-600 dark:text-purple-400 bg-purple-500/10"
+                      )}>
+                        <Database className="w-3.5 h-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                  </DropdownMenuTrigger>
+                  <TooltipContent side="top" className="text-xs">Generation Mode: {currentMode.label}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <DropdownMenuContent align="start" className="w-[150px]">
+                <DropdownMenuLabel className="text-[10px] text-muted-foreground uppercase opacity-70">Generation Mode</DropdownMenuLabel>
+                {dataModes.map(m => (
+                  <DropdownMenuItem key={m.value} onClick={() => setDataMode(m.value as DataMode)} className="gap-2">
+                    <m.icon className="w-3.5 h-3.5" />
+                    {m.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* Data Format Selection */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border ml-1",
+                "bg-background/50 border-border/50 text-muted-foreground hover:text-foreground hover:border-border hover:bg-background hover:shadow-sm active:scale-95"
+              )}>
+                <currentFormat.icon className="w-3.5 h-3.5" />
+                <span>{currentFormat.label}</span>
+                <ChevronDown className="w-3 h-3 opacity-50" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-[140px]">
+              <DropdownMenuLabel className="text-[10px] text-muted-foreground uppercase opacity-70">Output Format</DropdownMenuLabel>
+              {dataFormats.map(f => (
+                <DropdownMenuItem key={f.value} onClick={() => setDataFormat(f.value as DataFormat)} className="gap-2">
+                  <f.icon className="w-3.5 h-3.5" />
+                  {f.label}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <div className="flex-1" />
+
+          {/* Model Selection */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className={cn(
+                "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border",
+                "bg-background/50 border-border/50 text-muted-foreground hover:text-foreground hover:border-border hover:bg-background hover:shadow-sm active:scale-95"
+              )}>
+                <Cpu className="w-3.5 h-3.5" />
+                <span>{currentModel.value}</span>
+                <ChevronDown className="w-3 h-3 opacity-50" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[240px]">
+              {models.map(m => (
+                <DropdownMenuItem key={m.value} onClick={() => setModel(m.value as any)} className="justify-between py-2">
+                  <div className="flex items-center gap-2">
+                    <span className={cn("text-sm", model === m.value ? "font-semibold text-foreground" : "text-muted-foreground")}>{m.label}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {m.badge && (
+                      <span className={cn(
+                        "text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-1",
+                        m.badge === 'Web' ? "bg-green-500/10 text-green-600 dark:text-green-400 group-hover:bg-green-500/20" :
+                          m.badge === 'Default' ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 group-hover:bg-purple-500/20" :
+                            "bg-muted text-muted-foreground"
+                      )}>
+                        {m.badge === 'Web' && <Globe className="w-2.5 h-2.5" />}
+                        {m.badge}
+                      </span>
+                    )}
+                    {m.secondaryBadge && (
+                      <span className="text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full flex items-center gap-1 group-hover:bg-blue-500/20">
+                        <ImageIcon className="w-2.5 h-2.5" />
+                        {m.secondaryBadge}
+                      </span>
+                    )}
+                  </div>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Send Button */}
+          <Button
+            onClick={() => isLoading ? stopGeneration() : handleSubmit()}
+            disabled={!input.trim() && !isLoading}
+            size="icon"
+            className={cn(
+              "rounded-full h-9 w-9 shrink-0 transition-all duration-300 shadow-sm ml-1",
+              input.trim() || isLoading
+                ? "bg-primary text-primary-foreground shadow-md hover:shadow-lg hover:bg-primary/90 hover:-translate-y-0.5"
+                : "bg-muted text-muted-foreground opacity-50 shadow-none cursor-not-allowed"
+            )}
+          >
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <ArrowUp className="w-4 h-4" />
+            )}
+          </Button>
         </div>
-
-        {/* Data Format Selection */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border ml-1",
-              "bg-background/50 border-border/50 text-muted-foreground hover:text-foreground hover:border-border hover:bg-background hover:shadow-sm active:scale-95"
-            )}>
-              <currentFormat.icon className="w-3.5 h-3.5" />
-              <span>{currentFormat.label}</span>
-              <ChevronDown className="w-3 h-3 opacity-50" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-[140px]">
-            <DropdownMenuLabel className="text-[10px] text-muted-foreground uppercase opacity-70">Output Format</DropdownMenuLabel>
-            {dataFormats.map(f => (
-              <DropdownMenuItem key={f.value} onClick={() => setDataFormat(f.value as DataFormat)} className="gap-2">
-                <f.icon className="w-3.5 h-3.5" />
-                {f.label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <div className="flex-1" />
-
-        {/* Model Selection */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className={cn(
-              "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border",
-              "bg-background/50 border-border/50 text-muted-foreground hover:text-foreground hover:border-border hover:bg-background hover:shadow-sm active:scale-95"
-            )}>
-              <Cpu className="w-3.5 h-3.5" />
-              <span>{currentModel.value}</span>
-              <ChevronDown className="w-3 h-3 opacity-50" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[240px]">
-            {models.map(m => (
-              <DropdownMenuItem key={m.value} onClick={() => setModel(m.value as any)} className="justify-between py-2">
-                <div className="flex items-center gap-2">
-                  {/* {m.value === model && <div className="w-1.5 h-1.5 rounded-full bg-primary" />} */}
-                  <span className={cn("text-sm", model === m.value ? "font-semibold text-foreground" : "text-muted-foreground")}>{m.label}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  {m.badge && (
-                    <span className={cn(
-                      "text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-1",
-                      m.badge === 'Web' ? "bg-green-500/10 text-green-600 dark:text-green-400 group-hover:bg-green-500/20" :
-                        m.badge === 'Default' ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 group-hover:bg-purple-500/20" :
-                          "bg-muted text-muted-foreground"
-                    )}>
-                      {m.badge === 'Web' && <Globe className="w-2.5 h-2.5" />}
-                      {m.badge}
-                    </span>
-                  )}
-                  {m.secondaryBadge && (
-                    <span className="text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full flex items-center gap-1 group-hover:bg-blue-500/20">
-                      <ImageIcon className="w-2.5 h-2.5" />
-                      {m.secondaryBadge}
-                    </span>
-                  )}
-                </div>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Send Button */}
-        <Button
-          onClick={() => isLoading ? stopGeneration() : handleSubmit()}
-          disabled={!input.trim() && !isLoading}
-          size="icon"
-          className={cn(
-            "rounded-full h-9 w-9 shrink-0 transition-all duration-300 shadow-sm ml-1",
-            input.trim() || isLoading
-              ? "bg-primary text-primary-foreground shadow-md hover:shadow-lg hover:bg-primary/90 hover:-translate-y-0.5"
-              : "bg-muted text-muted-foreground opacity-50 shadow-none cursor-not-allowed"
-          )}
-        >
-          {isLoading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <ArrowUp className="w-4 h-4" />
-          )}
-        </Button>
       </div>
+
+      {/* Download Action Button (outside bar, right side) */}
+      {hasMessages && (
+        <TooltipProvider>
+          <Tooltip delayDuration={100}>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setShowDownloadModal(true)}
+                className="w-11 h-11 rounded-2xl flex items-center justify-center bg-purple-500/10 border border-purple-500/20 text-purple-600 hover:bg-purple-600 hover:text-white hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300 active:scale-90 group animate-in slide-in-from-right-4 fade-in duration-500"
+              >
+                <Download className="w-5 h-5 fill-purple-600/20 group-hover:scale-110 transition-transform" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top">Download Dataset</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
     </div>
   );
 
@@ -439,6 +566,14 @@ export default function DetNest() {
           </div>
         </div>
       )}
+
+      {/* ─── Download Modal ─── */}
+      <DownloadModal
+        open={showDownloadModal}
+        onClose={() => setShowDownloadModal(false)}
+        messages={messages}
+        dataFormat={dataFormat}
+      />
     </div>
   );
 }
