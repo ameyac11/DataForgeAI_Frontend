@@ -4,6 +4,8 @@ interface User {
   id: string;
   email: string;
   username: string;
+  displayName?: string;
+  photoURL?: string;
   isAnonymous: boolean;
 }
 
@@ -14,7 +16,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, username: string) => Promise<void>;
   loginAsGuest: () => void;
-  logout: () => void;
+  signOut: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,6 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       id: '1',
       email,
       username: email.split('@')[0],
+      displayName: email.split('@')[0],
       isAnonymous: false,
     });
   };
@@ -40,6 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       id: '1',
       email,
       username,
+      displayName: username,
       isAnonymous: false,
     });
   };
@@ -49,11 +53,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       id: 'guest',
       email: '',
       username: 'Guest',
+      displayName: 'Guest User',
       isAnonymous: true,
     });
   };
 
-  const logout = () => {
+  const signOut = () => {
     setUser(null);
   };
 
@@ -66,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         signup,
         loginAsGuest,
-        logout,
+        signOut,
       }}
     >
       {children}

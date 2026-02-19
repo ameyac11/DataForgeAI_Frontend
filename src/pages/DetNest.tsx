@@ -1,577 +1,444 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
-  ArrowUp,
-  Globe,
-  ChevronDown,
-  FileJson,
-  FileSpreadsheet,
-  FileCode,
-  Database,
-  Lock,
-  Loader2,
-  Cpu,
-  Plus,
-  File,
-  X,
-  Copy,
-  ThumbsUp,
-  ThumbsDown,
-  Download,
-  Image as ImageIcon,
+  Plus, Bot, User, StopCircle, CornerDownLeft,
+  Sparkles, Zap, FileJson, Table, Database,
+  ChevronDown, Globe, ArrowUp, Brain, Search, Cog,
+  CheckCircle2, Copy, ThumbsUp, ThumbsDown, RotateCcw,
+  Share, MoreHorizontal, Loader2, FileText, ImageIcon, X,
+  Clock, Pin, FileType, Check, Cpu, LayoutGrid
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
-import { useAuth } from '@/contexts/AuthContext';
-import { useChat, DataFormat, DataMode, Model, Attachment, Message } from '@/contexts/ChatContext';
-import { tryExamples } from '@/data/mockData';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { showErrorToast } from '@/components/ui/error-toast';
+import { useChat, DataFormat, DataMode } from '@/contexts/ChatContext';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
-const formatColors: Record<DataFormat, string> = {
-  CSV: 'text-green-500',
-  JSON: 'text-amber-500',
-  SQL: 'text-blue-500',
-  Parquet: 'text-purple-500',
+// --- Config ---
+const models = [
+  { value: 'Compound', label: 'Compound', badge: 'Web', color: 'text-green-500' },
+  { value: 'Compound Mini', label: 'Compound Mini', badge: 'Web', color: 'text-green-500' },
+  { value: 'Llama 4 Scout', label: 'Llama 4 Scout', badge: 'Default', secondaryBadge: 'Vision', color: 'text-purple-500' },
+  { value: 'GPT OSS 120B', label: 'GPT OSS 120B', color: 'text-gray-500' },
+  { value: 'GPT-4.1', label: 'GPT-4.1', color: 'text-blue-500' },
+  { value: 'GPT-4o Mini', label: 'GPT-4o Mini', secondaryBadge: 'Vision', color: 'text-blue-500' },
+];
+
+const dataFormats = [
+  { value: 'JSON', label: 'JSON', icon: FileJson },
+  { value: 'CSV', label: 'CSV', icon: Table },
+  { value: 'SQL', label: 'SQL', icon: Database },
+  { value: 'Parquet', label: 'Parquet', icon: Zap },
+];
+
+const dataModes = [
+  { value: 'Synthetic', label: 'Synthetic', icon: Sparkles },
+  { value: 'Realistic', label: 'Realistic', icon: Brain },
+  { value: 'Hybrid', label: 'Hybrid', icon: Globe },
+];
+
+const suggestions = [
+  "Summarize my documents",
+  "Key findings?",
+  "Compare papers",
+  "Explain simply"
+];
+
+// --- Components ---
+const CodeBlock = ({ className, children, ...props }: any) => {
+  const [copied, setCopied] = useState(false);
+  const match = /language-(\w+)/.exec(className || '');
+  const language = match ? match[1] : '';
+  const codeString = String(children).replace(/\n$/, '');
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(codeString);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="relative group my-3 rounded-lg overflow-hidden border border-border/60 bg-[#1a1a2e] dark:bg-[#0d0d1a]">
+      <div className="flex items-center justify-between px-4 py-2 bg-[#16162a] dark:bg-[#0a0a14] border-b border-border/40">
+        <span className="text-xs font-medium text-primary/80 uppercase tracking-wide">
+          {language || 'code'}
+        </span>
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-1.5 px-2 py-1 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+        >
+          {copied ? (
+            <>
+              <Check className="w-3.5 h-3.5 text-green-500" />
+              <span className="text-green-500">Copied!</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-3.5 h-3.5" />
+              <span>Copy</span>
+            </>
+          )}
+        </button>
+      </div>
+      <pre className="p-4 overflow-x-auto text-sm leading-relaxed">
+        <code className={cn("text-gray-200 font-mono", className)} {...props}>
+          {children}
+        </code>
+      </pre>
+    </div>
+  );
 };
 
-const DetNest = () => {
-  const { isAnonymous } = useAuth();
-  const {
-    messages,
-    isLoading,
-    loadingPhase,
-    sendMessage
-  } = useChat();
+// Animated dots for thinking
+const AnimatedDots = () => (
+  <span className="inline-flex ml-1">
+    <span className="animate-pulse duration-1000">.</span>
+    <span className="animate-pulse duration-1000 delay-150">.</span>
+    <span className="animate-pulse duration-1000 delay-300">.</span>
+  </span>
+);
 
+// ===== MAIN COMPONENT =====
+export default function DetNest() {
+  const { messages, sendMessage, isLoading, loadingPhase, stopGeneration, dataFormat, setDataFormat, dataMode, setDataMode, model, setModel } = useChat();
   const [input, setInput] = useState('');
-  const [dataFormat, setDataFormat] = useState<DataFormat>('CSV');
-  const [dataMode, setDataMode] = useState<DataMode>('Synthetic');
-  const [model, setModel] = useState<Model>('Best');
   const [webSearchEnabled, setWebSearchEnabled] = useState(false);
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [showAttachMenu, setShowAttachMenu] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const hasMessages = messages.length > 0;
+  const currentModel = models.find(m => m.value === model) ?? models[0];
+  const currentFormat = dataFormats.find(f => f.value === dataFormat) ?? dataFormats[0];
+  const currentMode = dataModes.find(m => m.value === dataMode) ?? dataModes[0];
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
+    }
+  }, [input]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
   };
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, isLoading, loadingPhase]);
 
-  const handleFileUpload = (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-
-    Array.from(files).forEach((file) => {
-      const isImage = file.type.startsWith('image/');
-      const newAttachment: Attachment = {
-        id: Date.now().toString() + Math.random().toString(36).slice(2),
-        name: file.name,
-        type: isImage ? 'IMG' :
-          file.type.includes('pdf') ? 'PDF' :
-            file.type.includes('doc') ? 'DOCX' :
-              file.type.includes('sheet') || file.type.includes('csv') ? 'CSV' : 'FILE',
-        status: 'uploading',
-        file,
-      };
-
-      // Create preview for images
-      if (isImage) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          setAttachments(prev =>
-            prev.map(a => a.id === newAttachment.id ? { ...a, preview: e.target?.result as string } : a)
-          );
-        };
-        reader.readAsDataURL(file);
-      }
-
-      setAttachments(prev => [...prev, newAttachment]);
-
-      // Simulate upload completion
-      setTimeout(() => {
-        setAttachments(prev =>
-          prev.map(a => a.id === newAttachment.id ? { ...a, status: 'ready' } : a)
-        );
-      }, 1000 + Math.random() * 1000);
-    });
-
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-    setShowAttachMenu(false);
-  };
-
-  const removeAttachment = (id: string) => {
-    setAttachments(prev => prev.filter(a => a.id !== id));
-  };
-
-  const handleSubmit = async () => {
-    if ((!input.trim() && attachments.length === 0) || isLoading) return;
-
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!input.trim() || isLoading) return;
     const currentInput = input;
-    const currentAttachments = [...attachments];
-
-    // Clear local state immediately
     setInput('');
-    setAttachments([]);
-
-    await sendMessage(currentInput, currentAttachments, {
-      dataFormat,
-      dataMode
-    });
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+    await sendMessage(currentInput, [], { dataFormat, dataMode });
   };
 
-  const handleExampleClick = (example: string) => {
-    setInput(example);
-    inputRef.current?.focus();
-  };
-
-  const formatIcons: Record<DataFormat, typeof FileSpreadsheet> = {
-    CSV: FileSpreadsheet,
-    JSON: FileJson,
-    SQL: FileCode,
-    Parquet: Database,
-  };
-
-  const FormatIcon = formatIcons[dataFormat];
-
-  const getLoadingContent = () => {
-    switch (loadingPhase) {
-      case 'thinking':
-        return (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Thinking</span>
-            <div className="flex gap-1">
-              <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full typing-dot" />
-              <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full typing-dot" />
-              <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full typing-dot" />
-            </div>
-          </div>
-        );
-      case 'analyzing':
-        return (
-          <div className="flex items-center gap-2">
-            <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
-            <span className="text-sm text-muted-foreground">Analyzing requirements...</span>
-          </div>
-        );
-      case 'generating':
-        return (
-          <div className="flex items-center gap-2">
-            <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
-            <span className="text-sm text-muted-foreground">Generating dataset...</span>
-          </div>
-        );
-      default:
-        return null;
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
     }
   };
 
-  // Attachment Preview Component
-  const AttachmentPreview = ({ attachment, onRemove, compact = false }: {
-    attachment: Attachment;
-    onRemove?: () => void;
-    compact?: boolean;
-  }) => (
-    <div
-      className={cn(
-        "flex items-center gap-2 bg-muted/80 rounded-lg border border-border",
-        compact ? "px-2 py-1.5" : "px-3 py-2"
-      )}
-    >
-      {attachment.preview ? (
-        <div className="w-8 h-8 rounded overflow-hidden bg-muted shrink-0">
-          <img src={attachment.preview} alt={attachment.name} className="w-full h-full object-cover" />
-        </div>
-      ) : (
-        <div className="w-8 h-8 rounded bg-muted flex items-center justify-center shrink-0">
-          {attachment.status === 'uploading' ? (
-            <div className="w-4 h-4 border-2 border-muted-foreground/30 border-t-primary rounded-full animate-spin" />
-          ) : attachment.status === 'error' ? (
-            <X className="w-4 h-4 text-destructive" />
-          ) : (
-            <File className="w-4 h-4 text-muted-foreground" />
-          )}
-        </div>
-      )}
-      <div className="flex flex-col min-w-0">
-        <span className="text-xs text-foreground truncate max-w-[100px]">{attachment.name}</span>
-        <span className="text-[10px] text-muted-foreground uppercase font-medium">{attachment.type}</span>
-      </div>
-      {onRemove && (
-        <button
-          onClick={onRemove}
-          className="ml-1 p-0.5 hover:bg-accent rounded-full transition-colors shrink-0"
-        >
-          <X className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
+  // --- Render Search Bar (CorpusAI Style) ---
+  const renderSearchBar = () => (
+    <div className="bg-secondary/40 dark:bg-secondary/60 border border-border/60 dark:border-border rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 backdrop-blur-sm group focus-within:shadow-md focus-within:border-border w-full max-w-2xl mx-auto">
+      {/* Input Row */}
+      <div className="flex items-end gap-2 px-4 py-3">
+        <button className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-background/80 transition-all duration-200 shrink-0 mb-1 active:scale-95">
+          <Plus className="w-5 h-5" />
         </button>
-      )}
+
+        <textarea
+          ref={textareaRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Ask anything..."
+          className="flex-1 bg-transparent border-0 resize-none focus:outline-none text-foreground placeholder:text-muted-foreground/70 min-h-[44px] max-h-[160px] text-sm py-2.5 leading-relaxed"
+          rows={1}
+        />
+      </div>
+
+      {/* Controls Row - Bottom */}
+      <div className="flex items-center gap-2 px-3 pb-3 flex-wrap">
+        <div className="flex items-center gap-0.5 p-1 rounded-full bg-background/40 border border-border/30 shadow-sm transition-all duration-200 hover:shadow-md">
+          {/* Web Search Toggle */}
+          <TooltipProvider>
+            <Tooltip delayDuration={100}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setWebSearchEnabled(!webSearchEnabled)}
+                  className={cn(
+                    "w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 active:scale-95",
+                    webSearchEnabled
+                      ? "bg-purple-600 text-white shadow-md shadow-purple-500/20"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  )}>
+                  <Globe className="w-3.5 h-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">
+                {webSearchEnabled ? 'Web Search Enabled' : 'Search Web'}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <Separator orientation="vertical" className="h-4 bg-border/50 mx-0.5" />
+
+          {/* Data Generation Mode Selection (Database Icon) */}
+          <DropdownMenu>
+            <TooltipProvider>
+              <Tooltip delayDuration={100}>
+                <DropdownMenuTrigger asChild>
+                  <TooltipTrigger asChild>
+                    <button className={cn(
+                      "w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-secondary active:scale-95",
+                      dataMode !== 'Synthetic' && "text-purple-600 dark:text-purple-400 bg-purple-500/10"
+                    )}>
+                      <Database className="w-3.5 h-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                </DropdownMenuTrigger>
+                <TooltipContent side="top" className="text-xs">Generation Mode: {currentMode.label}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <DropdownMenuContent align="start" className="w-[150px]">
+              <DropdownMenuLabel className="text-[10px] text-muted-foreground uppercase opacity-70">Generation Mode</DropdownMenuLabel>
+              {dataModes.map(m => (
+                <DropdownMenuItem key={m.value} onClick={() => setDataMode(m.value as DataMode)} className="gap-2">
+                  <m.icon className="w-3.5 h-3.5" />
+                  {m.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Data Format Selection */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border ml-1",
+              "bg-background/50 border-border/50 text-muted-foreground hover:text-foreground hover:border-border hover:bg-background hover:shadow-sm active:scale-95"
+            )}>
+              <currentFormat.icon className="w-3.5 h-3.5" />
+              <span>{currentFormat.label}</span>
+              <ChevronDown className="w-3 h-3 opacity-50" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-[140px]">
+            <DropdownMenuLabel className="text-[10px] text-muted-foreground uppercase opacity-70">Output Format</DropdownMenuLabel>
+            {dataFormats.map(f => (
+              <DropdownMenuItem key={f.value} onClick={() => setDataFormat(f.value as DataFormat)} className="gap-2">
+                <f.icon className="w-3.5 h-3.5" />
+                {f.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <div className="flex-1" />
+
+        {/* Model Selection */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className={cn(
+              "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border",
+              "bg-background/50 border-border/50 text-muted-foreground hover:text-foreground hover:border-border hover:bg-background hover:shadow-sm active:scale-95"
+            )}>
+              <Cpu className="w-3.5 h-3.5" />
+              <span>{currentModel.value}</span>
+              <ChevronDown className="w-3 h-3 opacity-50" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-[240px]">
+            {models.map(m => (
+              <DropdownMenuItem key={m.value} onClick={() => setModel(m.value as any)} className="justify-between py-2">
+                <div className="flex items-center gap-2">
+                  {/* {m.value === model && <div className="w-1.5 h-1.5 rounded-full bg-primary" />} */}
+                  <span className={cn("text-sm", model === m.value ? "font-semibold text-foreground" : "text-muted-foreground")}>{m.label}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {m.badge && (
+                    <span className={cn(
+                      "text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-1",
+                      m.badge === 'Web' ? "bg-green-500/10 text-green-600 dark:text-green-400 group-hover:bg-green-500/20" :
+                        m.badge === 'Default' ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 group-hover:bg-purple-500/20" :
+                          "bg-muted text-muted-foreground"
+                    )}>
+                      {m.badge === 'Web' && <Globe className="w-2.5 h-2.5" />}
+                      {m.badge}
+                    </span>
+                  )}
+                  {m.secondaryBadge && (
+                    <span className="text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full flex items-center gap-1 group-hover:bg-blue-500/20">
+                      <ImageIcon className="w-2.5 h-2.5" />
+                      {m.secondaryBadge}
+                    </span>
+                  )}
+                </div>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Send Button */}
+        <Button
+          onClick={() => isLoading ? stopGeneration() : handleSubmit()}
+          disabled={!input.trim() && !isLoading}
+          size="icon"
+          className={cn(
+            "rounded-full h-9 w-9 shrink-0 transition-all duration-300 shadow-sm ml-1",
+            input.trim() || isLoading
+              ? "bg-primary text-primary-foreground shadow-md hover:shadow-lg hover:bg-primary/90 hover:-translate-y-0.5"
+              : "bg-muted text-muted-foreground opacity-50 shadow-none cursor-not-allowed"
+          )}
+        >
+          {isLoading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <ArrowUp className="w-4 h-4" />
+          )}
+        </Button>
+      </div>
     </div>
   );
 
-  const InputBar = ({ className, compact }: { className?: string; compact?: boolean }) => {
-    const [localInput, setLocalInput] = useState(input);
-
-    useEffect(() => {
-      setLocalInput(input);
-    }, [input]);
-
-    const handleLocalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      setLocalInput(e.target.value);
-    };
-
-    const handleBlur = () => {
-      setInput(localInput);
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        setInput(localInput);
-        setTimeout(() => handleSubmit(), 0);
-      }
-    };
-
-    return (
-      <div className={cn("w-full", className)}>
-        {/* Attachment previews above search bar - ChatGPT style */}
-        {attachments.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-3 px-1">
-            {attachments.map((attachment) => (
-              <AttachmentPreview
-                key={attachment.id}
-                attachment={attachment}
-                onRemove={() => removeAttachment(attachment.id)}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Main Search Bar - Compact when at bottom */}
-        <div className="bg-card border border-border rounded-xl">
-          <div className={cn(
-            "flex items-start gap-2",
-            compact ? "p-2.5" : "p-4"
-          )}>
-            {/* Plus button - opens menu upward */}
-            {/* Direct file upload button */}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className={cn(
-                "p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors shrink-0",
-                compact ? "mt-0" : "mt-0.5"
-              )}
-            >
-              <Plus className="w-5 h-5" />
-            </button>
-
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={(e) => {
-                handleFileUpload(e.target.files);
-              }}
-              className="hidden"
-              multiple
-              accept="image/*,.pdf,.doc,.docx,.csv,.xlsx,.xls,.txt"
-            />
-
-            {/* Text Input - Using local state to prevent re-render issues */}
-            <input
-              ref={inputRef}
-              type="text"
-              value={localInput}
-              onChange={handleLocalChange}
-              onBlur={handleBlur}
-              onKeyDown={handleKeyDown}
-              placeholder="Ask anything..."
-              className={cn(
-                "flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground text-sm",
-                compact ? "py-0.5" : "py-1.5"
-              )}
-            />
-          </div>
-
-          {/* Controls Row */}
-          <div className={cn(
-            "flex items-center justify-between",
-            compact ? "px-2.5 pb-2.5" : "px-4 pb-4"
-          )}>
-            {/* Left side - Data Type Selector */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2.5 gap-1.5 rounded-lg text-muted-foreground hover:text-foreground"
-                >
-                  <FormatIcon className={cn("w-4 h-4", formatColors[dataFormat])} />
-                  <span className="text-xs font-medium">{dataFormat}</span>
-                  <ChevronDown className="w-3 h-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-40">
-                {(['CSV', 'JSON', 'SQL', 'Parquet'] as DataFormat[]).map((format) => {
-                  const Icon = formatIcons[format];
-                  return (
-                    <DropdownMenuItem
-                      key={format}
-                      onClick={() => setDataFormat(format)}
-                      className="gap-3"
-                    >
-                      <Icon className={cn("w-4 h-4", formatColors[format])} />
-                      <span>{format}</span>
-                    </DropdownMenuItem>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Right side - Controls + Send */}
-            <div className="flex items-center gap-1.5">
-              {/* Model Selector - Icon only with Best option */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "h-7 w-7 p-0 rounded-lg",
-                      model === 'Best'
-                        ? "text-purple-500 bg-purple-500/10"
-                        : "text-blue-400/60 hover:text-foreground"
-                    )}
-                  >
-                    <Cpu className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-36">
-                  <DropdownMenuItem onClick={() => setModel('Best')}>
-                    <span className={cn(model === 'Best' && 'text-purple-500 font-medium')}>Best Model</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => !isAnonymous && setModel('GPT-4.1')}
-                    disabled={isAnonymous}
-                    className="gap-2"
-                  >
-                    {isAnonymous && <Lock className="w-3.5 h-3.5" />}
-                    <span>GPT-4.1</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setModel('GPT-4o')}>
-                    <span>GPT-4o</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* Data Source - Icon only */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0 rounded-lg text-muted-foreground hover:text-foreground"
-                  >
-                    <Database className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-32">
-                  {(['Synthetic', 'Hybrid', 'Realistic'] as DataMode[]).map((mode) => (
-                    <DropdownMenuItem
-                      key={mode}
-                      onClick={() => setDataMode(mode)}
-                    >
-                      {mode}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* Web Search - Shows "Web" text when enabled */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setWebSearchEnabled(!webSearchEnabled)}
-                className={cn(
-                  "h-7 px-2 gap-1 rounded-lg",
-                  webSearchEnabled
-                    ? "text-primary bg-primary/10"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Globe className="w-4 h-4" />
-                {webSearchEnabled && <span className="text-xs">Web</span>}
-              </Button>
-
-              {/* Send Button */}
-              <Button
-                onClick={() => {
-                  setInput(localInput);
-                  setTimeout(() => handleSubmit(), 0);
-                }}
-                disabled={(!localInput.trim() && attachments.length === 0) || isLoading}
-                size="sm"
-                className="h-7 w-7 p-0 rounded-full bg-primary hover:bg-primary/90 ml-1"
-              >
-                <ArrowUp className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   return (
-    <div className="h-full flex flex-col bg-background">
-      {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto">
+    <div className="flex flex-col h-full relative bg-background">
+      {/* ─── Messages Area ─── */}
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto w-full scroll-smooth"
+      >
         {!hasMessages ? (
-          <div className="h-full flex flex-col items-center justify-center px-4">
-            <div className="text-center max-w-2xl mx-auto mb-10">
-              <h1 className="text-2xl font-semibold text-foreground mb-2">
+          /* Hero / Empty State */
+          <div className="min-h-full flex flex-col items-center justify-center px-4 -mt-10 animate-fade-in">
+            <div className="text-center mb-8 space-y-2">
+              <h1 className="text-2xl font-semibold text-foreground">
                 Welcome to DataForgeAI
               </h1>
-              <p className="text-sm text-muted-foreground">
-                Generate synthetic, realistic, or hybrid datasets with AI. Describe what you need and we'll create it.
+              <p className="text-muted-foreground text-sm max-w-md mx-auto">
+                Generate synthetic datasets, transform files, or analyze data structures with AI-powered precision.
               </p>
             </div>
 
-            {/* Centered Input Bar */}
-            <div className="w-full max-w-2xl mb-8">
-              <InputBar />
+            <div className="w-full px-4">
+              {renderSearchBar()}
             </div>
 
-            {/* Try Examples */}
-            {!input && (
-              <div className="w-full max-w-2xl px-1">
-                <div className="grid grid-cols-2 gap-3 w-full">
-                  {tryExamples.slice(0, 4).map((example, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleExampleClick(example)}
-                      className="group flex items-center gap-3 p-3 text-left rounded-xl bg-muted/20 border border-transparent hover:bg-muted/40 hover:border-primary/20 transition-all duration-300"
-                    >
-                      <span className="text-xs text-muted-foreground/80 group-hover:text-foreground transition-colors line-clamp-2 leading-relaxed px-1">
-                        {example}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+            <div className="flex flex-wrap justify-center gap-2 mt-6 max-w-2xl px-4">
+              <span className="text-xs text-muted-foreground mr-1 self-center">Try:</span>
+              {suggestions.map((s, i) => (
+                <button
+                  key={i}
+                  onClick={() => { setInput(s); textareaRef.current?.focus(); }}
+                  className="px-3 py-1.5 rounded-full bg-secondary/50 hover:bg-secondary text-xs font-medium text-muted-foreground hover:text-foreground transition-colors border border-transparent hover:border-border/50"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
-          <div className="max-w-3xl mx-auto px-4 py-8">
-            <div className="space-y-8">
-              {messages.map((message) => (
-                <div key={message.id}>
-                  {message.role === 'user' ? (
-                    // User message - right aligned with box
-                    <div className="flex justify-end">
-                      <div className="max-w-[80%]">
-                        {/* Attachments above user message */}
-                        {message.attachments && message.attachments.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mb-2 justify-end">
-                            {message.attachments.map((attachment) => (
-                              <AttachmentPreview key={attachment.id} attachment={attachment} compact />
-                            ))}
-                          </div>
-                        )}
-                        <div className="px-4 py-3 rounded-2xl bg-primary text-primary-foreground text-sm">
-                          {message.content}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    // Assistant message - left aligned without box
-                    <div className="flex justify-start">
-                      <div className="max-w-[80%] space-y-3">
-                        <p className="text-sm text-foreground leading-relaxed">
-                          {message.content}
-                        </p>
+          /* Chat Messages */
+          <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-6 pb-24">
+            {messages.map((msg, idx) => (
+              <div key={idx} className={cn("flex flex-col gap-2", msg.role === 'user' ? 'items-end' : 'items-start')}>
 
-                        {/* Download button - always visible for demo */}
-                        {message.showDownload && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-2 h-8"
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                            Download {dataFormat}
-                          </Button>
-                        )}
-
-                        {/* Action buttons */}
-                        <div className="flex items-center gap-1 pt-1">
-                          <button className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-colors">
-                            <Copy className="w-3.5 h-3.5" />
-                          </button>
-                          <button className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-colors">
-                            <ThumbsUp className="w-3.5 h-3.5" />
-                          </button>
-                          <button className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-colors">
-                            <ThumbsDown className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              {/* Loading state */}
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="max-w-[80%]">
-                    {getLoadingContent()}
+                {/* Message Content */}
+                {msg.role === 'user' ? (
+                  <div className="max-w-[85%] bg-primary text-primary-foreground px-4 py-3 rounded-2xl rounded-br-md shadow-sm">
+                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="flex flex-col items-start gap-2 max-w-[95%]">
+                    {/* AI Text - No Bubble */}
+                    <div className="text-sm text-foreground/90 leading-relaxed overflow-hidden">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          code({ node, inline, className, children, ...props }: any) {
+                            if (inline) {
+                              return <code className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono text-[0.85em] border border-primary/20" {...props}>{children}</code>;
+                            }
+                            return <CodeBlock className={className} {...props}>{children}</CodeBlock>;
+                          },
+                          table({ children, ...props }: any) {
+                            return <div className="my-4 overflow-x-auto rounded-lg border-2 border-border"><table className="w-full text-sm border-collapse" {...props}>{children}</table></div>;
+                          },
+                          th({ children, ...props }: any) {
+                            return <th className="px-4 py-2 text-left font-semibold text-foreground/90 bg-muted/50 border-b border-border" {...props}>{children}</th>;
+                          },
+                          td({ children, ...props }: any) {
+                            return <td className="px-4 py-2 border-b border-border/50 text-foreground/80" {...props}>{children}</td>;
+                          },
+                          a({ children, href, ...props }: any) {
+                            return <a href={href} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
+                          }
+                        }}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
+                    </div>
 
-              <div ref={messagesEndRef} />
-            </div>
+                    {/* Action Buttons */}
+                    {!isLoading && (
+                      <div className="flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"><Copy className="w-4 h-4" onClick={() => navigator.clipboard.writeText(msg.content)} /></button>
+                        <button className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"><ThumbsUp className="w-4 h-4" /></button>
+                        <button className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"><RotateCcw className="w-4 h-4" /></button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {/* Loading Indicator */}
+            {isLoading && (
+              <div className="flex items-center gap-3 max-w-[85%]">
+                <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                <span className="text-sm text-muted-foreground">
+                  {loadingPhase === 'thinking' ? <span>Thinking<AnimatedDots /></span> : <span>Generating response<AnimatedDots /></span>}
+                </span>
+              </div>
+            )}
+            <div ref={scrollRef} />
           </div>
         )}
       </div>
 
-      {/* Bottom Input Bar - Only when there are messages */}
+      {/* ─── Fixed Bottom Input (Active Chat) ─── */}
       {hasMessages && (
-        <div className="bg-background/80 backdrop-blur-sm">
-          <div className="max-w-3xl mx-auto px-4 py-3">
-            <InputBar compact />
+        <div className="sticky bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-transparent pb-6 z-20">
+          <div className="w-full max-w-3xl mx-auto">
+            {renderSearchBar()}
+            <p className="text-center text-[10px] text-muted-foreground/40 mt-2">DataForgeAI can make mistakes.</p>
           </div>
         </div>
       )}
-
-      {/* Typing animation styles */}
-      <style>{`
-        .typing-dot {
-          animation: typing-bounce 1.4s infinite ease-in-out both;
-        }
-        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
-        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
-        
-        @keyframes typing-bounce {
-          0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
-          40% { transform: scale(1); opacity: 1; }
-        }
-      `}</style>
     </div>
   );
-};
-
-export default DetNest;
+}

@@ -11,7 +11,7 @@ export function Hero() {
   return (
     <section className="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden">
       {/* Texture Overlay */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-[0.03]" style={{
+      <div className="absolute inset-0 bg-grid-pattern opacity-[0.03] dark:opacity-[0.03] invert dark:invert-0" style={{
         backgroundImage: 'linear-gradient(to right, #404040 1px, transparent 1px), linear-gradient(to bottom, #404040 1px, transparent 1px)',
         backgroundSize: '4rem 4rem'
       }} />
@@ -25,8 +25,8 @@ export function Hero() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="flex justify-center mb-8 sm:mb-10"
           >
-            <div className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-[#232326]/50 border border-white/5 backdrop-blur-xl shadow-2xl">
-              <ThemeLogo size="xl" forceTheme="dark" />
+            <div className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-card/50 border border-border backdrop-blur-xl shadow-2xl">
+              <ThemeLogo size="xl" />
             </div>
           </motion.div>
 
@@ -35,7 +35,7 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.6 }}
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium tracking-tight mb-6 sm:mb-8 px-4 text-white"
+            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium tracking-tight mb-6 sm:mb-8 px-4 text-foreground"
           >
             <span>Data</span>
             <span className="text-primary">ForgeAI</span>
@@ -46,7 +46,7 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.6 }}
-            className="text-base sm:text-lg md:text-xl text-gray-400 mb-8 sm:mb-10 max-w-3xl mx-auto leading-relaxed px-4"
+            className="text-base sm:text-lg md:text-xl text-muted-foreground mb-8 sm:mb-10 max-w-3xl mx-auto leading-relaxed px-4"
           >
             Generate high-quality synthetic, realistic, or hybrid datasets in seconds using natural language.
             Built for developers, researchers, and enterprises.
@@ -60,7 +60,7 @@ export function Hero() {
             className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mb-10 sm:mb-12 px-4"
           >
             {['No credit card required', 'Free trial', 'Privacy first'].map((item, index) => (
-              <div key={index} className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-gray-500">
+              <div key={index} className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
                 <CheckCircle2 className="w-4 h-4 text-primary" />
                 <span>{item}</span>
               </div>
@@ -87,7 +87,7 @@ export function Hero() {
             <Button
               variant="outline"
               size="lg"
-              className="w-full sm:w-auto h-12 sm:h-14 px-6 sm:px-10 text-base sm:text-lg font-medium border border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-full transition-all duration-300 hover:scale-105"
+              className="w-full sm:w-auto h-12 sm:h-14 px-6 sm:px-10 text-base sm:text-lg font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-full transition-all duration-300 hover:scale-105"
               onClick={() => {
                 loginAsGuest();
                 window.location.href = '/app';
@@ -104,17 +104,17 @@ export function Hero() {
             transition={{ delay: 0.5, duration: 0.6 }}
             className="mt-16 sm:mt-20 md:mt-28 px-4"
           >
-            <div className="inline-flex flex-col sm:flex-row items-center gap-6 sm:gap-0 sm:divide-x divide-white/5 bg-[#232326]/50 backdrop-blur-sm rounded-3xl border border-white/5 p-6 sm:p-8 shadow-xl">
+            <div className="inline-flex flex-col sm:flex-row items-center gap-6 sm:gap-0 sm:divide-x divide-border bg-card/50 backdrop-blur-sm rounded-3xl border border-border p-6 sm:p-8 shadow-xl">
               {[
                 { value: '50+', label: 'Data Types' },
                 { value: '1M+', label: 'Rows Generated' },
                 { value: '4', label: 'Export Formats' },
               ].map((stat, index) => (
                 <div key={index} className="text-center px-6 sm:px-8 md:px-12">
-                  <div className="text-3xl sm:text-4xl md:text-5xl font-medium text-white mb-2">
+                  <div className="text-3xl sm:text-4xl md:text-5xl font-medium text-foreground mb-2">
                     {stat.value}
                   </div>
-                  <div className="text-xs sm:text-sm text-gray-500 font-medium">
+                  <div className="text-xs sm:text-sm text-muted-foreground font-medium">
                     {stat.label}
                   </div>
                 </div>

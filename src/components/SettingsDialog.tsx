@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { User, Bell, Shield, HelpCircle, CreditCard, Settings, X } from 'lucide-react';
+import { User, Bell, Shield, HelpCircle, CreditCard, Settings, X, LogOut, Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -27,7 +28,8 @@ interface SettingsDialogProps {
 
 export function SettingsDialog({ open, onOpenChange, defaultSection = 'general' }: SettingsDialogProps) {
   const { theme, setTheme } = useTheme();
-  const { user, isAnonymous } = useAuth();
+  const { user, isAnonymous, signOut } = useAuth();
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<SettingsSection>(defaultSection);
   const [notifications, setNotifications] = useState(true);
 
@@ -48,87 +50,113 @@ export function SettingsDialog({ open, onOpenChange, defaultSection = 'general' 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden [&>button]:hidden">
+      <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden border-border/80 dark:border-border shadow-2xl transition-all duration-300 [&>button]:hidden">
         {/* Close button at top-right of dialog */}
-        <button
-          onClick={() => onOpenChange(false)}
-          className="absolute top-4 right-4 p-1.5 rounded-md hover:bg-accent transition-colors z-10"
-        >
-          <X className="w-4 h-4" />
-        </button>
-        
-        <div className="flex h-[480px]">
+        <div className="absolute top-4 right-4 z-20">
+          <button
+            onClick={() => onOpenChange(false)}
+            className="p-1.5 rounded-md hover:bg-accent hover:text-foreground transition-all text-muted-foreground"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="flex h-[520px]">
           {/* Sidebar */}
-          <div className="w-44 border-r border-border bg-muted/30 p-3">
-            <div className="px-2 py-2 mb-3">
-              <span className="text-sm font-medium">Settings</span>
+          <div className="w-48 border-r border-border/50 bg-secondary/30 dark:bg-muted/30 p-4 space-y-4">
+            <div className="px-2 py-1">
+              <h1 className="text-lg font-semibold tracking-tight">Settings</h1>
             </div>
-            <nav className="space-y-0.5">
+            <nav className="space-y-1">
               {sections.map((section) => (
                 <button
                   key={section.id}
                   onClick={() => setActiveSection(section.id)}
                   className={cn(
-                    "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-colors text-left",
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 text-left group",
                     activeSection === section.id
-                      ? "bg-accent text-foreground font-medium"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                      ? "bg-primary text-primary-foreground font-medium shadow-sm"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                   )}
                 >
-                  <section.icon className="w-4 h-4" />
+                  <section.icon className={cn("w-4 h-4", activeSection === section.id ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground")} />
                   {section.label}
                 </button>
               ))}
             </nav>
+
+            <div className="pt-8 px-2">
+              <button
+                onClick={() => { signOut(); onOpenChange(false); }}
+                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-500 hover:bg-red-500/10 transition-colors w-full text-left"
+              >
+                <LogOut className="w-4 h-4" />
+                Logout
+              </button>
+            </div>
           </div>
 
-          {/* Content */}
-          <div className="flex-1 p-6 overflow-y-auto">
+          {/* Content Area */}
+          <div className="flex-1 p-8 overflow-y-auto bg-background/50 backdrop-blur-sm">
             {activeSection === 'general' && (
-              <div className="space-y-6">
-                <h2 className="text-lg font-medium">General</h2>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between py-2">
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div>
+                  <h2 className="text-xl font-semibold mb-1">General</h2>
+                  <p className="text-sm text-muted-foreground">Manage your app experience and preferences.</p>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between group">
                     <div>
                       <p className="text-sm font-medium">Appearance</p>
-                      <p className="text-xs text-muted-foreground">Choose your preferred theme</p>
+                      <p className="text-xs text-muted-foreground">Adjust the visual theme of the application.</p>
                     </div>
-                    <Select value={theme} onValueChange={(value: 'light' | 'dark') => setTheme(value)}>
-                      <SelectTrigger className="w-28 h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="light" className="text-xs">Light</SelectItem>
-                        <SelectItem value="dark" className="text-xs">Dark</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="flex bg-muted/50 p-1 rounded-full border border-border/50">
+                      <button
+                        onClick={() => setTheme('light')}
+                        className={cn(
+                          "px-3 py-1 rounded-full text-xs transition-all duration-200",
+                          theme === 'light' ? "bg-background text-foreground shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        Light
+                      </button>
+                      <button
+                        onClick={() => setTheme('dark')}
+                        className={cn(
+                          "px-3 py-1 rounded-full text-xs transition-all duration-200",
+                          theme === 'dark' ? "bg-background text-foreground shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        Dark
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="flex items-center justify-between py-2">
+                  <div className="flex items-center justify-between group">
                     <div>
                       <p className="text-sm font-medium">Language</p>
-                      <p className="text-xs text-muted-foreground">Select your preferred language</p>
+                      <p className="text-xs text-muted-foreground">Select your primary language for the UI.</p>
                     </div>
                     <Select defaultValue="en">
-                      <SelectTrigger className="w-28 h-8 text-xs">
+                      <SelectTrigger className="w-32 h-9 text-xs transition-all hover:border-primary/50">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="en" className="text-xs">English</SelectItem>
-                        <SelectItem value="es" className="text-xs">Español</SelectItem>
-                        <SelectItem value="fr" className="text-xs">Français</SelectItem>
+                        <SelectItem value="en" className="text-xs">🇺🇸 English</SelectItem>
+                        <SelectItem value="es" className="text-xs">🇪🇸 Español</SelectItem>
+                        <SelectItem value="fr" className="text-xs">🇫🇷 Français</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
-                  <div className="flex items-center justify-between py-2">
+                  <div className="flex items-center justify-between group">
                     <div>
-                      <p className="text-sm font-medium">Default format</p>
-                      <p className="text-xs text-muted-foreground">Default output format for datasets</p>
+                      <p className="text-sm font-medium">Default Format</p>
+                      <p className="text-xs text-muted-foreground">Preferred default file format for dataset generation.</p>
                     </div>
-                    <Select defaultValue="csv">
-                      <SelectTrigger className="w-28 h-8 text-xs">
+                    <Select defaultValue="json">
+                      <SelectTrigger className="w-32 h-9 text-xs transition-all hover:border-primary/50">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -144,14 +172,24 @@ export function SettingsDialog({ open, onOpenChange, defaultSection = 'general' 
             )}
 
             {activeSection === 'account' && (
-              <div className="space-y-6">
-                <h2 className="text-lg font-medium">Account</h2>
-                
+              <div className="space-y-8 animate-in fade-in duration-300">
+                <div>
+                  <h2 className="text-xl font-semibold mb-1">Account</h2>
+                  <p className="text-sm text-muted-foreground">Manage your identity and subscription status.</p>
+                </div>
+
                 {isAnonymous ? (
-                  <div className="p-4 rounded-lg border border-border bg-muted/30">
-                    <p className="text-sm font-medium mb-1">You're using DataForgeAI as a guest</p>
-                    <p className="text-xs text-muted-foreground mb-3">Sign in to save your work and access all features</p>
-                    <Button size="sm" className="h-8 text-xs">Sign in</Button>
+                  <div className="p-6 rounded-xl border border-dashed border-primary/30 bg-primary/5 space-y-4">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-primary">Guest Session</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">You are using a temporary account. Sign in to sync your work across devices and unlock advanced synthetic data models.</p>
+                    </div>
+                    <Button
+                      onClick={() => { onOpenChange(false); navigate('/login'); }}
+                      className="w-full h-10 shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]"
+                    >
+                      Sign in to DataForgeAI
+                    </Button>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -184,30 +222,33 @@ export function SettingsDialog({ open, onOpenChange, defaultSection = 'general' 
             )}
 
             {activeSection === 'notifications' && (
-              <div className="space-y-6">
-                <h2 className="text-lg font-medium">Notifications</h2>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between py-2">
+              <div className="space-y-8 animate-in fade-in duration-300">
+                <div>
+                  <h2 className="text-xl font-semibold mb-1">Notifications</h2>
+                  <p className="text-sm text-muted-foreground">Stay updated on your generation status and new features.</p>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between py-2 group">
                     <div>
-                      <p className="text-sm font-medium">Email notifications</p>
-                      <p className="text-xs text-muted-foreground">Receive updates about new features</p>
+                      <p className="text-sm font-medium">Email Notifications</p>
+                      <p className="text-xs text-muted-foreground">Receive updates about new synthetic models and features.</p>
                     </div>
                     <Switch checked={notifications} onCheckedChange={setNotifications} />
                   </div>
 
-                  <div className="flex items-center justify-between py-2">
+                  <div className="flex items-center justify-between py-2 group">
                     <div>
-                      <p className="text-sm font-medium">Product updates</p>
-                      <p className="text-xs text-muted-foreground">Get notified about new data types and features</p>
+                      <p className="text-sm font-medium">Generation Completed</p>
+                      <p className="text-xs text-muted-foreground">Get alerted when your large dataset is ready for download.</p>
                     </div>
                     <Switch defaultChecked />
                   </div>
 
-                  <div className="flex items-center justify-between py-2">
+                  <div className="flex items-center justify-between py-2 group">
                     <div>
-                      <p className="text-sm font-medium">Usage alerts</p>
-                      <p className="text-xs text-muted-foreground">Notify when approaching usage limits</p>
+                      <p className="text-sm font-medium">Usage Alerts</p>
+                      <p className="text-xs text-muted-foreground">Notify when approaching your monthly free tier limits.</p>
                     </div>
                     <Switch defaultChecked />
                   </div>
@@ -216,74 +257,84 @@ export function SettingsDialog({ open, onOpenChange, defaultSection = 'general' 
             )}
 
             {activeSection === 'data' && (
-              <div className="space-y-6">
-                <h2 className="text-lg font-medium">Data & Usage</h2>
-                
-                <div className="space-y-4">
-                  <div className="p-4 rounded-lg border border-border">
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-sm font-medium">Current Plan</p>
-                      <span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary font-medium">Free</span>
+              <div className="space-y-8 animate-in fade-in duration-300">
+                <div>
+                  <h2 className="text-xl font-semibold mb-1">Data & Usage</h2>
+                  <p className="text-sm text-muted-foreground">Track your synthetic data consumption and plan details.</p>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="p-5 rounded-2xl border border-border bg-gradient-to-br from-secondary/50 to-background shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <p className="text-sm font-semibold">Current Plan</p>
+                        <p className="text-xs text-muted-foreground">Free Tier</p>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold uppercase tracking-wider">Active</span>
                     </div>
-                    <p className="text-xs text-muted-foreground mb-3">1,000 rows per dataset • 10 datasets/month</p>
-                    <Button size="sm" className="h-8 text-xs">Upgrade to Pro</Button>
+                    <div className="space-y-2 mb-6">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Row Limit</span>
+                        <span className="font-medium text-foreground">1,000 / dataset</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Monthly Quota</span>
+                        <span className="font-medium text-foreground">12 / 10 used</span>
+                      </div>
+                    </div>
+                    <Button className="w-full h-9 bg-primary text-primary-foreground hover:bg-primary/90 transition-all font-semibold shadow-md shadow-primary/10">Upgrade to Pro</Button>
                   </div>
 
-                  <div className="flex items-center justify-between py-2">
-                    <div>
-                      <p className="text-sm font-medium">Datasets generated</p>
-                      <p className="text-xs text-muted-foreground">This month</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 rounded-xl border border-border/50 bg-muted/20">
+                      <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Total Storage</p>
+                      <p className="text-lg font-semibold">24.5 MB</p>
                     </div>
-                    <span className="text-sm font-medium">12 / 10</span>
-                  </div>
-
-                  <div className="flex items-center justify-between py-2">
-                    <div>
-                      <p className="text-sm font-medium">Storage used</p>
-                      <p className="text-xs text-muted-foreground">Saved datasets</p>
+                    <div className="p-4 rounded-xl border border-border/50 bg-muted/20">
+                      <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Avg. Accuracy</p>
+                      <p className="text-lg font-semibold">99.4%</p>
                     </div>
-                    <span className="text-sm font-medium">24.5 MB</span>
                   </div>
                 </div>
               </div>
             )}
 
             {activeSection === 'help' && (
-              <div className="space-y-6">
-                <h2 className="text-lg font-medium">Help</h2>
-                
+              <div className="space-y-8 animate-in fade-in duration-300">
+                <div>
+                  <h2 className="text-xl font-semibold mb-1">Help & Support</h2>
+                  <p className="text-sm text-muted-foreground">Resources and contact info for any assistance.</p>
+                </div>
+
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between py-2">
-                    <div>
-                      <p className="text-sm font-medium">Email</p>
-                      <p className="text-xs text-muted-foreground">support@dataforgeai.com</p>
+                  <div className="p-6 rounded-2xl border border-border/50 bg-muted/10 space-y-4">
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <HelpCircle className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">Quick Support</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">Our team is available Mon-Fri, 9AM-6PM EST. We typically respond within 24 hours.</p>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 space-y-3">
+                      <div className="flex items-center justify-between text-sm py-2 border-b border-border/30">
+                        <span className="text-muted-foreground">Email</span>
+                        <span className="font-medium">support@dataforgeai.com</span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        className="w-full h-10 mt-2 transition-all hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                        onClick={() => {
+                          onOpenChange(false);
+                          window.location.href = '/#contact';
+                        }}
+                      >
+                        Visit Help Center
+                      </Button>
                     </div>
                   </div>
-
-                  <div className="flex items-center justify-between py-2">
-                    <div>
-                      <p className="text-sm font-medium">Response Time</p>
-                      <p className="text-xs text-muted-foreground">Within 24 hours</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between py-2">
-                    <div>
-                      <p className="text-sm font-medium">Support Hours</p>
-                      <p className="text-xs text-muted-foreground">Monday - Friday, 9AM - 6PM EST</p>
-                    </div>
-                  </div>
-
-                  <Button 
-                    variant="outline" 
-                    className="w-full mt-4"
-                    onClick={() => {
-                      onOpenChange(false);
-                      window.location.href = '/#contact';
-                    }}
-                  >
-                    Contact Us
-                  </Button>
                 </div>
               </div>
             )}

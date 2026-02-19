@@ -9,9 +9,9 @@ import { Footer } from '@/components/landing/Footer';
 
 const Landing = () => {
   return (
-    <div className="min-h-screen bg-[#18181b] text-gray-200 font-sans selection:bg-primary/30 relative">
+    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30 relative">
       {/* Background Decoration */}
-      <div className="absolute top-0 left-0 right-0 pointer-events-none z-0 mix-blend-screen overflow-visible">
+      <div className="absolute top-0 left-0 right-0 pointer-events-none z-0 dark:mix-blend-screen mix-blend-multiply invert dark:invert-0 overflow-visible">
         <img
           src="/src/assets/landing-bg-minimal.png"
           alt="Background Decoration"

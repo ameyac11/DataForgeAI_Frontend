@@ -39,14 +39,14 @@ export function Navbar() {
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
         isScrolled
-          ? "bg-[#18181b]/80 backdrop-blur-xl border-b border-white/5 shadow-lg shadow-black/5"
+          ? "bg-background/80 backdrop-blur-xl border-b border-border shadow-lg"
           : "bg-transparent"
       )}
     >
       <nav className="container px-4 sm:px-6 h-16 sm:h-18 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-          <ThemeLogo size="sm" forceTheme="dark" />
+          <ThemeLogo size="sm" />
           <span className="font-bold text-base sm:text-lg">DataForgeAI</span>
         </Link>
 

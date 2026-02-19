@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginPromptDialog } from '@/components/LoginPromptDialog';
@@ -12,7 +12,9 @@ const Dashboard = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showGuideTour, setShowGuideTour] = useState(false);
+  /* const [showGuideTour, setShowGuideTour] = useState(false); REMOVED */
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Auto-login as guest if not authenticated
   useEffect(() => {
@@ -76,7 +78,7 @@ const Dashboard = () => {
       {/* Mobile Sidebar */}
       <div className={`md:hidden fixed inset-y-0 left-0 z-50 w-64 bg-sidebar border-r border-sidebar-border transform transition-transform duration-300 ${isSidebarCollapsed ? '-translate-x-full' : 'translate-x-0'}`}>
         <AppSidebar
-          isCollapsed={false}
+          collapsed={false}
           onToggle={() => setIsSidebarCollapsed(true)}
         />
       </div>
@@ -84,15 +86,15 @@ const Dashboard = () => {
       {/* Desktop Sidebar */}
       <div className="hidden md:block">
         <AppSidebar
-          isCollapsed={isSidebarCollapsed}
+          collapsed={isSidebarCollapsed}
           onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         />
       </div>
 
       <main className="flex-1 overflow-hidden relative pt-14 md:pt-0">
         <Outlet />
-        {/* Help Menu - Bottom right corner */}
-        <HelpMenu />
+        {/* Help Menu - Bottom right corner, only on chat page */}
+        {location.pathname === '/app' && <HelpMenu />}
       </main>
 
       {/* Login prompt for anonymous users - shown once per session */}

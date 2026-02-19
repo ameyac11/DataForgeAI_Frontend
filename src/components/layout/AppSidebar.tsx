@@ -1,331 +1,287 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { MessageSquare, Settings2, FolderOpen, History, MoreHorizontal, Pin, Pencil, Trash2, User, Settings, HelpCircle, LogOut, LogIn, Check, X, Sidebar, Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useAuth } from '@/contexts/AuthContext';
-import { useChat } from '@/contexts/ChatContext';
+import { Settings2, History, Plus, PanelLeft, FolderOpen, Search, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { SettingsDialog } from '@/components/SettingsDialog';
-import { ThemeLogo } from '@/components/ThemeLogo';
+import { Button } from '@/components/ui/button';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useChat } from '@/contexts/ChatContext';
+import { UserMenu } from '@/components/layout/UserMenu';
+import { ChatItemMenu } from '@/components/sidebar/ChatItemMenu';
 
 interface AppSidebarProps {
-  isCollapsed: boolean;
+  collapsed: boolean;
   onToggle: () => void;
+  isMobile?: boolean;
+  onItemClick?: () => void;
 }
 
-export function AppSidebar({
-  isCollapsed,
-  onToggle
-}: AppSidebarProps) {
+const navItems = [
+  { icon: FolderOpen, label: 'Sample Datasets', path: '/app/samples' },
+  { icon: History, label: 'History', path: '/app/history' },
+];
+
+// Mock for Search Popup (to be implemented/hooked up later)
+const ChatSearchPopup = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center" onClick={onClose}>
+      <div className="bg-card border border-border rounded-xl p-6 w-[500px] shadow-lg" onClick={e => e.stopPropagation()}>
+        <h2 className="text-lg font-semibold mb-4">Search Chats</h2>
+        <div className="flex items-center gap-2 border rounded-lg px-3 py-2 bg-muted/50">
+          <Search className="w-4 h-4 text-muted-foreground" />
+          <input className="bg-transparent border-none outline-none flex-1 text-sm" placeholder="Search..." autoFocus />
+        </div>
+        <div className="mt-4 text-sm text-muted-foreground text-center">
+          No results found.
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export function AppSidebar({ collapsed, onToggle, isMobile = false, onItemClick }: AppSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isAnonymous, logout } = useAuth();
-  const { chats, setChats, startNewChat } = useChat();
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState('');
-  const [showSettings, setShowSettings] = useState(false);
+  const { chats, currentChat, selectChat, deleteChat, renameChat, starChat, createNewChat } = useChat();
+  const [searchOpen, setSearchOpen] = useState(false);
 
-  const navItems = [
-    { icon: MessageSquare, label: 'DataForge AI', path: '/app' },
-    { icon: Settings2, label: 'Custom Generator', path: '/app/generator' },
-    { icon: FolderOpen, label: 'Sample Datasets', path: '/app/samples' },
-    { icon: History, label: 'History', path: '/app/history' },
-  ];
+  // Safely use theme context
+  const themeContext = useTheme();
+  // Provide fallback or handle missing context if strictly necessary, assuming context exists as per file reads
+  const resolvedTheme = themeContext?.resolvedTheme || 'dark';
 
-  const startRename = (id: string, name: string) => {
-    setEditingId(id);
-    setEditingName(name);
-  };
+  // Sort pinned chats first, then by date
+  const recentChats = [...chats].sort((a, b) => {
+    if (a.starred && !b.starred) return -1;
+    if (!a.starred && b.starred) return 1;
+    return b.updatedAt.getTime() - a.updatedAt.getTime();
+  });
 
-  const saveRename = (id: string) => {
-    if (editingName.trim()) {
-      setChats(chats.map(c => c.id === id ? { ...c, name: editingName.trim() } : c));
+  const handleNewChat = () => {
+    createNewChat();
+    // Assuming new chat navigates to the main app/chat route
+    if (location.pathname !== '/app') {
+      navigate('/app');
     }
-    setEditingId(null);
-    setEditingName('');
+    onItemClick?.(); // Close mobile drawer
   };
 
-  const cancelRename = () => {
-    setEditingId(null);
-    setEditingName('');
+  const handleSelectChat = (chatId: string) => {
+    selectChat(chatId);
+    if (location.pathname !== '/app') {
+      navigate('/app');
+    }
+    onItemClick?.(); // Close mobile drawer
   };
 
-  const handlePin = (id: string) => {
-    setChats(chats.map(c => c.id === id ? { ...c, pinned: !c.pinned } : c));
+  const handleRename = (chatId: string, newTitle: string) => {
+    renameChat(chatId, newTitle);
   };
 
-  const handleDelete = (id: string) => {
-    setChats(chats.filter(c => c.id !== id));
+  const handlePin = (chatId: string) => {
+    starChat(chatId);
   };
 
-  const handleHelpClick = () => {
-    setShowSettings(true);
+  const handleDelete = (chatId: string) => {
+    deleteChat(chatId);
   };
 
-  // When collapsed, show only the logo icon that expands sidebar on click
-  if (isCollapsed) {
-    return (
-      <>
-        <aside data-tour="sidebar" className="h-screen w-14 bg-background border-r border-border flex flex-col transition-all duration-300 ease-in-out hidden md:flex">
-          {/* Logo that expands sidebar */}
-          <div className="h-14 flex items-center justify-center mb-2">
-            <button
-              onClick={onToggle}
-              className="flex items-center justify-center hover:opacity-80 transition-opacity"
-            >
-              <ThemeLogo size="sm" forceTheme="dark" />
-            </button>
-          </div>
-
-          <div className="px-2 mb-2">
-            <Button
-              onClick={() => {
-                startNewChat();
-                navigate('/app');
-              }}
-              size="icon"
-              variant="outline"
-              className="w-10 h-10 rounded-xl border border-dashed border-muted-foreground/50 bg-background hover:bg-muted hover:border-primary/50 text-muted-foreground hover:text-primary transition-all duration-300"
-              title="New Chat"
-            >
-              <Plus className="w-5 h-5" />
-            </Button>
-          </div>
-
-          {/* Minimal nav icons */}
-          <nav className="flex-1 p-2">
-            <div className="space-y-1">
-              {navItems.map(item => {
-                const isActive = location.pathname === item.path;
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={cn(
-                      "flex items-center justify-center w-10 h-10 rounded-lg transition-colors",
-                      isActive
-                        ? "bg-accent text-foreground"
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-                    )}
-                    title={item.label}
-                  >
-                    <item.icon className="w-4 h-4" />
-                  </Link>
-                );
-              })}
-            </div>
-          </nav>
-
-          {/* User icon */}
-          <div className="p-2 border-t border-border">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-accent/50 transition-colors">
-                  <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
-                    <User className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" side="right" className="w-48 bg-card border-border">
-                <DropdownMenuItem onClick={() => setShowSettings(true)} className="text-sm cursor-pointer">
-                  <Settings className="w-4 h-4 mr-3" />
-                  Settings
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleHelpClick} className="text-sm cursor-pointer">
-                  <HelpCircle className="w-4 h-4 mr-3" />
-                  Help
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                {isAnonymous ? (
-                  <DropdownMenuItem onClick={() => navigate('/auth')} className="text-sm cursor-pointer">
-                    <LogIn className="w-4 h-4 mr-3" />
-                    Sign in
-                  </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuItem onClick={() => { logout(); navigate('/'); }} className="text-sm cursor-pointer">
-                    <LogOut className="w-4 h-4 mr-3" />
-                    Sign out
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </aside>
-
-        <SettingsDialog open={showSettings} onOpenChange={setShowSettings} defaultSection="help" />
-      </>
-    );
-  }
+  // When collapsed, clicking the logo opens the sidebar
+  const handleLogoClick = () => {
+    if (collapsed) {
+      onToggle();
+    }
+  };
 
   return (
     <>
-      <aside data-tour="sidebar" className="h-screen w-64 bg-sidebar border-r border-sidebar-border flex-col transition-all duration-300 ease-in-out hidden md:flex">
-        {/* Header */}
-        <div className="h-14 flex items-center justify-between px-4 border-b border-sidebar-border">
-          <Link to="/app" className="flex items-center gap-3">
-            <ThemeLogo size="md" forceTheme="dark" />
-            <span className="font-semibold text-foreground">DataForgeAI</span>
-          </Link>
-          <button
-            onClick={onToggle}
-            className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-          >
-            <Sidebar className="w-4 h-4" />
-          </button>
+      <aside className={cn(
+        'h-screen border-r flex flex-col transition-all duration-300 ease-in-out',
+        // Mobile: always full width, no collapse
+        isMobile ? 'w-64 bg-sidebar border-sidebar-border' : '',
+        // Desktop: support collapse
+        !isMobile && collapsed ? 'w-[72px] bg-background border-border' : '',
+        !isMobile && !collapsed ? 'w-64 bg-sidebar border-sidebar-border' : ''
+      )}>
+        {/* Header with Logo */}
+        <div className={cn(
+          "flex items-center border-b",
+          collapsed ? "justify-center h-[60px] border-border" : "h-[60px] px-3 border-sidebar-border"
+        )}>
+          {collapsed ? (
+            <button
+              onClick={handleLogoClick}
+              className="w-12 h-12 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
+            >
+              <img src={resolvedTheme === 'dark' ? "/DataNesTX_Logo_Dark_Frontend.png" : "/DataNesTX_Logo_Light_Frontend.png"} alt="DataNesTX Logo" className="w-12 h-12" />
+            </button>
+          ) : (
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <img
+                  src={resolvedTheme === 'dark' ? "/DataNesTX_Logo_Dark_Frontend.png" : "/DataNesTX_Logo_Light_Frontend.png"}
+                  alt="DataNesTX Logo"
+                  className="w-10 h-10 shrink-0"
+                />
+                <div className="flex flex-col min-w-0">
+                  <span className="font-bold text-xs text-sidebar-foreground truncate">DataForgeAI</span>
+                  <div className="flex items-center">
+                    <span className="text-[9px] bg-green-500/10 text-green-500 border border-green-500/20 px-1.5 py-0.5 rounded-full flex items-center gap-1 shadow-[0_0_8px_rgba(34,197,94,0.15)] scale-90 origin-left">
+                      <span className="relative flex h-1 w-1">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-1 w-1 bg-green-500"></span>
+                      </span>
+                      Beta
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={onToggle}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors shrink-0 ml-1"
+              >
+                <PanelLeft className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-3">
-          {/* New Chat Button */}
+        {/* Custom Generator Button - Primary Gradient */}
+        <div className={cn(
+          "flex justify-center",
+          !isMobile && collapsed ? "py-3" : "p-3"
+        )}>
+          <Link to="/app/generator" className={!isMobile && collapsed ? "" : "w-full"} onClick={onItemClick}>
+            <Button
+              variant="default"
+              className={cn(
+                'gap-2 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 hover:from-purple-700 hover:via-pink-700 hover:to-orange-600 text-white border-0 transition-all duration-300',
+                // Glow effect on hover
+                'hover:shadow-[0_0_20px_rgba(168,85,247,0.6),0_0_40px_rgba(236,72,153,0.4),0_0_60px_rgba(249,115,22,0.3)]',
+                'hover:scale-105 active:scale-100',
+                // Touch-friendly on mobile
+                'h-11 xl:h-10',
+                !isMobile && collapsed ? 'w-10 p-0' : 'w-full justify-start',
+                location.pathname === '/app/generator' && 'ring-2 ring-white/30 shadow-[0_0_15px_rgba(168,85,247,0.5)]'
+              )}
+            >
+              <Settings2 className="w-4 h-4 animate-pulse shrink-0" />
+              {(isMobile || !collapsed) && (
+                <span className="font-semibold whitespace-nowrap">
+                  Custom Generator
+                </span>
+              )}
+            </Button>
+          </Link>
+        </div>
+
+        {/* New Chat Button */}
+        <div className={cn(
+          "flex justify-center",
+          !isMobile && collapsed ? "pb-3" : "px-3 pb-2"
+        )}>
           <Button
-            onClick={() => {
-              startNewChat();
-              navigate('/app');
-            }}
-            className="w-full justify-start gap-3 mb-4 h-10 rounded-xl border border-dashed border-muted-foreground/50 bg-background hover:bg-muted hover:border-primary/50 text-muted-foreground hover:text-primary transition-all duration-300 shadow-none"
+            onClick={handleNewChat}
             variant="outline"
-          >
-            <Plus className="w-5 h-5" />
-            <span>New Chat</span>
-          </Button>
-
-          <div className="space-y-1">
-            {navItems.map(item => {
-              const isActive = location.pathname === item.path;
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors",
-                    isActive
-                      ? "bg-accent text-foreground font-medium"
-                      : "text-foreground/80 hover:text-foreground hover:bg-accent/50"
-                  )}
-                >
-                  <item.icon className="w-4 h-4" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* Recent Chats */}
-          <div className="mt-8">
-            <h3 className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-              Recent
-            </h3>
-            <div className="space-y-1">
-              {chats.slice(0, 5).map(chat => (
-                <div
-                  key={chat.id}
-                  className="group flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent/50 transition-colors"
-                >
-                  {chat.pinned && <Pin className="w-3.5 h-3.5 text-primary shrink-0" />}
-
-                  {editingId === chat.id ? (
-                    <div className="flex-1 flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={editingName}
-                        onChange={e => setEditingName(e.target.value)}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') saveRename(chat.id);
-                          if (e.key === 'Escape') cancelRename();
-                        }}
-                        className="flex-1 bg-background border border-border rounded-md px-2 py-1 text-sm outline-none focus:border-primary transition-colors"
-                        autoFocus
-                      />
-                      <button onClick={() => saveRename(chat.id)} className="p-1 text-primary hover:text-primary/80 transition-colors">
-                        <Check className="w-3.5 h-3.5" />
-                      </button>
-                      <button onClick={cancelRename} className="p-1 text-muted-foreground hover:text-foreground transition-colors">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <span className="flex-1 truncate text-muted-foreground group-hover:text-foreground cursor-pointer text-sm">
-                        {chat.name}
-                      </span>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <MoreHorizontal className="w-3.5 h-3.5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-36 bg-card border-border">
-                          <DropdownMenuItem onClick={() => startRename(chat.id, chat.name)} className="text-sm cursor-pointer">
-                            <Pencil className="w-3.5 h-3.5 mr-2" />
-                            Rename
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handlePin(chat.id)} className="text-sm cursor-pointer">
-                            <Pin className="w-3.5 h-3.5 mr-2" />
-                            {chat.pinned ? 'Unpin' : 'Pin'}
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleDelete(chat.id)} className="text-destructive text-sm cursor-pointer">
-                            <Trash2 className="w-3.5 h-3.5 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </>
-                  )}
-                </div>
-              ))}
-            </div>
-            {chats.length === 0 && (
-              <p className="px-3 text-xs text-muted-foreground/60 py-2">
-                No chats yet
-              </p>
+            className={cn(
+              'gap-2 border-dashed transition-all duration-300',
+              // Touch-friendly on mobile
+              'h-11 xl:h-10',
+              !isMobile && collapsed ? 'w-10 p-0' : 'w-full justify-start'
             )}
+          >
+            <Plus className="w-4 h-4 shrink-0" />
+            {(isMobile || !collapsed) && <span className="whitespace-nowrap">New Chat</span>}
+          </Button>
+        </div>
+
+        {/* Search Chat Button */}
+        {(isMobile || !collapsed) && (
+          <div className="px-3 pb-2">
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="w-full flex items-center gap-3 px-3 py-2.5 xl:py-2 rounded-lg transition-all duration-200 text-sidebar-foreground hover:bg-sidebar-accent/50 min-h-[44px] xl:min-h-0"
+            >
+              <Search className="w-5 h-5 flex-shrink-0" />
+              <span className="text-sm font-medium">Search Chats</span>
+            </button>
           </div>
+        )}
+
+        {/* Navigation */}
+        <nav className={cn(
+          "flex flex-col gap-1",
+          !isMobile && collapsed ? "items-center py-2" : "px-3 pt-2"
+        )}>
+          {navItems.map(item => {
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={onItemClick}
+                className={cn(
+                  'flex items-center gap-3 rounded-lg transition-all duration-200',
+                  isActive
+                    ? 'bg-sidebar-accent text-sidebar-primary'
+                    : 'text-sidebar-foreground hover:bg-sidebar-accent/50',
+                  // Touch-friendly on mobile
+                  'min-h-[44px] xl:min-h-0',
+                  !isMobile && collapsed ? 'h-10 w-10 justify-center' : 'w-full px-3 py-2.5'
+                )}
+              >
+                <item.icon className="w-5 h-5 flex-shrink-0" />
+                {(isMobile || !collapsed) && (
+                  <span className="text-sm font-medium whitespace-nowrap">
+                    {item.label}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
         </nav>
 
-        {/* User Profile */}
-        <div className="p-3 border-t border-sidebar-border">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-accent/50 transition-colors">
-                <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center">
-                  <User className="w-4 h-4 text-muted-foreground" />
-                </div>
-                <div className="flex-1 text-left overflow-hidden">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {isAnonymous ? 'Guest' : user?.username}
-                  </p>
-                </div>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-card border-border">
-              <DropdownMenuItem onClick={() => setShowSettings(true)} className="text-sm cursor-pointer">
-                <Settings className="w-4 h-4 mr-3" />
-                Settings
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleHelpClick} className="text-sm cursor-pointer">
-                <HelpCircle className="w-4 h-4 mr-3" />
-                Help
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {isAnonymous ? (
-                <DropdownMenuItem onClick={() => navigate('/auth')} className="text-sm cursor-pointer">
-                  <LogIn className="w-4 h-4 mr-3" />
-                  Sign in
-                </DropdownMenuItem>
-              ) : (
-                <DropdownMenuItem onClick={() => { logout(); navigate('/'); }} className="text-sm cursor-pointer">
-                  <LogOut className="w-4 h-4 mr-3" />
-                  Sign out
-                </DropdownMenuItem>
+        {/* Recent Chats */}
+        {(isMobile || !collapsed) && (
+          <div
+            className="flex-1 overflow-y-auto px-3 py-2 min-h-0"
+            onWheel={(e) => e.stopPropagation()}
+          >
+            <p className="text-xs font-medium text-muted-foreground mb-2 px-3">Recent</p>
+            <div className="space-y-1">
+              {recentChats.map((chat) => (
+                <ChatItemMenu
+                  key={chat.id}
+                  chatId={chat.id}
+                  chatTitle={chat.title}
+                  isStarred={chat.starred}
+                  isActive={currentChat?.id === chat.id}
+                  onRename={handleRename}
+                  onStar={handlePin}
+                  onDelete={handleDelete}
+                  onSelect={handleSelectChat}
+                  updatedAt={chat.updatedAt}
+                />
+              ))}
+              {recentChats.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-4">
+                  No chats yet
+                </p>
               )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </div>
+          </div>
+        )}
+
+        {/* User Section */}
+        <div className={cn(
+          "mt-auto border-t flex",
+          collapsed ? "justify-center py-3 border-border" : "p-3 border-sidebar-border"
+        )}>
+          <UserMenu collapsed={collapsed} />
         </div>
       </aside>
 
-      <SettingsDialog open={showSettings} onOpenChange={setShowSettings} />
+      <ChatSearchPopup open={searchOpen} onClose={() => setSearchOpen(false)} />
     </>
   );
 }

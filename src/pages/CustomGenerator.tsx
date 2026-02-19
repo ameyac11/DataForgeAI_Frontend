@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
   Plus,
   Trash2,
@@ -12,6 +12,7 @@ import {
   Cpu,
   X,
   ChevronRight,
+  ChevronDown,
   ArrowUp,
   ArrowDown,
   LayoutTemplate,
@@ -22,6 +23,7 @@ import {
   User,
   ShoppingCart,
   CreditCard,
+  Settings2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,7 +54,7 @@ interface Column {
   dataType: string;
 }
 
-const formatConfig: Record<DataFormat, { icon: typeof FileSpreadsheet; color: string; label: string; description: string }> = {
+const formatConfig: Record<DataFormat, { icon: any; color: string; label: string; description: string }> = {
   CSV: { icon: FileSpreadsheet, color: 'text-green-500', label: 'CSV', description: 'Spreadsheet format' },
   JSON: { icon: FileJson, color: 'text-amber-500', label: 'JSON', description: 'Structured data' },
   SQL: { icon: FileCode, color: 'text-blue-500', label: 'SQL', description: 'Database queries' },
@@ -92,23 +94,23 @@ const dataTypeColors: Record<string, string> = {
 };
 
 const templateExamples = [
-  { 
+  {
     id: 'user-profile',
-    name: 'User Profile', 
+    name: 'User Profile',
     description: 'Common fields for user information',
     icon: User,
     columns: templateColumns['User Profile']
   },
-  { 
+  {
     id: 'product-catalog',
-    name: 'Product Catalog', 
+    name: 'Product Catalog',
     description: 'Standard product listing fields',
     icon: ShoppingCart,
     columns: templateColumns['Product Catalog']
   },
-  { 
+  {
     id: 'financial-transaction',
-    name: 'Financial Transaction', 
+    name: 'Financial Transaction',
     description: 'Banking and payment record fields',
     icon: CreditCard,
     columns: templateColumns['Financial Transaction']
@@ -188,29 +190,6 @@ const CustomGenerator = () => {
     }
   };
 
-  const handleDragStart = (e: React.DragEvent, id: string) => {
-    setDraggedId(id);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragOver = (e: React.DragEvent, targetId: string) => {
-    e.preventDefault();
-    if (draggedId && draggedId !== targetId) {
-      const draggedIndex = columns.findIndex(c => c.id === draggedId);
-      const targetIndex = columns.findIndex(c => c.id === targetId);
-      if (draggedIndex !== targetIndex) {
-        const newColumns = [...columns];
-        const [removed] = newColumns.splice(draggedIndex, 1);
-        newColumns.splice(targetIndex, 0, removed);
-        setColumns(newColumns);
-      }
-    }
-  };
-
-  const handleDragEnd = () => {
-    setDraggedId(null);
-  };
-
   const applyTemplate = (template: typeof templateExamples[0]) => {
     setColumns(template.columns.map((col, i) => ({
       id: Date.now().toString() + i,
@@ -220,7 +199,6 @@ const CustomGenerator = () => {
     setShowAutoFillModal(false);
   };
 
-  // Generate mock preview data
   const generatePreviewData = () => {
     const mockValues: Record<string, string[]> = {
       'First Name': ['John', 'Sarah', 'Mike', 'Emily', 'David'],
@@ -231,7 +209,7 @@ const CustomGenerator = () => {
       'Company': ['Acme Inc', 'TechCorp', 'DataSoft', 'CloudBase', 'NetWorks'],
     };
 
-    return Array.from({ length: 5 }, (_, rowIndex) => 
+    return Array.from({ length: 5 }, (_, rowIndex) =>
       columns.map(col => {
         const values = mockValues[col.dataType] || ['Sample data'];
         return values[rowIndex % values.length];
@@ -240,497 +218,339 @@ const CustomGenerator = () => {
   };
 
   return (
-    <div className="h-full overflow-y-auto bg-background">
-      <div className="max-w-5xl mx-auto p-8 pb-16">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-10">
-          <div>
-            <h1 className="text-3xl font-semibold text-foreground">Dataset Generator</h1>
-            <p className="text-base text-muted-foreground mt-2">
-              Define your schema and generate custom datasets
-            </p>
-          </div>
-          <Button 
-            onClick={() => setShowAutoFillModal(true)} 
-            variant="outline" 
-            className="gap-2 h-11 px-5 text-base hover:border-primary/50 hover:bg-primary/5 transition-all"
-          >
+    <div className="h-full flex flex-col bg-background/50 backdrop-blur-sm">
+
+      {/* 1. Page Header (Static) */}
+      <div className="flex-none px-6 py-4 flex items-center justify-between border-b border-border/40 bg-background/50">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg">
             <Sparkles className="w-5 h-5 text-primary" />
-            Auto-fill
-          </Button>
-        </div>
-
-        {/* Column Definitions Card */}
-        <div className="rounded-2xl border border-border bg-card p-8 mb-8 shadow-sm">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                <LayoutTemplate className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-lg font-medium text-foreground">Column Definitions</h2>
-                <p className="text-sm text-muted-foreground">{columns.length} columns defined</p>
-              </div>
-            </div>
           </div>
-
-          {/* Column Header */}
-          <div className="flex items-center gap-4 px-4 pb-4 mb-3 border-b border-border/50">
-            <div className="w-14" />
-            <div className="flex-[7]">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Column Name</span>
-            </div>
-            <div className="flex-[4]">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Data Type</span>
-            </div>
-            <div className="w-12" />
-          </div>
-
-          <div className="space-y-3">
-            {columns.map((column, index) => (
-              <div
-                key={column.id}
-                draggable
-                onDragStart={(e) => handleDragStart(e, column.id)}
-                onDragOver={(e) => handleDragOver(e, column.id)}
-                onDragEnd={handleDragEnd}
-                className={cn(
-                  "group flex items-center gap-4 px-4 py-5 rounded-xl border-2 transition-all duration-200",
-                  draggedId === column.id 
-                    ? "opacity-50 border-primary bg-primary/5 scale-[0.98]" 
-                    : "border-border hover:border-primary/40 hover:bg-muted/30 hover:shadow-sm bg-background/50"
-                )}
-              >
-                {/* Drag handle + Arrows */}
-                <div className="flex items-center gap-1.5 w-14">
-                  <div className="cursor-grab active:cursor-grabbing p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted">
-                    <GripVertical className="w-4 h-4" />
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <button
-                      onClick={() => moveColumn(column.id, 'up')}
-                      disabled={index === 0}
-                      className={cn(
-                        "p-1 rounded transition-all duration-150",
-                        index === 0 
-                          ? "text-muted-foreground/20 cursor-not-allowed" 
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                      )}
-                    >
-                      <ArrowUp className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => moveColumn(column.id, 'down')}
-                      disabled={index === columns.length - 1}
-                      className={cn(
-                        "p-1 rounded transition-all duration-150",
-                        index === columns.length - 1 
-                          ? "text-muted-foreground/20 cursor-not-allowed" 
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                      )}
-                    >
-                      <ArrowDown className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Column name input - 70% width */}
-                <div className="flex-[7]">
-                  <Input
-                    placeholder="column_name"
-                    value={column.name}
-                    onChange={(e) => updateColumn(column.id, 'name', e.target.value)}
-                    className="h-12 text-base bg-muted/50 border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                  />
-                </div>
-
-                {/* Data type selector button - 40% width */}
-                <div className="flex-[4]">
-                  <button
-                    onClick={() => setShowDataTypeModal(column.id)}
-                    className="w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl bg-muted/80 border-2 border-border text-sm font-medium hover:border-primary/50 hover:bg-muted transition-all duration-200"
-                  >
-                    <span className={cn("font-medium", dataTypeColors[column.dataType] || 'text-foreground')}>
-                      {column.dataType}
-                    </span>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                  </button>
-                </div>
-
-                {/* Delete button */}
-                <button
-                  onClick={() => removeColumn(column.id)}
-                  className="p-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-200"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
-
-            {/* Add column button */}
-            <button
-              onClick={addColumn}
-              className="w-full flex items-center justify-center gap-2 py-5 rounded-xl border-2 border-dashed border-border text-base text-muted-foreground hover:border-primary/50 hover:text-foreground hover:bg-primary/5 transition-all duration-200"
-            >
-              <Plus className="w-5 h-5" />
-              Add Column
-            </button>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Custom Generator</h1>
+            <p className="text-xs text-muted-foreground">Design, configure, and generate synthetic datasets.</p>
           </div>
         </div>
-
-        {/* Configuration Row */}
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-          {/* Row Count */}
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm hover:border-primary/20 transition-all duration-200">
-            <label className="text-base font-medium text-foreground mb-4 block">Number of Rows</label>
-            <Input
-              type="number"
-              value={rowCount}
-              onChange={(e) => setRowCount(parseInt(e.target.value) || 0)}
-              min={1}
-              max={1000000}
-              className="h-14 text-lg font-medium"
-            />
-            <p className="text-sm text-muted-foreground mt-3">Maximum: 1,000,000 rows</p>
-          </div>
-
-          {/* Output Format */}
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm hover:border-primary/20 transition-all duration-200">
-            <label className="text-base font-medium text-foreground mb-4 block">Output Format</label>
-            <div className="grid grid-cols-4 gap-3">
-              {(Object.entries(formatConfig) as [DataFormat, typeof formatConfig.JSON][]).map(([format, config]) => {
-                const Icon = config.icon;
-                return (
-                  <button
-                    key={format}
-                    onClick={() => setDataFormat(format)}
-                    className={cn(
-                      "flex flex-col items-center justify-center p-5 rounded-xl border-2 transition-all duration-200",
-                      dataFormat === format
-                        ? "border-primary bg-primary/10 shadow-md"
-                        : "border-border hover:border-primary/40 hover:bg-muted/50"
-                    )}
-                  >
-                    <Icon className={cn("w-8 h-8 mb-2", config.color)} />
-                    <span className="text-sm font-medium">{config.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Data Generation Source */}
-        <div className="rounded-2xl border border-border bg-card p-8 mb-8 shadow-sm">
-          <h3 className="text-lg font-medium text-foreground mb-6">Data Generation Source</h3>
-          
-          <div className="grid md:grid-cols-2 gap-5 mb-6">
-            <button
-              onClick={() => setSourceType('AI')}
-              className={cn(
-                "flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all duration-200 text-center",
-                sourceType === 'AI'
-                  ? "border-primary bg-primary/5 shadow-md"
-                  : "border-border hover:border-primary/40 hover:bg-muted/30"
-              )}
-            >
-              <div className={cn(
-                "w-14 h-14 rounded-xl flex items-center justify-center transition-colors",
-                sourceType === 'AI' ? "bg-primary/15" : "bg-muted"
-              )}>
-                <Sparkles className={cn("w-7 h-7", sourceType === 'AI' ? "text-primary" : "text-muted-foreground")} />
-              </div>
-              <div>
-                <span className="font-medium text-base block mb-1">AI Generated</span>
-                <span className="text-sm text-muted-foreground">Context-aware data generation</span>
-              </div>
-              {sourceType === 'AI' && <Check className="w-5 h-5 text-primary" />}
-            </button>
-
-            <button
-              onClick={() => setSourceType('Library')}
-              className={cn(
-                "flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all duration-200 text-center",
-                sourceType === 'Library'
-                  ? "border-primary bg-primary/5 shadow-md"
-                  : "border-border hover:border-primary/40 hover:bg-muted/30"
-              )}
-            >
-              <div className={cn(
-                "w-14 h-14 rounded-xl flex items-center justify-center transition-colors",
-                sourceType === 'Library' ? "bg-primary/15" : "bg-muted"
-              )}>
-                <Zap className={cn("w-7 h-7", sourceType === 'Library' ? "text-primary" : "text-muted-foreground")} />
-              </div>
-              <div>
-                <span className="font-medium text-base block mb-1">Library Generated</span>
-                <span className="text-sm text-muted-foreground">Fast Faker.js generation</span>
-              </div>
-              {sourceType === 'Library' && <Check className="w-5 h-5 text-primary" />}
-            </button>
-          </div>
-
-          {/* AI Prompt Input */}
-          {sourceType === 'AI' && (
-            <div className="space-y-4">
-              <div className="bg-muted/50 rounded-xl border border-border overflow-hidden">
-                <Input
-                  placeholder="Enter context (e.g., 'Japanese market data', 'Healthcare records')"
-                  value={specialPrompt}
-                  onChange={(e) => setSpecialPrompt(e.target.value)}
-                  className="h-14 border-0 bg-transparent focus-visible:ring-0 px-5 text-base"
-                />
-                <div className="flex items-center justify-between px-4 pb-4">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs text-muted-foreground">Try:</span>
-                    {['Japanese market', 'Healthcare USA', 'E-commerce'].map((example) => (
-                      <button
-                        key={example}
-                        onClick={() => setSpecialPrompt(example)}
-                        className="px-3 py-1.5 text-xs rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5 transition-all"
-                      >
-                        {example}
-                      </button>
-                    ))}
-                  </div>
-                  
-                  {/* Model selector chip inside search bar */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        className={cn(
-                          "h-8 w-8 p-0 rounded-lg",
-                          model === 'GPT-4.1' ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground"
-                        )}
-                      >
-                        <Cpu className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={() => !isAnonymous && setModel('GPT-4.1')}
-                        disabled={isAnonymous}
-                        className="gap-2"
-                      >
-                        {isAnonymous && <Lock className="w-3.5 h-3.5" />}
-                        <span>GPT-4.1</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setModel('GPT-4o')}>
-                        <span>GPT-4o</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Action Buttons - Equal width, centered */}
-        <div className="grid grid-cols-2 gap-4 max-w-lg mx-auto">
-          <Button 
-            variant="outline" 
-            onClick={() => setShowPreviewModal(true)}
-            className="gap-2 h-12 text-base w-full"
-          >
-            <Eye className="w-5 h-5" />
-            Preview
-          </Button>
-          <Button className="gap-2 h-12 text-base bg-primary hover:bg-primary/90 w-full">
-            <Download className="w-5 h-5" />
-            Generate Dataset
-          </Button>
+        <div className="flex items-center gap-2">
+          {/* Global Actions can go here if needed */}
         </div>
       </div>
 
-      {/* Auto Fill Modal - Matching reference design */}
+      {/* 2. Sticky Configuration Bar */}
+      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-xl border-b border-border/60 shadow-sm transition-all pb-4 pt-2">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="bg-secondary/20 border border-border/50 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
+
+            {/* Left: Source & Model */}
+            <div className="flex flex-col gap-2 min-w-[200px]">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider ml-1">Generation Source</label>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center bg-background/50 p-1.5 rounded-xl border border-border/50 shadow-inner">
+                  <button
+                    onClick={() => setSourceType('AI')}
+                    className={cn(
+                      "px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2.5",
+                      sourceType === 'AI' ? "bg-background shadow-md text-foreground border border-border/20" : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+                    )}
+                  >
+                    <Sparkles className={cn("w-4 h-4", sourceType === 'AI' ? "text-purple-500" : "")} />
+                    AI Powered
+                  </button>
+                  <button
+                    onClick={() => setSourceType('Library')}
+                    className={cn(
+                      "px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2.5",
+                      sourceType === 'Library' ? "bg-background shadow-md text-foreground border border-border/20" : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+                    )}
+                  >
+                    <Zap className={cn("w-4 h-4", sourceType === 'Library' ? "text-orange-500" : "")} />
+                    Fast Gen
+                  </button>
+                </div>
+
+                {sourceType === 'AI' && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="h-[46px] flex items-center gap-3 px-4 rounded-xl border border-border/50 bg-background/50 hover:bg-background/80 text-sm font-medium transition-all shadow-sm">
+                        <Cpu className="w-4 h-4 text-muted-foreground" />
+                        <span>{model}</span>
+                        <ChevronDown className="w-3.5 h-3.5 opacity-50" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-[180px]">
+                      <DropdownMenuItem onClick={() => setModel('GPT-4o')} className="py-2.5">
+                        <span className="flex-1">GPT-4o</span>
+                        {model === 'GPT-4o' && <Check className="w-4 h-4 text-primary" />}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setModel('GPT-4.1')} className="py-2.5">
+                        <span className="flex-1">GPT-4.1</span>
+                        {model === 'GPT-4.1' && <Check className="w-4 h-4 text-primary" />}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="hidden md:block w-px h-16 bg-border/40" />
+
+            {/* Center: Row Count & Format */}
+            <div className="flex items-center gap-8 flex-1 justify-center">
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider ml-1">Quantity</label>
+                <div className="flex items-center gap-2 bg-background/50 p-1 rounded-xl border border-border/50 shadow-sm">
+                  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-background shadow-none" onClick={() => setRowCount(Math.max(1, rowCount - 10))}>
+                    <span className="text-lg">-</span>
+                  </Button>
+                  <div className="w-24 text-center">
+                    <Input
+                      type="number"
+                      value={rowCount}
+                      onChange={e => setRowCount(Math.max(1, Math.min(1000, parseInt(e.target.value) || 0)))}
+                      className="h-9 border-none text-center bg-transparent text-lg font-mono p-0 focus-visible:ring-0 shadow-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-background shadow-none" onClick={() => setRowCount(Math.min(1000, rowCount + 10))}>
+                    <span className="text-lg">+</span>
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider ml-1">Format</label>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="h-[46px] min-w-[140px] flex items-center justify-between gap-3 px-4 rounded-xl border border-border/50 bg-background/50 hover:bg-background/80 text-sm font-medium transition-all shadow-sm">
+                      <div className="flex items-center gap-2.5">
+                        {React.createElement(formatConfig[dataFormat].icon, { className: cn("w-4 h-4", formatConfig[dataFormat].color) })}
+                        <span>{dataFormat}</span>
+                      </div>
+                      <ChevronDown className="w-3.5 h-3.5 opacity-50" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-[180px]">
+                    {(Object.entries(formatConfig) as [DataFormat, typeof formatConfig.JSON][]).map(([fmt, cfg]) => (
+                      <DropdownMenuItem key={fmt} onClick={() => setDataFormat(fmt)} className="gap-2.5 py-2.5">
+                        <cfg.icon className={cn("w-4 h-4", cfg.color)} />
+                        {fmt}
+                        {dataFormat === fmt && <Check className="w-4 h-4 text-primary ml-auto" />}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="hidden md:block w-px h-16 bg-border/40" />
+
+            {/* Right: Actions */}
+            <div className="flex flex-col gap-2 min-w-[200px] justify-end">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right mr-1">Actions</label>
+              <div className="flex items-center gap-3 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowPreviewModal(true)}
+                  className="h-[46px] px-6 gap-2 text-sm border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary rounded-xl"
+                >
+                  <Eye className="w-4 h-4" />
+                  Preview
+                </Button>
+                <Button
+                  className="h-[46px] px-8 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 hover:from-purple-700 hover:via-pink-700 hover:to-orange-600 text-white shadow-lg shadow-purple-500/20 gap-2 text-sm rounded-xl transition-all hover:scale-[1.02]"
+                >
+                  <Download className="w-4 h-4" />
+                  Generate
+                </Button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Main Schema Content */}
+      <div className="flex-1 overflow-y-auto p-4 md:p-8">
+        <div className="max-w-5xl mx-auto space-y-6">
+
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <LayoutTemplate className="w-5 h-5 text-primary" />
+              Schema Definition
+            </h2>
+            <Button
+              onClick={() => setShowAutoFillModal(true)}
+              variant="ghost"
+              className="h-8 gap-2 text-xs text-muted-foreground hover:text-primary"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Auto-Fill Columns
+            </Button>
+          </div>
+
+          <div className="space-y-3">
+            <div className="grid grid-cols-[32px_2fr_1.5fr_40px] gap-4 px-4 py-2 text-xs font-semibold text-muted-foreground bg-secondary/30 rounded-lg border border-border/40 uppercase tracking-wider">
+              <div className="flex justify-center">#</div>
+              <div>Column Name</div>
+              <div>Data Type</div>
+              <div className="text-right">Actions</div>
+            </div>
+
+            {columns.map((col, idx) => (
+              <div
+                key={col.id}
+                className="group grid grid-cols-[32px_2fr_1.5fr_40px] items-center gap-4 p-3 rounded-xl bg-card border border-border/50 hover:border-primary/30 hover:shadow-sm transition-all animate-fadeIn"
+              >
+                <div className="flex items-center justify-center text-muted-foreground/50 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing">
+                  <GripVertical className="w-4 h-4" />
+                </div>
+
+                <div>
+                  <Input
+                    value={col.name}
+                    onChange={e => updateColumn(col.id, 'name', e.target.value)}
+                    className="h-9 bg-transparent border-transparent hover:bg-secondary/50 focus:bg-background focus:border-primary/20 transition-all font-medium"
+                    placeholder="column_name"
+                  />
+                </div>
+
+                <div>
+                  <button
+                    onClick={() => setShowDataTypeModal(col.id)}
+                    className="w-full h-9 px-3 rounded-lg bg-secondary/30 border border-border/30 hover:bg-secondary/50 hover:border-primary/30 flex items-center justify-between text-sm transition-all group-hover:shadow-inner"
+                  >
+                    <span className={dataTypeColors[col.dataType]}>{col.dataType}</span>
+                    <ChevronDown className="w-3.5 h-3.5 text-muted-foreground/50" />
+                  </button>
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => removeColumn(col.id)}
+                    className="p-2 rounded-lg text-muted-foreground/50 hover:text-red-500 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            <button
+              onClick={addColumn}
+              className="w-full py-3 rounded-xl border border-dashed border-border/50 text-muted-foreground/70 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all flex items-center justify-center gap-2 text-sm font-medium mt-4"
+            >
+              <Plus className="w-4 h-4" />
+              Add New Column
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Auto Fill Modal */}
       <Dialog open={showAutoFillModal} onOpenChange={setShowAutoFillModal}>
-        <DialogContent className="max-w-lg p-0 overflow-hidden">
+        <DialogContent className="max-w-lg glass-panel p-0 overflow-hidden border-border/50">
           <div className="p-6">
-            <DialogHeader className="mb-6">
-              <DialogTitle className="text-xl font-semibold text-primary">
-                Auto-generate Columns
-              </DialogTitle>
-            </DialogHeader>
-            
-            {/* Mode Toggle - Card style like reference */}
+            <h2 className="text-xl font-semibold mb-1 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              Auto-Generate Columns
+            </h2>
+            <p className="text-sm text-muted-foreground mb-6">Choose how you want to populate your schema.</p>
+
             <div className="grid grid-cols-2 gap-4 mb-6">
-              <button
-                onClick={() => setAutoFillMode('ai')}
-                className={cn(
-                  "flex flex-col items-center gap-3 p-5 rounded-xl border-2 transition-all duration-200",
-                  autoFillMode === 'ai'
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/40"
-                )}
-              >
-                <div className={cn(
-                  "w-12 h-12 rounded-xl flex items-center justify-center",
-                  autoFillMode === 'ai' ? "bg-primary/15" : "bg-muted"
-                )}>
-                  <Sparkles className={cn("w-6 h-6", autoFillMode === 'ai' ? "text-primary" : "text-muted-foreground")} />
-                </div>
-                <div className="text-center">
-                  <span className="font-medium text-sm block">AI Generation</span>
-                  <span className="text-xs text-muted-foreground">Generate columns based on your topic</span>
-                </div>
+              <button onClick={() => setAutoFillMode('ai')} className={cn("p-4 rounded-xl border border-border/50 bg-secondary/20 flex flex-col items-center gap-2 transition-all", autoFillMode === 'ai' ? "border-primary bg-primary/5" : "hover:bg-secondary/40")}>
+                <Sparkles className="w-6 h-6 text-primary" />
+                <span className="font-medium">AI Generation</span>
               </button>
-              
-              <button
-                onClick={() => setAutoFillMode('template')}
-                className={cn(
-                  "flex flex-col items-center gap-3 p-5 rounded-xl border-2 transition-all duration-200",
-                  autoFillMode === 'template'
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/40"
-                )}
-              >
-                <div className={cn(
-                  "w-12 h-12 rounded-xl flex items-center justify-center",
-                  autoFillMode === 'template' ? "bg-primary/15" : "bg-muted"
-                )}>
-                  <LayoutTemplate className={cn("w-6 h-6", autoFillMode === 'template' ? "text-primary" : "text-muted-foreground")} />
-                </div>
-                <div className="text-center">
-                  <span className="font-medium text-sm block">Use Template</span>
-                  <span className="text-xs text-muted-foreground">Start with a predefined structure</span>
-                </div>
+              <button onClick={() => setAutoFillMode('template')} className={cn("p-4 rounded-xl border border-border/50 bg-secondary/20 flex flex-col items-center gap-2 transition-all", autoFillMode === 'template' ? "border-primary bg-primary/5" : "hover:bg-secondary/40")}>
+                <LayoutTemplate className="w-6 h-6 text-blue-500" />
+                <span className="font-medium">Use Template</span>
               </button>
             </div>
 
             {autoFillMode === 'ai' ? (
               <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">Enter Your Topic</label>
-                  <Input
-                    placeholder="e.g., 'real estate listings', 'customer orders'"
-                    value={autoFillTopic}
-                    onChange={(e) => setAutoFillTopic(e.target.value)}
-                    className="h-12"
-                  />
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Describe your dataset topic and the AI will suggest relevant columns
-                  </p>
+                <div className="bg-secondary/30 p-3 rounded-lg border border-border/50 mb-3">
+                  <p className="text-xs text-muted-foreground mb-1 font-medium">Example Prompt:</p>
+                  <p className="text-xs italic opacity-80">"Generate a dataset of realistic startup companies with fields for valuation, industry, founding date, and founder names."</p>
                 </div>
-                
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-primary" />
-                    Popular Topics
-                  </span>
-                  {popularTopics.map((topic) => (
-                    <button
-                      key={topic}
-                      onClick={() => setAutoFillTopic(topic)}
-                      className="px-3 py-1.5 text-xs rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
-                    >
+                <Input
+                  placeholder="Describe your dataset..."
+                  value={autoFillTopic}
+                  onChange={e => setAutoFillTopic(e.target.value)}
+                  className="h-12 text-base bg-background/50 border-primary/20 focus-visible:ring-primary/30"
+                />
+                <div className="flex flex-wrap gap-2">
+                  {popularTopics.slice(0, 3).map(topic => (
+                    <button key={topic} onClick={() => setAutoFillTopic(topic)} className="px-3 py-1 rounded-full text-xs bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-foreground border border-border/50 transition-colors">
                       {topic}
                     </button>
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-foreground mb-2 block">Select a Template</label>
-                {templateExamples.map((template) => {
-                  const Icon = template.icon;
-                  return (
-                    <button
-                      key={template.id}
-                      onClick={() => applyTemplate(template)}
-                      className="w-full flex items-center gap-4 p-4 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/5 text-left transition-all"
-                    >
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <Icon className="w-5 h-5 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <span className="font-medium text-sm block">{template.name}</span>
-                        <span className="text-xs text-muted-foreground">{template.description}</span>
-                      </div>
-                    </button>
-                  );
-                })}
+              <div className="space-y-2">
+                {templateExamples.map(t => (
+                  <button key={t.id} onClick={() => applyTemplate(t)} className="w-full p-3 rounded-lg hover:bg-secondary/50 flex items-center gap-3 border border-transparent hover:border-border/50 transition-all text-left">
+                    <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary"><t.icon className="w-4 h-4" /></div>
+                    <div>
+                      <div className="font-medium text-sm">{t.name}</div>
+                      <div className="text-xs text-muted-foreground">{t.description}</div>
+                    </div>
+                  </button>
+                ))}
               </div>
             )}
-          </div>
-          
-          {/* Footer */}
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border bg-muted/30">
-            <Button variant="ghost" onClick={() => setShowAutoFillModal(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={() => setShowAutoFillModal(false)}
-              disabled={autoFillMode === 'ai' && !autoFillTopic.trim()}
-              className="gap-2"
-            >
-              <Sparkles className="w-4 h-4" />
-              Generate
-            </Button>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <Button variant="ghost" onClick={() => setShowAutoFillModal(false)}>Cancel</Button>
+              <Button className="bg-primary hover:bg-primary/90" disabled={autoFillMode === 'ai' && !autoFillTopic} onClick={() => setShowAutoFillModal(false)}>Generate</Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Data Type Selection Modal */}
+      {/* Data Type Modal */}
       <Dialog open={!!showDataTypeModal} onOpenChange={() => setShowDataTypeModal(null)}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Select Data Type</DialogTitle>
-          </DialogHeader>
-          
-          <div className="flex gap-4">
-            {/* Categories - Left side navigation */}
-            <div className="w-36 shrink-0 space-y-1">
-              {Object.keys(dataTypeCategories).map((category) => (
+        <DialogContent className="max-w-2xl glass-panel border-border/50 h-[600px] flex flex-col p-0 overflow-hidden">
+          <div className="p-4 border-b border-border/50 flex items-center gap-2">
+            <Search className="w-4 h-4 text-muted-foreground" />
+            <input
+              placeholder="Search data types..."
+              className="flex-1 bg-transparent border-none outline-none"
+              value={dataTypeSearch}
+              onChange={e => setDataTypeSearch(e.target.value)}
+              autoFocus
+            />
+          </div>
+
+          <div className="flex flex-1 overflow-hidden">
+            <div className="w-40 border-r border-border/50 bg-secondary/20 p-2 space-y-1 overflow-y-auto">
+              {Object.keys(dataTypeCategories).map(cat => (
                 <button
-                  key={category}
-                  onClick={() => {
-                    setSelectedCategory(category);
-                    setDataTypeSearch('');
-                  }}
-                  className={cn(
-                    "w-full text-left px-3 py-2 rounded-lg text-sm transition-all",
-                    selectedCategory === category && !dataTypeSearch
-                      ? "bg-primary/10 text-primary font-medium"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                  )}
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={cn("w-full text-left px-3 py-2 rounded-lg text-sm", selectedCategory === cat ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:bg-secondary/50")}
                 >
-                  {category}
+                  {cat}
                 </button>
               ))}
             </div>
 
-            {/* Data Types - Right side */}
-            <div className="flex-1">
-              {/* Search */}
-              <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search data types..."
-                  value={dataTypeSearch}
-                  onChange={(e) => setDataTypeSearch(e.target.value)}
-                  className="pl-10 h-10"
-                />
-              </div>
-
-              {/* Data type grid */}
-              <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
-                {filteredDataTypes.map((type) => (
+            <div className="flex-1 p-4 overflow-y-auto">
+              <div className="grid grid-cols-2 gap-2">
+                {filteredDataTypes.map(type => (
                   <button
                     key={type}
                     onClick={() => {
-                      if (showDataTypeModal) {
-                        updateColumn(showDataTypeModal, 'dataType', type);
-                        setShowDataTypeModal(null);
-                        setDataTypeSearch('');
-                      }
+                      if (showDataTypeModal) updateColumn(showDataTypeModal, 'dataType', type);
+                      setShowDataTypeModal(null);
                     }}
-                    className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border hover:border-primary/40 hover:bg-primary/5 text-left transition-all"
+                    className="flex items-center gap-2 p-2 rounded-lg border border-border/30 hover:bg-secondary/50 hover:border-primary/30 transition-all text-left"
                   >
                     <div className={cn("w-2 h-2 rounded-full", dataTypeColors[type]?.replace('text-', 'bg-') || 'bg-slate-400')} />
-                    <span className={cn("text-sm", dataTypeColors[type] || 'text-foreground')}>{type}</span>
+                    <span className="text-sm">{type}</span>
                   </button>
                 ))}
               </div>
@@ -741,58 +561,49 @@ const CustomGenerator = () => {
 
       {/* Preview Modal */}
       <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+        <DialogContent className="max-w-4xl glass-panel border-border/50 p-0 overflow-hidden flex flex-col max-h-[80vh]">
+          <div className="p-4 border-b border-border/50 flex items-center justify-between bg-secondary/20">
+            <div className="flex items-center gap-2">
               <Eye className="w-5 h-5 text-primary" />
-              Dataset Preview
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-6">
-            {/* Stats */}
-            <div className="grid grid-cols-4 gap-4">
-              <div className="p-4 rounded-xl bg-muted/50 border border-border">
-                <span className="text-xs text-muted-foreground block mb-1">Rows</span>
-                <span className="text-lg font-semibold">{rowCount.toLocaleString()}</span>
-              </div>
-              <div className="p-4 rounded-xl bg-muted/50 border border-border">
-                <span className="text-xs text-muted-foreground block mb-1">Columns</span>
-                <span className="text-lg font-semibold">{columns.length}</span>
-              </div>
-              <div className="p-4 rounded-xl bg-muted/50 border border-border">
-                <span className="text-xs text-muted-foreground block mb-1">Format</span>
-                <span className={cn("text-lg font-semibold", formatConfig[dataFormat].color)}>{dataFormat}</span>
-              </div>
-              <div className="p-4 rounded-xl bg-muted/50 border border-border">
-                <span className="text-xs text-muted-foreground block mb-1">Est. Size</span>
-                <span className="text-lg font-semibold">~{Math.round(rowCount * columns.length * 0.05)} KB</span>
-              </div>
+              <h2 className="font-semibold">Data Preview <span className="text-muted-foreground font-normal text-sm ml-2">(Showing first 5 rows)</span></h2>
             </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full border border-primary/20 font-mono">
+                {columns.length} columns
+              </span>
+              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full border border-primary/20 font-mono">
+                {rowCount} rows
+              </span>
+              <span className="text-xs bg-secondary text-muted-foreground px-2 py-1 rounded-full border border-border/50 font-mono">
+                {dataFormat}
+              </span>
+              <span className="text-xs bg-secondary text-muted-foreground px-2 py-1 rounded-full border border-border/50 font-mono">
+                ~{(rowCount * columns.length * 0.05).toFixed(1)} KB
+              </span>
+            </div>
+          </div>
 
-            {/* Preview Table */}
-            <div className="rounded-xl border border-border overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-muted/50">
+          <div className="flex-1 overflow-auto p-0 scrollbar-hide">
+            <div className="min-w-full inline-block align-middle">
+              <div className="border-b border-border/50">
+                <table className="min-w-full divide-y divide-border/50">
+                  <thead className="bg-secondary/30">
+                    <tr>
                       {columns.map((col) => (
-                        <th key={col.id} className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide border-b border-border">
-                          <div>
-                            <span className="text-foreground">{col.name || 'unnamed'}</span>
-                            <span className={cn("ml-2 text-[10px] lowercase", dataTypeColors[col.dataType])}>
-                              {col.dataType}
-                            </span>
+                        <th key={col.id} scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap sticky top-0 bg-secondary/95 backdrop-blur-sm z-10">
+                          <div className="flex items-center gap-1.5">
+                            <span>{col.name || 'Untitled'}</span>
+                            <span className={cn("text-[10px] lowercase opacity-70", dataTypeColors[col.dataType])}>({col.dataType})</span>
                           </div>
                         </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border">
+                  <tbody className="divide-y divide-border/30 bg-background/50">
                     {generatePreviewData().map((row, rowIndex) => (
-                      <tr key={rowIndex} className="hover:bg-muted/30 transition-colors">
+                      <tr key={rowIndex} className="hover:bg-secondary/20 transition-colors">
                         {row.map((cell, cellIndex) => (
-                          <td key={cellIndex} className="px-4 py-3 text-sm text-foreground">
+                          <td key={cellIndex} className="px-6 py-4 whitespace-nowrap text-sm text-foreground/80 font-mono">
                             {cell}
                           </td>
                         ))}
@@ -802,10 +613,14 @@ const CustomGenerator = () => {
                 </table>
               </div>
             </div>
+          </div>
 
-            <p className="text-xs text-muted-foreground text-center">
-              Showing 5 sample rows. Actual dataset will contain {rowCount.toLocaleString()} rows.
-            </p>
+          <div className="p-4 border-t border-border/50 bg-secondary/10 flex justify-end gap-3">
+            <Button variant="ghost" onClick={() => setShowPreviewModal(false)}>Close Preview</Button>
+            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
+              <Download className="w-4 h-4" />
+              Download Sample
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
