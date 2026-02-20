@@ -11,101 +11,60 @@ export function Contact() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
-
     await new Promise(resolve => setTimeout(resolve, 1000));
-
-    toast({
-      title: "Message sent!",
-      description: "We'll get back to you within 24 hours.",
-    });
-
+    toast({ title: 'Message sent!', description: "We'll get back to you within 24 hours." });
     setIsSubmitting(false);
     (e.target as HTMLFormElement).reset();
   };
 
   return (
-    <section id="contact" className="py-24 bg-background">
-      <div className="container px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-5xl font-medium text-foreground mb-6">Contact</h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Have questions? We're here to help. Reach out to our team.
-          </p>
+    <section id="contact" className="py-24 md:py-32">
+      <div className="container max-w-4xl mx-auto px-6">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-semibold mb-4 tracking-tight">Contact</h2>
+          <p className="text-muted-foreground">Questions? Reach out — we respond within 24 hours.</p>
         </div>
 
-        <div className="grid lg:grid-cols-5 gap-12 max-w-6xl mx-auto items-center">
-          {/* Contact Info */}
-          <div className="lg:col-span-2 space-y-10">
-            <div className="flex items-center gap-6 group">
-              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 border border-border group-hover:border-primary/30 transition-colors">
-                <Mail className="w-6 h-6 text-primary" />
+        <div className="grid lg:grid-cols-5 gap-10 items-start">
+          <div className="lg:col-span-2 space-y-6">
+            {[
+              { icon: Mail, label: 'Email', value: 'support@dataforgeai.com', href: 'mailto:support@dataforgeai.com' },
+              { icon: Clock, label: 'Response', value: 'Within 24 hours' },
+              { icon: Headphones, label: 'Hours', value: 'Mon–Fri, 9AM–6PM UTC' },
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-4">
+                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <item.icon className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">{item.label}</p>
+                  {item.href ? (
+                    <a href={item.href} className="text-sm font-medium hover:text-primary transition-colors">{item.value}</a>
+                  ) : (
+                    <p className="text-sm font-medium">{item.value}</p>
+                  )}
+                </div>
               </div>
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-1">Email</h3>
-                <a href="mailto:support@dataforgeai.com" className="text-lg text-foreground hover:text-primary transition-colors">
-                  support@dataforgeai.com
-                </a>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-6 group">
-              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 border border-border group-hover:border-primary/30 transition-colors">
-                <Clock className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-1">Response Time</h3>
-                <p className="text-lg text-foreground">Within 24 hours</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-6 group">
-              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 border border-border group-hover:border-primary/30 transition-colors">
-                <Headphones className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-1">Hours</h3>
-                <p className="text-lg text-foreground">Mon-Fri, 9AM-6PM UTC</p>
-              </div>
-            </div>
+            ))}
           </div>
 
-          {/* Contact Form Card */}
-          <div className="lg:col-span-3 bg-card p-8 md:p-12 rounded-[2rem] border border-border shadow-2xl">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground ml-1">Name</label>
-                  <Input
-                    type="text"
-                    placeholder="John Doe"
-                    required
-                    className="bg-background border-border h-14 rounded-2xl focus:border-primary/50 transition-all px-6 text-foreground"
-                  />
+          <div className="lg:col-span-3 p-6 rounded-xl border border-border/30 bg-card/40 backdrop-blur-sm">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Name</label>
+                  <Input type="text" placeholder="John Doe" required className="h-10 rounded-lg text-sm bg-background/50" />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground ml-1">Email</label>
-                  <Input
-                    type="email"
-                    placeholder="john@example.com"
-                    required
-                    className="bg-background border-border h-14 rounded-2xl focus:border-primary/50 transition-all px-6 text-foreground"
-                  />
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Email</label>
+                  <Input type="email" placeholder="john@example.com" required className="h-10 rounded-lg text-sm bg-background/50" />
                 </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground ml-1">Message</label>
-                <Textarea
-                  placeholder="How can we help you?"
-                  required
-                  rows={5}
-                  className="bg-background border-border rounded-2xl focus:border-primary/50 transition-all p-6 text-foreground resize-none"
-                />
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Message</label>
+                <Textarea placeholder="How can we help?" required rows={4} className="rounded-lg text-sm resize-none bg-background/50" />
               </div>
-              <Button
-                type="submit"
-                className="w-full h-14 rounded-full text-lg font-medium shadow-xl shadow-primary/10 hover:shadow-primary/20 transition-all duration-300 hover:scale-[1.02]"
-                disabled={isSubmitting}
-              >
+              <Button type="submit" className="w-full h-10 rounded-xl text-sm font-semibold bg-gradient-to-r from-purple-600 to-orange-500 hover:from-purple-700 hover:to-orange-600 text-white border-0 shadow-sm shadow-purple-500/10" disabled={isSubmitting}>
                 {isSubmitting ? 'Sending...' : 'Send Message'}
               </Button>
             </form>

@@ -26,6 +26,11 @@ export const ENDPOINTS = {
     GENERATE_DOWNLOAD: '/generate/download',
     GENERATE_COLUMNS: '/generate/columns',
 
+    // Datasets
+    DATASETS_LIST: '/datasets',
+    DATASETS_DELETE: (id: string) => `/datasets/${id}`,
+    DATASETS_DOWNLOAD: (id: string) => `/datasets/${id}/download`,
+
     // Misc
     TEMPLATES: '/templates',
     HEALTH: '/health',

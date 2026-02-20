@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 // Types
 export type DataFormat = 'CSV' | 'JSON' | 'SQL' | 'Parquet';
-export type DataMode = 'Synthetic' | 'Hybrid' | 'Realistic';
+export type DataMode = 'Synthetic' | 'Realistic' | 'Hybrid';
 export type Model = 'Compound' | 'Compound Mini' | 'Llama 4 Scout' | 'GPT OSS 120B' | 'GPT-4.1' | 'GPT-4o Mini';
 export type LoadingPhase = 'thinking' | 'analyzing' | 'generating' | null;
 
@@ -24,6 +24,7 @@ export interface Message {
     content: string;
     attachments?: Attachment[];
     showDownload?: boolean;
+    hasImages?: boolean;
 }
 
 interface ChatHistoryItem {
@@ -212,6 +213,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             role: 'user',
             content,
             attachments: attachments.length > 0 ? [...attachments] : undefined,
+            hasImages: !!(options.images && options.images.length > 0),
         };
 
         setMessages(prev => [...prev, userMessage]);

@@ -6,7 +6,8 @@ import {
   CheckCircle2, Copy, ThumbsUp, ThumbsDown, RotateCcw,
   Share, MoreHorizontal, Loader2, FileText, ImageIcon, X,
   Clock, Pin, FileType, Check, Cpu, LayoutGrid, Download,
-  FileDown, Server, Shuffle, PackageCheck
+  FileDown, Server, Shuffle, PackageCheck, Lock, AlertTriangle,
+  ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -31,6 +32,7 @@ import { api } from '@/services/api';
 import { ENDPOINTS } from '@/services/endpoints';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useNavigate } from 'react-router-dom';
 
 // --- Helpers ---
 function fileToBase64(file: File): Promise<string> {
@@ -47,8 +49,8 @@ function fileToBase64(file: File): Promise<string> {
 
 // --- Config ---
 const models = [
-  { value: 'Compound', label: 'Compound', badge: 'Web', color: 'text-green-500' },
-  { value: 'Compound Mini', label: 'Compound Mini', badge: 'Web', color: 'text-green-500' },
+  { value: 'Compound', label: 'Compound', badge: 'Web', color: 'text-purple-500' },
+  { value: 'Compound Mini', label: 'Compound Mini', badge: 'Web', color: 'text-purple-500' },
   { value: 'Llama 4 Scout', label: 'Llama 4 Scout', badge: 'Default', secondaryBadge: 'Vision', color: 'text-purple-500' },
   { value: 'GPT OSS 120B', label: 'GPT OSS 120B', color: 'text-gray-500' },
   { value: 'GPT-4.1', label: 'GPT-4.1', secondaryBadge: 'Vision', color: 'text-blue-500' },
@@ -64,8 +66,8 @@ const dataFormats = [
 
 const dataModes = [
   { value: 'Synthetic', label: 'Synthetic', icon: Sparkles },
-  { value: 'Realistic', label: 'Realistic', icon: Brain },
-  { value: 'Hybrid', label: 'Hybrid', icon: Globe },
+  { value: 'Realistic', label: 'Realistic', icon: Globe },
+  { value: 'Hybrid', label: 'Hybrid', icon: Brain },
 ];
 
 const suggestions = [
@@ -137,17 +139,32 @@ const DOWNLOAD_STEPS = [
   { icon: PackageCheck, label: 'Finalizing & compressing...', color: 'text-primary' },
 ];
 
-function DownloadModal({ open, onClose, chatId, dataFormat }: { open: boolean; onClose: () => void; chatId: string | null; dataFormat: string }) {
+interface DownloadModalProps {
+  open: boolean;
+  onClose: () => void;
+  chatId: string | null;
+  dataFormat: string;
+  dataMode: string;
+  modelId: string;
+  chatTitle?: string;
+}
+
+function DownloadModal({ open, onClose, chatId, dataFormat, dataMode, modelId, chatTitle }: DownloadModalProps) {
+  const navigate = useNavigate();
   const [progress, setProgress] = useState(0);
   const [step, setStep] = useState(0);
   const [done, setDone] = useState(false);
   const [downloadData, setDownloadData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [rowsGenerated, setRowsGenerated] = useState(0);
+  const [columnsCount, setColumnsCount] = useState(0);
 
   const steps = DOWNLOAD_STEPS;
 
   useEffect(() => {
-    if (!open || !chatId) { setProgress(0); setStep(0); setDone(false); setError(null); setDownloadData(null); return; }
+    if (!open || !chatId) { setProgress(0); setStep(0); setDone(false); setError(null); setDownloadData(null); setSaveStatus(null); setSaveMessage(null); setRowsGenerated(0); setColumnsCount(0); return; }
 
     let cancelled = false;
 
@@ -156,27 +173,43 @@ function DownloadModal({ open, onClose, chatId, dataFormat }: { open: boolean; o
     const interval = setInterval(() => {
       if (cancelled) return;
       p += Math.random() * 1.2 + 0.3;
-      if (p > 95) p = 95; // cap at 95% until API returns
+      if (p > 95) p = 95;
       setProgress(Math.min(p, 95));
       setStep(Math.min(Math.floor((Math.min(p, 99)) / 20), DOWNLOAD_STEPS.length - 1));
     }, 180);
 
-    // Call backend — response shape: { success, data, format, rows_generated, error }
-    api.post<{ success: boolean; data: any; format: string; rows_generated: number }>(ENDPOINTS.CHAT_DOWNLOAD(chatId), {
+    // Determine effective mode for compound models
+    const isCompound = modelId === 'compound' || modelId === 'compound-mini';
+    const effectiveMode = isCompound ? 'live-data' : dataMode.toLowerCase();
+
+    api.post<{ success: boolean; data: any; format: string; rows_generated: number; save_status?: string; save_message?: string; dataset_id?: string }>(ENDPOINTS.CHAT_DOWNLOAD(chatId), {
       format: dataFormat.toLowerCase(),
       rows: 100,
       source: 'AI',
+      data_mode: effectiveMode,
+      model_id: modelId,
+      dataset_name: chatTitle || 'Chat Dataset',
     }).then(res => {
       if (cancelled) return;
       clearInterval(interval);
-      // res IS the parsed JSON body: { success, data, format, rows_generated, error }
-      // res.data is the actual formatted content (JSON array, CSV string, SQL string, or base64 parquet)
-      // Guard against any remaining wrapper layers
       let rawData = (res as any).data;
       if (rawData && typeof rawData === 'object' && !Array.isArray(rawData) && 'data' in rawData && 'format' in rawData) {
-        rawData = rawData.data; // unwrap if still double-wrapped
+        rawData = rawData.data;
       }
       setDownloadData(rawData);
+      setSaveStatus((res as any).save_status || null);
+      setSaveMessage((res as any).save_message || null);
+      setRowsGenerated((res as any).rows_generated || 0);
+      // Compute columns count from data
+      try {
+        if (Array.isArray(rawData) && rawData.length > 0) {
+          setColumnsCount(Object.keys(rawData[0]).length);
+        } else if (typeof rawData === 'string') {
+          // For CSV, count header columns
+          const firstLine = rawData.split('\n')[0];
+          if (firstLine) setColumnsCount(firstLine.split(',').length);
+        }
+      } catch { setColumnsCount(0); }
       setProgress(100);
       setStep(DOWNLOAD_STEPS.length - 1);
       setDone(true);
@@ -188,7 +221,7 @@ function DownloadModal({ open, onClose, chatId, dataFormat }: { open: boolean; o
     });
 
     return () => { cancelled = true; clearInterval(interval); };
-  }, [open, chatId, dataFormat]);
+  }, [open, chatId, dataFormat, dataMode, modelId, chatTitle]);
 
   if (!open) return null;
 
@@ -307,13 +340,71 @@ function DownloadModal({ open, onClose, chatId, dataFormat }: { open: boolean; o
             />
           </div>
           {done && (
-            <button
-              onClick={handleDownload}
-              className="mt-4 w-full flex items-center justify-center gap-2 h-10 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-colors shadow-md shadow-primary/20 animate-in fade-in slide-in-from-bottom-2 duration-300"
-            >
-              <Download className="w-4 h-4" />
-              Download {dataFormat} File
-            </button>
+            <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {/* Dataset Stats */}
+              {(rowsGenerated > 0 || columnsCount > 0) && (
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/40">
+                  {rowsGenerated > 0 && (
+                    <div className="flex flex-col items-center flex-1">
+                      <span className="text-lg font-bold text-primary">{rowsGenerated.toLocaleString()}</span>
+                      <span className="text-[9px] uppercase tracking-widest text-muted-foreground font-semibold">Rows</span>
+                    </div>
+                  )}
+                  {rowsGenerated > 0 && columnsCount > 0 && <div className="w-px h-8 bg-border/40" />}
+                  {columnsCount > 0 && (
+                    <div className="flex flex-col items-center flex-1">
+                      <span className="text-lg font-bold text-primary">{columnsCount}</span>
+                      <span className="text-[9px] uppercase tracking-widest text-muted-foreground font-semibold">Columns</span>
+                    </div>
+                  )}
+                  <div className="w-px h-8 bg-border/40" />
+                  <div className="flex flex-col items-center flex-1">
+                    <span className="text-lg font-bold text-amber-500 uppercase">{dataFormat}</span>
+                    <span className="text-[9px] uppercase tracking-widest text-muted-foreground font-semibold">Format</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Save Status Message */}
+              {saveStatus === 'saved' && (
+                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span className="text-xs font-medium">{saveMessage || 'Dataset saved to My Datasets.'}</span>
+                </div>
+              )}
+              {saveStatus === 'size_exceeded' && (
+                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span className="text-xs font-medium">{saveMessage || 'Dataset exceeds 2MB limit.'}</span>
+                </div>
+              )}
+              {saveStatus === 'limit_exceeded' && (
+                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span className="text-xs font-medium">{saveMessage || 'Dataset storage is full (10/10).'}</span>
+                </div>
+              )}
+
+              {/* Download Button */}
+              <button
+                onClick={handleDownload}
+                className="w-full flex items-center justify-center gap-2 h-10 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-colors shadow-md shadow-primary/20"
+              >
+                <Download className="w-4 h-4" />
+                Download {dataFormat} File
+              </button>
+
+              {/* Go to My Datasets (only if saved) */}
+              {saveStatus === 'saved' && (
+                <button
+                  onClick={() => { onClose(); navigate('/app/datasets'); }}
+                  className="w-full flex items-center justify-center gap-2 h-9 rounded-xl border border-border/50 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Go to My Datasets
+                </button>
+              )}
+            </div>
           )}
           {error && (
             <div className="mt-4 text-center text-sm text-red-500">{error}</div>
@@ -329,7 +420,6 @@ export default function DetNest() {
   const { messages, sendMessage, isLoading, loadingPhase, stopGeneration, dataFormat, setDataFormat, dataMode, setDataMode, model, setModel, currentChat } = useChat();
   const [input, setInput] = useState('');
   const [showDownloadModal, setShowDownloadModal] = useState(false);
-  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
   const [imageFiles, setImageFiles] = useState<{ file: File; preview: string; base64: string }[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -337,6 +427,16 @@ export default function DetNest() {
 
   const hasMessages = messages.length > 0;
   const currentModel = models.find(m => m.value === model) ?? models[0];
+  const isCompoundModel = model === 'Compound' || model === 'Compound Mini';
+
+  const modelIdMap: Record<string, string> = {
+    'Compound': 'compound',
+    'Compound Mini': 'compound-mini',
+    'Llama 4 Scout': 'llama-scout-4',
+    'GPT OSS 120B': 'gpt-oss-120b',
+    'GPT-4.1': 'gpt-4.1',
+    'GPT-4o Mini': 'gpt-4o-mini',
+  };
 
   // Check if current model supports vision
   const isVisionModel = currentModel?.secondaryBadge === 'Vision';
@@ -373,7 +473,6 @@ export default function DetNest() {
       dataFormat,
       dataMode,
       images: isVisionModel ? currentImages : undefined,
-      webSearch: webSearchEnabled,
     });
   };
 
@@ -475,26 +574,36 @@ export default function DetNest() {
           />
         </div>
 
+        {/* Preview Note for Compound modes only */}
+        {isCompoundModel && (
+          <div className="flex items-center gap-2 px-4 py-2 text-[10px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/5 border-t border-amber-500/10">
+            <AlertTriangle className="w-3 h-3 shrink-0" />
+            <span>Preview only — full dataset uses live internet data during download.</span>
+          </div>
+        )}
+
         {/* Controls Row - Bottom */}
         <div className="flex items-center gap-2 px-3 pb-3 flex-wrap">
           <div className="flex items-center gap-0.5 p-1 rounded-full bg-background/40 border border-border/30 shadow-sm transition-all duration-200 hover:shadow-md">
-            {/* Web Search Toggle */}
+            {/* Web Search Indicator — active ONLY for Compound models, purple color */}
             <TooltipProvider>
               <Tooltip delayDuration={100}>
                 <TooltipTrigger asChild>
-                  <button
-                    onClick={() => setWebSearchEnabled(!webSearchEnabled)}
+                  <div
                     className={cn(
-                      "w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 active:scale-95",
-                      webSearchEnabled
+                      "w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 relative cursor-default",
+                      isCompoundModel
                         ? "bg-purple-600 text-white shadow-md shadow-purple-500/20"
-                        : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                        : "text-muted-foreground/40 bg-secondary/30"
                     )}>
                     <Globe className="w-3.5 h-3.5" />
-                  </button>
+                    {isCompoundModel && <Lock className="w-2 h-2 absolute -bottom-0.5 -right-0.5 text-purple-300" />}
+                  </div>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="text-xs">
-                  {webSearchEnabled ? 'Web Search Enabled' : 'Search Web'}
+                  {isCompoundModel
+                    ? 'Internet search enabled (Compound model)'
+                    : 'Internet search not available'}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -502,14 +611,33 @@ export default function DetNest() {
             <Separator orientation="vertical" className="h-4 bg-border/50 mx-0.5" />
 
             {/* Data Generation Mode Selection (Database Icon) */}
+            {isCompoundModel ? (
+              <TooltipProvider>
+                <Tooltip delayDuration={100}>
+                  <TooltipTrigger asChild>
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-purple-600 dark:text-purple-400 bg-purple-500/10 relative cursor-default">
+                      <Database className="w-3.5 h-3.5" />
+                      <Lock className="w-2 h-2 absolute -bottom-0.5 -right-0.5 text-purple-400" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">Live Data Mode (locked)</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
             <DropdownMenu>
               <TooltipProvider>
                 <Tooltip delayDuration={100}>
                   <DropdownMenuTrigger asChild>
                     <TooltipTrigger asChild>
                       <button className={cn(
-                        "w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-secondary active:scale-95",
-                        dataMode !== 'Synthetic' && "text-purple-600 dark:text-purple-400 bg-purple-500/10"
+                        "w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 hover:bg-secondary active:scale-95",
+                        dataMode === 'Synthetic'
+                          ? "text-blue-500 bg-blue-500/10"
+                          : dataMode === 'Realistic'
+                            ? "text-emerald-500 bg-emerald-500/10"
+                            : dataMode === 'Hybrid'
+                              ? "text-orange-500 bg-orange-500/10"
+                              : "text-muted-foreground hover:text-foreground"
                       )}>
                         <Database className="w-3.5 h-3.5" />
                       </button>
@@ -528,6 +656,7 @@ export default function DetNest() {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+            )}
           </div>
 
           {/* Data Format Selection */}
@@ -576,19 +705,18 @@ export default function DetNest() {
                   <div className="flex items-center gap-1.5">
                     {m.badge && (
                       <span className={cn(
-                        "text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-1",
-                        m.badge === 'Web' ? "bg-green-500/10 text-green-600 dark:text-green-400 group-hover:bg-green-500/20" :
-                          m.badge === 'Default' ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 group-hover:bg-purple-500/20" :
+                        "p-1 rounded-full flex items-center justify-center",
+                        m.badge === 'Web' ? "bg-purple-500/10 text-purple-600 dark:text-purple-400" :
+                          m.badge === 'Default' ? "bg-purple-500/10 text-purple-600 dark:text-purple-400" :
                             "bg-muted text-muted-foreground"
                       )}>
-                        {m.badge === 'Web' && <Globe className="w-2.5 h-2.5" />}
-                        {m.badge}
+                        {m.badge === 'Web' && <Globe className="w-3 h-3" />}
+                        {m.badge === 'Default' && <Sparkles className="w-3 h-3" />}
                       </span>
                     )}
                     {m.secondaryBadge && (
-                      <span className="text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full flex items-center gap-1 group-hover:bg-blue-500/20">
-                        <ImageIcon className="w-2.5 h-2.5" />
-                        {m.secondaryBadge}
+                      <span className="p-1 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center">
+                        <ImageIcon className="w-3 h-3" />
                       </span>
                     )}
                   </div>
@@ -679,6 +807,14 @@ export default function DetNest() {
             {messages.map((msg, idx) => (
               <div key={idx} className={cn("flex flex-col gap-2", msg.role === 'user' ? 'items-end' : 'items-start')}>
 
+                {/* Image attachment indicator for user messages */}
+                {msg.role === 'user' && msg.hasImages && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-500 dark:text-blue-400">
+                    <ImageIcon className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-semibold">Image attached</span>
+                  </div>
+                )}
+
                 {/* Message Content */}
                 {msg.role === 'user' ? (
                   <div className="max-w-[85%] bg-primary text-primary-foreground px-4 py-3 rounded-2xl rounded-br-md shadow-sm">
@@ -758,6 +894,9 @@ export default function DetNest() {
         onClose={() => setShowDownloadModal(false)}
         chatId={currentChat?.id || null}
         dataFormat={dataFormat}
+        dataMode={dataMode}
+        modelId={modelIdMap[model] || 'llama-scout-4'}
+        chatTitle={currentChat?.title}
       />
     </div>
   );

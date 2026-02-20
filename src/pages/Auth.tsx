@@ -9,10 +9,6 @@ import { ThemeLogo } from '@/components/ThemeLogo';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import logoLight from '@/assets/logo-light-theme.png';
-import logoDark from '@/assets/logo-dark-theme.png';
-import background from '@/assets/background.png';
-
 type AuthMode = 'signin' | 'signup';
 type AuthStep = 'method' | 'email' | 'password' | 'forgot' | 'signup-details' | 'signup-password';
 
@@ -34,32 +30,24 @@ const Auth = () => {
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
 
-  // Lock body scroll
   useEffect(() => {
     document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = 'auto';
-    };
+    return () => { document.body.style.overflow = 'auto'; };
   }, []);
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
       navigate(user.onboarding_completed ? '/app' : '/onboarding', { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
 
-  // Handle OAuth error from query params
   useEffect(() => {
     const error = searchParams.get('error');
-    if (error) {
-      setError(decodeURIComponent(error));
-    }
+    if (error) setError(decodeURIComponent(error));
   }, [searchParams]);
 
   const switchMode = () => {
-    const newMode = mode === 'signin' ? 'signup' : 'signin';
-    setMode(newMode);
+    setMode(mode === 'signin' ? 'signup' : 'signin');
     setStep('method');
     setError('');
     setEmail('');
@@ -70,82 +58,43 @@ const Auth = () => {
 
   const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) {
-      setError('Please enter your email');
-      return;
-    }
+    if (!email) { setError('Please enter your email'); return; }
     setError('');
     setStep('password');
   };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!password) {
-      setError('Please enter your password');
-      return;
-    }
-
+    if (!password) { setError('Please enter your password'); return; }
     setIsLoading(true);
     setError('');
-
-    try {
-      await login(email, password);
-      navigate('/app');
-    } catch {
-      setError('Invalid email or password');
-    }
+    try { await login(email, password); navigate('/app'); } catch { setError('Invalid email or password'); }
     setIsLoading(false);
   };
 
   const handleSignupDetailsSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) {
-      setError('Please enter your email');
-      return;
-    }
-    if (!username) {
-      setError('Please enter a username');
-      return;
-    }
+    if (!email) { setError('Please enter your email'); return; }
+    if (!username) { setError('Please enter a username'); return; }
     setError('');
     setStep('signup-password');
   };
 
   const handleSignupPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!password) {
-      setError('Please enter a password');
-      return;
-    }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
+    if (!password) { setError('Please enter a password'); return; }
+    if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
+    if (password !== confirmPassword) { setError('Passwords do not match'); return; }
     setIsLoading(true);
     setError('');
-
-    try {
-      await signup(email, password, username);
-      navigate('/onboarding');
-    } catch {
-      setError('Failed to create account');
-    }
+    try { await signup(email, password, username); navigate('/onboarding'); } catch { setError('Failed to create account'); }
     setIsLoading(false);
   };
 
   const handleForgotPassword = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!email) {
-      setError('Please enter your email');
-      return;
-    }
+    if (!email) { setError('Please enter your email'); return; }
     setIsLoading(true);
-    // Backend doesn't support password reset yet — show informational message
     await new Promise(resolve => setTimeout(resolve, 500));
     setIsLoading(false);
     setError('');
@@ -154,8 +103,6 @@ const Auth = () => {
   };
 
   const handleOAuthLogin = async (provider: 'google' | 'github') => {
-    // Redirect to backend OAuth endpoint — backend handles the entire flow
-    // and redirects back to /app or /onboarding with cookies set
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
     window.location.href = `${apiUrl}/auth/${provider}`;
   };
@@ -168,59 +115,42 @@ const Auth = () => {
   };
 
   const pageVariants = {
-    initial: { opacity: 0, x: 20 },
+    initial: { opacity: 0, x: 16 },
     animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -20 }
+    exit: { opacity: 0, x: -16 }
   };
 
   const isSignUp = mode === 'signup';
 
-  return (
-    <div className={cn(
-      "min-h-screen w-full flex items-center justify-center relative overflow-hidden transition-colors duration-500",
-      theme === 'dark' ? "bg-[#0a0a16]" : "bg-slate-50"
-    )}>
-      {/* Background Image */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <img
-          src={background}
-          alt="Background"
-          className="w-full h-full object-cover scale-105"
-        />
-        <div className={cn(
-          "absolute inset-0 transition-all duration-1000",
-          theme === 'dark' ? "bg-[#0a0a16]/40" : "bg-white/20 backdrop-blur-[1px]"
-        )} />
-      </div>
+  const inputClass = "h-11 rounded-lg px-4 text-sm bg-muted/50 border border-border focus-visible:ring-1 focus-visible:ring-primary/30 transition-all";
+  const primaryBtnClass = "w-full h-11 rounded-xl text-sm font-semibold transition-all bg-gradient-to-r from-purple-600 to-orange-500 hover:from-purple-700 hover:to-orange-600 text-white shadow-lg shadow-purple-500/15 border-0";
+  const backBtnClass = "flex items-center text-xs text-muted-foreground hover:text-foreground transition-colors mb-4";
 
-      {/* Shapes for extra depth */}
-      <div className="absolute inset-0 z-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 10% 20%, rgba(120,120,120,0.1) 0%, transparent 20%), radial-gradient(circle at 90% 80%, rgba(120,120,120,0.1) 0%, transparent 20%)' }}></div>
+  return (
+    <div className="min-h-screen w-full flex items-center justify-center bg-background transition-colors relative overflow-hidden">
+      {/* Gradient background orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-purple-500/8 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-orange-500/6 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-primary/3 rounded-full blur-3xl" />
+      </div>
+      {/* Grid pattern */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none" />
 
       {/* Theme Toggle */}
       <Button
         variant="ghost"
         size="icon"
         onClick={toggleTheme}
-        className={cn(
-          "absolute top-6 right-6 h-10 w-10 z-20 hover:bg-white/10 transition-colors rounded-full",
-          theme === 'dark' ? "text-white/70 hover:text-white" : "text-gray-600 hover:text-gray-900"
-        )}
+        className="absolute top-5 right-5 h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground z-20"
       >
-        {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+        {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
       </Button>
 
-      <div className="relative z-10 w-full max-w-[450px] p-4">
-        {/* Glass Card */}
-        <div className={cn(
-          "backdrop-blur-2xl border rounded-[2rem] shadow-2xl p-10 overflow-hidden relative transition-all duration-500",
-          theme === 'dark'
-            ? "bg-slate-900/40 border-white/10 shadow-black/40"
-            : "bg-white/60 border-white/40 shadow-slate-200/50"
-        )}>
-
-          {/* Subtle sheen */}
-          <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent pointer-events-none" />
-
+      <div className="w-full max-w-sm px-6 relative z-10">
+        {/* Card */}
+        <div className="p-8 rounded-2xl border border-border/30 bg-card/60 backdrop-blur-xl shadow-2xl shadow-black/10">
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-purple-500/5 via-transparent to-orange-500/5 pointer-events-none" />
           <AnimatePresence mode="wait">
             <motion.div
               key={step}
@@ -228,43 +158,29 @@ const Auth = () => {
               initial="initial"
               animate="animate"
               exit="exit"
-              transition={{ duration: 0.3, ease: "circOut" }}
-              className="relative z-10"
+              transition={{ duration: 0.25, ease: "easeOut" }}
             >
-              {/* Header inside card */}
-              <div className="text-center mb-10">
-                <div className="w-20 h-20 flex items-center justify-center mx-auto mb-6 bg-slate-900/10 dark:bg-white/5 rounded-2xl backdrop-blur-md border border-white/10">
-                  <ThemeLogo size="custom" className="w-12 h-12 object-contain drop-shadow-2xl" />
+              {/* Header */}
+              <div className="text-center mb-8">
+                <div className="w-12 h-12 flex items-center justify-center mx-auto mb-4">
+                  <ThemeLogo size="custom" className="w-10 h-10 object-contain" />
                 </div>
-                <h1 className={cn(
-                  "text-4xl font-bold mb-3 tracking-tight",
-                  theme === 'dark' ? "text-white" : "text-slate-900"
-                )}>
-                  DataForgeAI
-                </h1>
-                <p className={cn(
-                  "text-base font-medium opacity-60",
-                  theme === 'dark' ? "text-slate-300" : "text-slate-500"
-                )}>
-                  {step === 'method' && (isSignUp ? "Join the future of synthetic data." : "Enterprise-grade synthetic data generation.")}
+                <h1 className="text-xl font-semibold tracking-tight mb-1">DataForgeAI</h1>
+                <p className="text-xs text-muted-foreground">
+                  {step === 'method' && (isSignUp ? "Create your account" : "Sign in to continue")}
                   {step !== 'method' && (isSignUp ? "Create your account" : "Welcome back")}
                 </p>
               </div>
 
               {step === 'method' && (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <Button
                     variant="outline"
-                    className={cn(
-                      "w-full h-14 justify-start px-6 rounded-2xl font-medium transition-all backdrop-blur-sm border-0",
-                      theme === 'dark'
-                        ? "bg-white/10 text-white hover:bg-white/20"
-                        : "bg-slate-900/5 text-slate-900 hover:bg-slate-900/10"
-                    )}
+                    className="w-full h-11 justify-start px-4 rounded-lg text-sm font-medium"
                     onClick={() => handleOAuthLogin('google')}
                     disabled={isLoading}
                   >
-                    <svg className="w-5 h-5 mr-4" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 mr-3" viewBox="0 0 24 24">
                       <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                       <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                       <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
@@ -275,54 +191,37 @@ const Auth = () => {
 
                   <Button
                     variant="outline"
-                    className={cn(
-                      "w-full h-14 justify-start px-6 rounded-2xl font-medium transition-all backdrop-blur-sm border-0",
-                      theme === 'dark'
-                        ? "bg-white/10 text-white hover:bg-white/20"
-                        : "bg-slate-900/5 text-slate-900 hover:bg-slate-900/10"
-                    )}
+                    className="w-full h-11 justify-start px-4 rounded-lg text-sm font-medium"
                     onClick={() => handleOAuthLogin('github')}
                     disabled={isLoading}
                   >
-                    <svg className="w-5 h-5 mr-4" viewBox="0 0 24 24" fill="currentColor">
+                    <svg className="w-4 h-4 mr-3" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
                     </svg>
                     Continue with GitHub
                   </Button>
 
-                  <div className="relative my-8">
+                  <div className="relative my-6">
                     <div className="absolute inset-0 flex items-center">
-                      <div className={cn("w-full border-t", theme === 'dark' ? "border-white/10" : "border-slate-200")} />
+                      <div className="w-full border-t border-border" />
                     </div>
-                    <div className="relative flex justify-center text-[10px]">
-                      <span className={cn(
-                        "px-4 font-bold tracking-[0.2em] rounded-full",
-                        theme === 'dark' ? "text-white/40 bg-transparent" : "text-slate-400 bg-transparent"
-                      )}>OR CONTINUE WITH EMAIL</span>
+                    <div className="relative flex justify-center">
+                      <span className="px-3 text-[10px] text-muted-foreground bg-card tracking-widest">OR</span>
                     </div>
                   </div>
 
                   <Button
-                    variant="default"
-                    className={cn(
-                      "w-full h-14 rounded-2xl font-bold transition-all shadow-xl",
-                      theme === 'dark'
-                        ? "bg-white text-slate-950 hover:bg-slate-100 shadow-white/5"
-                        : "bg-slate-900 text-white hover:bg-slate-800 shadow-slate-900/10"
-                    )}
+                    className={primaryBtnClass}
                     onClick={() => setStep(isSignUp ? 'signup-details' : 'email')}
                   >
                     Continue with email
                   </Button>
 
-                  <div className="text-center pt-6">
-                    <span className={cn("text-sm", theme === 'dark' ? "text-slate-400" : "text-slate-500")}>
+                  <div className="text-center pt-4">
+                    <span className="text-xs text-muted-foreground">
                       {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
                     </span>
-                    <button type="button" onClick={switchMode} className={cn(
-                      "text-sm hover:underline font-bold transition-colors",
-                      theme === 'dark' ? "text-white" : "text-slate-900"
-                    )}>
+                    <button type="button" onClick={switchMode} className="text-xs font-medium text-foreground hover:underline">
                       {isSignUp ? 'Sign in' : 'Sign up'}
                     </button>
                   </div>
@@ -330,206 +229,85 @@ const Auth = () => {
               )}
 
               {step === 'email' && (
-                <form onSubmit={handleEmailSubmit} className="space-y-6">
-                  <button type="button" onClick={goBack} className={cn(
-                    "flex items-center text-xs font-bold uppercase tracking-wider transition-colors mb-4",
-                    theme === 'dark' ? "text-white/50 hover:text-white" : "text-slate-500 hover:text-slate-900"
-                  )}>
-                    <ArrowLeft className="w-4 h-4 mr-2" /> Back
+                <form onSubmit={handleEmailSubmit} className="space-y-4">
+                  <button type="button" onClick={goBack} className={backBtnClass}>
+                    <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Back
                   </button>
-                  <Input
-                    type="email"
-                    placeholder="name@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={cn(
-                      "h-14 rounded-2xl px-6 backdrop-blur-md border-0",
-                      theme === 'dark'
-                        ? "bg-white/10 text-white placeholder:text-white/20 focus-visible:ring-2 focus-visible:ring-white/20"
-                        : "bg-slate-900/5 text-slate-900 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-900/10"
-                    )}
-                    autoFocus
-                  />
-                  {error && <p className="text-red-400 text-sm font-medium px-2">{error}</p>}
-                  <Button type="submit" className={cn(
-                    "w-full h-14 rounded-2xl font-bold transition-all",
-                    theme === 'dark' ? "bg-white text-slate-950 hover:bg-slate-100" : "bg-slate-900 text-white hover:bg-slate-800"
-                  )} disabled={isLoading}>
-                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Continue <ArrowRight className="w-4 h-4 ml-2" /></>}
+                  <Input type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} autoFocus />
+                  {error && <p className="text-destructive text-xs">{error}</p>}
+                  <Button type="submit" className={primaryBtnClass} disabled={isLoading}>
+                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Continue <ArrowRight className="w-3.5 h-3.5 ml-1.5" /></>}
                   </Button>
                 </form>
               )}
 
               {step === 'password' && (
-                <form onSubmit={handlePasswordSubmit} className="space-y-6">
-                  <button type="button" onClick={goBack} className={cn(
-                    "flex items-center text-xs font-bold uppercase tracking-wider transition-colors mb-4",
-                    theme === 'dark' ? "text-white/50 hover:text-white" : "text-slate-500 hover:text-slate-900"
-                  )}>
-                    <ArrowLeft className="w-4 h-4 mr-2" /> Back
+                <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                  <button type="button" onClick={goBack} className={backBtnClass}>
+                    <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Back
                   </button>
-                  <div className="bg-white/5 rounded-2xl p-3 px-5 mb-4 border border-white/5">
-                    <p className={cn("text-xs font-bold opacity-60 uppercase tracking-widest mb-1", theme === 'dark' ? "text-white/50" : "text-slate-500")}>Signing in as</p>
-                    <p className={cn("text-sm font-bold truncate", theme === 'dark' ? "text-white" : "text-slate-900")}>{email}</p>
+                  <div className="rounded-lg bg-muted/50 p-3 border border-border/50 mb-2">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Signing in as</p>
+                    <p className="text-sm font-medium truncate">{email}</p>
                   </div>
                   <div className="relative">
-                    <Input
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="Password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className={cn(
-                        "h-14 rounded-2xl px-6 pr-14 backdrop-blur-md border-0",
-                        theme === 'dark'
-                          ? "bg-white/10 text-white placeholder:text-white/20 focus-visible:ring-2 focus-visible:ring-white/20"
-                          : "bg-slate-900/5 text-slate-900 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-900/10"
-                      )}
-                      autoFocus
-                    />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className={cn(
-                      "absolute right-5 top-1/2 -translate-y-1/2",
-                      theme === 'dark' ? "text-white/40 hover:text-white" : "text-slate-400 hover:text-slate-900"
-                    )}>
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    <Input type={showPassword ? 'text' : 'password'} placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className={cn(inputClass, "pr-10")} autoFocus />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
-                  {error && <p className="text-red-400 text-sm font-medium px-2">{error}</p>}
-                  <Button type="submit" className={cn(
-                    "w-full h-14 rounded-2xl font-bold transition-all",
-                    theme === 'dark' ? "bg-white text-slate-950 hover:bg-slate-100" : "bg-slate-900 text-white hover:bg-slate-800"
-                  )} disabled={isLoading}>
-                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sign in'}
+                  {error && <p className="text-destructive text-xs">{error}</p>}
+                  <Button type="submit" className={primaryBtnClass} disabled={isLoading}>
+                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sign in'}
                   </Button>
-                  <button type="button" onClick={() => { setError(''); setStep('forgot'); }} className={cn(
-                    "w-full text-xs font-bold uppercase tracking-widest py-2 transition-colors",
-                    theme === 'dark' ? "text-white/30 hover:text-white" : "text-slate-400 hover:text-slate-900"
-                  )}>
+                  <button type="button" onClick={() => { setError(''); setStep('forgot'); }} className="w-full text-xs text-muted-foreground hover:text-foreground py-1 transition-colors">
                     Forgot password?
                   </button>
                 </form>
               )}
 
               {step === 'forgot' && (
-                <form onSubmit={handleForgotPassword} className="space-y-6">
-                  <button type="button" onClick={goBack} className={cn(
-                    "flex items-center text-xs font-bold uppercase tracking-wider transition-colors mb-4",
-                    theme === 'dark' ? "text-white/50 hover:text-white" : "text-slate-500 hover:text-slate-900"
-                  )}>
-                    <ArrowLeft className="w-4 h-4 mr-2" /> Back
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <button type="button" onClick={goBack} className={backBtnClass}>
+                    <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Back
                   </button>
-                  <Input
-                    type="email"
-                    placeholder="name@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={cn(
-                      "h-14 rounded-2xl px-6 backdrop-blur-md border-0",
-                      theme === 'dark'
-                        ? "bg-white/10 text-white placeholder:text-white/20 focus-visible:ring-2 focus-visible:ring-white/20"
-                        : "bg-slate-900/5 text-slate-900 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-900/10"
-                    )}
-                    autoFocus
-                  />
-                  {error && <p className="text-red-400 text-sm font-medium px-2">{error}</p>}
-                  <Button type="submit" className={cn(
-                    "w-full h-14 rounded-2xl font-bold transition-all",
-                    theme === 'dark' ? "bg-white text-slate-950 hover:bg-slate-100" : "bg-slate-900 text-white hover:bg-slate-800"
-                  )} disabled={isLoading}>
-                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Send reset link'}
+                  <Input type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} autoFocus />
+                  {error && <p className="text-destructive text-xs">{error}</p>}
+                  <Button type="submit" className={primaryBtnClass} disabled={isLoading}>
+                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send reset link'}
                   </Button>
                 </form>
               )}
 
               {step === 'signup-details' && (
-                <form onSubmit={handleSignupDetailsSubmit} className="space-y-5">
-                  <button type="button" onClick={goBack} className={cn(
-                    "flex items-center text-xs font-bold uppercase tracking-wider transition-colors mb-4",
-                    theme === 'dark' ? "text-white/50 hover:text-white" : "text-slate-500 hover:text-slate-900"
-                  )}>
-                    <ArrowLeft className="w-4 h-4 mr-2" /> Back
+                <form onSubmit={handleSignupDetailsSubmit} className="space-y-4">
+                  <button type="button" onClick={goBack} className={backBtnClass}>
+                    <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Back
                   </button>
-                  <Input
-                    type="text"
-                    placeholder="Username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className={cn(
-                      "h-14 rounded-2xl px-6 backdrop-blur-md border-0",
-                      theme === 'dark'
-                        ? "bg-white/10 text-white placeholder:text-white/20 focus-visible:ring-2 focus-visible:ring-white/20"
-                        : "bg-slate-900/5 text-slate-900 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-900/10"
-                    )}
-                    autoFocus
-                  />
-                  <Input
-                    type="email"
-                    placeholder="name@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={cn(
-                      "h-14 rounded-2xl px-6 backdrop-blur-md border-0",
-                      theme === 'dark'
-                        ? "bg-white/10 text-white placeholder:text-white/20 focus-visible:ring-2 focus-visible:ring-white/20"
-                        : "bg-slate-900/5 text-slate-900 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-900/10"
-                    )}
-                  />
-                  {error && <p className="text-red-400 text-sm font-medium px-2">{error}</p>}
-                  <Button type="submit" className={cn(
-                    "w-full h-14 rounded-2xl font-bold transition-all",
-                    theme === 'dark' ? "bg-white text-slate-950 hover:bg-slate-100" : "bg-slate-900 text-white hover:bg-slate-800"
-                  )} disabled={isLoading}>
-                    Continue <ArrowRight className="w-4 h-4 ml-2" />
+                  <Input type="text" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} className={inputClass} autoFocus />
+                  <Input type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
+                  {error && <p className="text-destructive text-xs">{error}</p>}
+                  <Button type="submit" className={primaryBtnClass} disabled={isLoading}>
+                    Continue <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
                   </Button>
                 </form>
               )}
 
               {step === 'signup-password' && (
-                <form onSubmit={handleSignupPasswordSubmit} className="space-y-5">
-                  <button type="button" onClick={goBack} className={cn(
-                    "flex items-center text-xs font-bold uppercase tracking-wider transition-colors mb-4",
-                    theme === 'dark' ? "text-white/50 hover:text-white" : "text-slate-500 hover:text-slate-900"
-                  )}>
-                    <ArrowLeft className="w-4 h-4 mr-2" /> Back
+                <form onSubmit={handleSignupPasswordSubmit} className="space-y-4">
+                  <button type="button" onClick={goBack} className={backBtnClass}>
+                    <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Back
                   </button>
                   <div className="relative">
-                    <Input
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="Password (min 8 characters)"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className={cn(
-                        "h-14 rounded-2xl px-6 pr-14 backdrop-blur-md border-0",
-                        theme === 'dark'
-                          ? "bg-white/10 text-white placeholder:text-white/20 focus-visible:ring-2 focus-visible:ring-white/20"
-                          : "bg-slate-900/5 text-slate-900 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-900/10"
-                      )}
-                      autoFocus
-                    />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className={cn(
-                      "absolute right-5 top-1/2 -translate-y-1/2",
-                      theme === 'dark' ? "text-white/40 hover:text-white" : "text-slate-400 hover:text-slate-900"
-                    )}>
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    <Input type={showPassword ? 'text' : 'password'} placeholder="Password (min 8 characters)" value={password} onChange={(e) => setPassword(e.target.value)} className={cn(inputClass, "pr-10")} autoFocus />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
-                  <Input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Confirm password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className={cn(
-                      "h-14 rounded-2xl px-6 backdrop-blur-md border-0",
-                      theme === 'dark'
-                        ? "bg-white/10 text-white placeholder:text-white/20 focus-visible:ring-2 focus-visible:ring-white/20"
-                        : "bg-slate-900/5 text-slate-900 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-900/10"
-                    )}
-                  />
-                  {error && <p className="text-red-400 text-sm font-medium px-2">{error}</p>}
-                  <Button type="submit" className={cn(
-                    "w-full h-14 rounded-2xl font-bold transition-all",
-                    theme === 'dark' ? "bg-white text-slate-950 hover:bg-slate-100" : "bg-slate-900 text-white hover:bg-slate-800"
-                  )} disabled={isLoading}>
-                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create account'}
+                  <Input type={showPassword ? 'text' : 'password'} placeholder="Confirm password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={inputClass} />
+                  {error && <p className="text-destructive text-xs">{error}</p>}
+                  <Button type="submit" className={primaryBtnClass} disabled={isLoading}>
+                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create account'}
                   </Button>
                 </form>
               )}
@@ -537,16 +315,11 @@ const Auth = () => {
           </AnimatePresence>
         </div>
 
-        <div className="mt-12 text-center space-y-4">
-          <p className={cn(
-            "text-[10px] font-bold uppercase tracking-[0.2em] transition-colors",
-            theme === 'dark' ? "text-white/20" : "text-slate-400"
-          )}>
-            By continuing, you agree to our{' '}
-            <Link to="/terms" className="text-white/50 hover:text-white underline-offset-4 hover:underline transition-all">Terms</Link> and{' '}
-            <Link to="/privacy" className="text-white/50 hover:text-white underline-offset-4 hover:underline transition-all">Privacy Policy</Link>
-          </p>
-        </div>
+        <p className="text-center mt-6 text-[10px] text-muted-foreground">
+          By continuing, you agree to our{' '}
+          <Link to="/terms" className="underline underline-offset-2 hover:text-foreground transition-colors">Terms</Link> and{' '}
+          <Link to="/privacy" className="underline underline-offset-2 hover:text-foreground transition-colors">Privacy Policy</Link>
+        </p>
       </div>
     </div>
   );

@@ -1,61 +1,47 @@
 import { MessageSquare, Settings2, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+const steps = [
+  { icon: MessageSquare, title: 'Describe', description: 'Tell the AI what data you need using natural language. It understands context and relationships.', step: '01' },
+  { icon: Settings2, title: 'Configure', description: 'Fine-tune columns, data types, and output format with a visual editor. 50+ types available.', step: '02' },
+  { icon: Download, title: 'Export', description: 'Download in CSV, JSON, SQL, or Parquet — ready for your pipeline in seconds.', step: '03' },
+];
+
 export function About() {
   return (
-    <section id="about" className="py-20 sm:py-24 md:py-32 lg:py-36">
-      <div className="container px-4 sm:px-6">
+    <section id="about" className="py-24 md:py-32">
+      <div className="container max-w-5xl mx-auto px-6">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center max-w-4xl mx-auto mb-16 sm:mb-20"
+          transition={{ duration: 0.5 }}
+          className="text-center max-w-3xl mx-auto mb-16"
         >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 sm:mb-8 px-4">
-            What is <span className="bg-gradient-to-r from-primary via-primary to-primary/80 bg-clip-text text-transparent">DataForgeAI</span>?
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">
+            How it works
           </h2>
-          <p className="text-base sm:text-lg md:text-xl text-muted-foreground leading-relaxed px-4">
-            A powerful platform for generating high-quality datasets using natural language.
-            Create synthetic, realistic, or hybrid data for testing, development, or machine learning.
+          <p className="text-muted-foreground leading-relaxed">
+            Describe what you need, configure your schema, and export production-ready datasets instantly.
           </p>
         </motion.div>
 
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
-          {[
-            {
-              icon: MessageSquare,
-              title: 'Chat-Based Generation',
-              description: 'Describe what you need in plain English. Our AI understands context, relationships, and data patterns to generate exactly what you need.',
-            },
-            {
-              icon: Settings2,
-              title: 'Full Control',
-              description: 'Fine-tune every column with our visual generator. Over 50 data types available with complete customization options.',
-            },
-            {
-              icon: Download,
-              title: 'Multiple Formats',
-              description: 'Export in CSV, JSON, SQL, or Parquet. Ready for any workflow, with direct download or API integration.',
-            },
-          ].map((item, index) => (
+        <div className="grid md:grid-cols-3 gap-5">
+          {steps.map((item, i) => (
             <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
+              key={i}
+              initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: index * 0.1, duration: 0.6 }}
-              className="group p-6 sm:p-8 md:p-10 rounded-2xl sm:rounded-3xl bg-card/50 backdrop-blur-sm border border-border/50 hover:border-primary/30 hover:bg-card/80 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-1"
+              transition={{ delay: i * 0.1, duration: 0.5 }}
+              className="group relative p-6 rounded-xl border border-border/30 bg-card/40 backdrop-blur-sm hover:bg-card/70 hover:border-border/50 transition-all duration-300 hover:shadow-lg hover:shadow-black/5"
             >
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center mb-5 sm:mb-6 group-hover:scale-110 transition-transform duration-300">
-                <item.icon className="w-7 h-7 sm:w-8 sm:h-8 text-primary" />
+              <div className="absolute top-4 right-4 text-3xl font-bold text-primary/8 select-none group-hover:text-primary/15 transition-colors">{item.step}</div>
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500/15 to-orange-500/15 flex items-center justify-center mb-4 group-hover:from-purple-500/25 group-hover:to-orange-500/25 transition-all">
+                <item.icon className="w-5 h-5 text-primary" />
               </div>
-              <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 group-hover:text-primary transition-colors">
-                {item.title}
-              </h3>
-              <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-                {item.description}
-              </p>
+              <h3 className="text-base font-semibold mb-2">{item.title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
             </motion.div>
           ))}
         </div>

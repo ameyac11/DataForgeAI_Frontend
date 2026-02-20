@@ -2,70 +2,46 @@ import { Database, ShoppingCart, HeartPulse, TrendingUp, Users, MapPin } from 'l
 import { motion } from 'framer-motion';
 
 const useCases = [
-  {
-    icon: Database,
-    title: 'Testing & QA',
-    description: 'Generate realistic test data for databases, APIs, and applications. Ensure edge cases and data variations are covered.',
-  },
-  {
-    icon: ShoppingCart,
-    title: 'E-commerce',
-    description: 'Create product catalogs, customer data, order histories, and inventory datasets for online retail platforms.',
-  },
-  {
-    icon: HeartPulse,
-    title: 'Healthcare',
-    description: 'Generate synthetic patient records, medical data, and clinical datasets while maintaining privacy compliance.',
-  },
-  {
-    icon: TrendingUp,
-    title: 'Financial Services',
-    description: 'Build transaction histories, portfolio data, and financial metrics for banking and fintech applications.',
-  },
-  {
-    icon: Users,
-    title: 'Machine Learning',
-    description: 'Create training datasets with balanced distributions, proper labeling, and realistic feature correlations.',
-  },
-  {
-    icon: MapPin,
-    title: 'Geospatial',
-    description: 'Generate location data, addresses, coordinates, and geographic information for mapping applications.',
-  },
+  { icon: Database, title: 'Testing & QA', description: 'Realistic test data for databases, APIs, and applications with edge-case coverage.' },
+  { icon: ShoppingCart, title: 'E-commerce', description: 'Product catalogs, customer profiles, order histories, and inventory datasets.' },
+  { icon: HeartPulse, title: 'Healthcare', description: 'Synthetic patient records and clinical datasets with privacy compliance.' },
+  { icon: TrendingUp, title: 'Financial Services', description: 'Transaction histories, portfolio data, and financial metrics for fintech.' },
+  { icon: Users, title: 'Machine Learning', description: 'Training datasets with balanced distributions and realistic feature correlations.' },
+  { icon: MapPin, title: 'Geospatial', description: 'Location data, addresses, and coordinates for mapping applications.' },
 ];
 
 export function UseCases() {
   return (
-    <section id="use-cases" className="py-28 md:py-36">
-      <div className="container px-6">
+    <section id="use-cases" className="py-24 md:py-32">
+      <div className="container max-w-5xl mx-auto px-6">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-20"
+          className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6">Use Cases</h2>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-            DataForgeAI adapts to your industry and workflow
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">Use Cases</h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Adapts to your industry and workflow
           </p>
         </motion.div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 max-w-6xl mx-auto">
-          {useCases.map((item, index) => (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {useCases.map((item, i) => (
             <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
+              key={i}
+              initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: index * 0.05, duration: 0.5 }}
-              className="p-8 rounded-2xl bg-card border border-border hover:border-primary/30 transition-colors"
+              transition={{ delay: i * 0.05, duration: 0.4 }}
+              className="group p-5 rounded-xl border border-border/30 bg-card/40 backdrop-blur-sm hover:bg-card/70 hover:border-border/50 transition-all duration-300 hover:shadow-lg hover:shadow-black/5"
             >
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-5">
-                <item.icon className="w-6 h-6 text-primary" />
+              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-500/15 to-orange-500/15 flex items-center justify-center mb-3 group-hover:from-purple-500/25 group-hover:to-orange-500/25 transition-all">
+                <item.icon className="w-4.5 h-4.5 text-primary" />
               </div>
-              <h3 className="text-lg font-semibold mb-3">{item.title}</h3>
-              <p className="text-muted-foreground leading-relaxed">{item.description}</p>
+              <h3 className="text-sm font-semibold mb-1.5">{item.title}</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">{item.description}</p>
             </motion.div>
           ))}
         </div>

@@ -1,188 +1,143 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, MessageSquare, Settings2, FolderOpen, Download, Zap } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Settings2, FolderOpen, Download, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeLogo } from '@/components/ThemeLogo';
-import { cn } from '@/lib/utils';
 
-const sections = [
-  {
-    title: 'What is DataForgeAI?',
-    content: 'DataForgeAI is an AI-powered platform for generating high-quality synthetic, realistic, and hybrid datasets. Whether you need test data for development, training data for machine learning, or sample data for demonstrations, DataForgeAI can create exactly what you need in seconds.',
-  },
-  {
-    title: 'Key Features',
-    items: [
-      {
-        icon: MessageSquare,
-        title: 'DataForge AI Chat',
-        description: 'Describe your dataset needs in natural language. Our AI understands context, relationships, and data patterns.',
-      },
-      {
-        icon: Settings2,
-        title: 'Custom Generator',
-        description: 'Build datasets visually with our drag-and-drop interface. Choose from 50+ data types and customize every column.',
-      },
-      {
-        icon: FolderOpen,
-        title: 'Sample Library',
-        description: 'Access pre-built datasets for common use cases like e-commerce, healthcare, finance, and more.',
-      },
-      {
-        icon: Download,
-        title: 'Multiple Formats',
-        description: 'Export in CSV, JSON, SQL, or Parquet. Direct download or API integration available.',
-      },
-    ],
-  },
-  {
-    title: 'Getting Started Steps',
-    steps: [
-      {
-        number: '01',
-        title: 'Describe Your Data',
-        description: 'Use natural language to tell DataForge AI what kind of data you need. Be specific about columns, data types, and relationships.',
-      },
-      {
-        number: '02',
-        title: 'Configure Options',
-        description: 'Choose your output format, data mode (synthetic, realistic, or hybrid), and the number of rows to generate.',
-      },
-      {
-        number: '03',
-        title: 'Generate & Download',
-        description: 'Click generate and download your dataset. Large datasets are processed asynchronously with progress updates.',
-      },
-    ],
-  },
-  {
-    title: 'Best Practices',
-    tips: [
-      'Be specific about data types and formats when describing your needs',
-      'Use realistic mode for demo data that needs to look authentic',
-      'Use synthetic mode when you need statistically accurate distributions',
-      'Start with smaller datasets to validate the structure before generating large volumes',
-      'Save frequently used configurations as templates',
-    ],
-  },
+const features = [
+  { icon: MessageSquare, title: 'AI Chat', description: 'Describe your dataset in natural language. The AI understands context, relationships, and patterns.', accent: 'from-purple-500/10 to-purple-500/5' },
+  { icon: Settings2, title: 'Custom Generator', description: 'Build datasets visually with 50+ data types and full control over every column.', accent: 'from-orange-500/10 to-orange-500/5' },
+  { icon: FolderOpen, title: 'Sample Library', description: 'Pre-built datasets for e-commerce, healthcare, finance, and more.', accent: 'from-blue-500/10 to-blue-500/5' },
+  { icon: Download, title: 'Multiple Formats', description: 'Export in CSV, JSON, SQL, or Parquet.', accent: 'from-emerald-500/10 to-emerald-500/5' },
+];
+
+const steps = [
+  { n: '01', title: 'Describe Your Data', description: 'Use natural language to specify columns, data types, and relationships.' },
+  { n: '02', title: 'Configure Options', description: 'Choose format, data mode (synthetic/realistic/hybrid), and row count.' },
+  { n: '03', title: 'Generate & Download', description: 'Click generate and download your dataset instantly.' },
+];
+
+const tips = [
+  'Be specific about data types and formats',
+  'Use realistic mode for demo data that needs to look authentic',
+  'Use synthetic mode for statistically accurate distributions',
+  'Start small to validate structure before generating large volumes',
+  'Compound models use live internet data for real-world accuracy',
 ];
 
 const GettingStarted = () => {
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30 relative overflow-hidden transition-colors duration-300">
+    <div className="min-h-screen bg-background text-foreground font-sans transition-colors relative">
+      {/* Background elements */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-orange-500/3 rounded-full blur-3xl" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:48px_48px]" />
+      </div>
+
       {/* Header */}
-      <header className="border-b border-border/40 sticky top-0 bg-background/80 backdrop-blur-md z-50">
-        <div className="container px-6 h-20 flex items-center justify-between max-w-6xl mx-auto">
-          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+      <header className="border-b border-border/30 sticky top-0 bg-background/80 backdrop-blur-2xl z-50">
+        <div className="container max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <ThemeLogo size="sm" />
-            <span className="font-medium text-foreground tracking-wide">DataForgeAI</span>
+            <span className="text-sm font-semibold">DataForgeAI</span>
           </Link>
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-full px-5">
-              <Link to="/">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Link>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" asChild className="text-xs text-muted-foreground hover:text-foreground rounded-lg">
+              <Link to="/"><ArrowLeft className="w-3.5 h-3.5 mr-1.5" />Back</Link>
             </Button>
-            <Button size="sm" asChild className="rounded-full px-6 shadow-lg shadow-primary/20 hover:scale-105 transition-all">
+            <Button size="sm" asChild className="rounded-xl px-4 text-xs font-semibold bg-gradient-to-r from-purple-600 to-orange-500 hover:from-purple-700 hover:to-orange-600 text-white border-0 shadow-sm shadow-purple-500/10">
               <Link to="/app">Launch App</Link>
             </Button>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="container px-6 py-12 md:py-20 max-w-5xl mx-auto relative z-10">
-
-        {/* Hero Section */}
-        <section className="mb-20 text-center">
-          <h1 className="text-4xl md:text-5xl font-medium text-foreground mb-6 tracking-tight">
-            Getting Started
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Master the art of synthetic data generation with DataForgeAI. Simple, powerful, and efficient.
+      <main className="container max-w-4xl mx-auto px-6 py-16 relative z-10">
+        {/* Hero */}
+        <section className="mb-16 text-center">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium border border-border/30 bg-card/60 backdrop-blur-sm text-muted-foreground mb-4">
+            <Sparkles className="w-3 h-3 text-purple-500" />
+            Quick Start Guide
+          </div>
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">Getting Started</h1>
+          <p className="text-muted-foreground max-w-xl mx-auto">
+            Simple, powerful synthetic data generation.
           </p>
         </section>
 
-        {/* Hero Banner Image */}
-        <section className="mb-20">
-          <div className="w-full h-64 md:h-80 rounded-3xl overflow-hidden border border-border/50 relative bg-muted shadow-xl">
-            <img
-              src="/purple-cubes-multiple.png"
-              alt="Getting Started Banner"
-              className="w-full h-full object-cover opacity-90 dark:opacity-80 transition-opacity duration-300"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/40 to-transparent pointer-events-none" />
+        {/* What is it */}
+        <section className="mb-14">
+          <div className="p-6 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-sm relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-orange-500/5 pointer-events-none" />
+            <div className="relative z-10">
+              <h2 className="text-lg font-bold mb-2">What is DataForgeAI?</h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                An AI-powered platform for generating high-quality synthetic, realistic, and hybrid datasets. Whether you need test data for development, training data for ML, or sample data for demos — generate exactly what you need in seconds.
+              </p>
+            </div>
           </div>
         </section>
 
-        {/* Introduction Card */}
-        <section className="mb-12">
-          <div className="bg-card text-card-foreground p-8 md:p-10 rounded-3xl border border-border shadow-sm">
-            <h2 className="text-2xl font-medium mb-4 tracking-tight">{sections[0].title}</h2>
-            <p className="text-muted-foreground leading-8 text-lg">{sections[0].content}</p>
-          </div>
-        </section>
-
-        {/* Key Features Grid */}
-        <section className="mb-20">
-          <h2 className="text-2xl font-medium text-foreground mb-8 px-2">{sections[1].title}</h2>
-          <div className="grid md:grid-cols-2 gap-6">
-            {sections[1].items?.map((item, index) => (
-              <div
-                key={index}
-                className="group p-8 rounded-3xl bg-card border border-border hover:border-primary/20 transition-all duration-300 hover:bg-secondary/30 hover:shadow-md"
-              >
-                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-105 transition-transform duration-300">
-                  <item.icon className="w-6 h-6 text-primary" />
+        {/* Features */}
+        <section className="mb-14">
+          <h2 className="text-lg font-bold mb-5">Key Features</h2>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {features.map((f, i) => (
+              <div key={i} className="group p-5 rounded-xl border border-border/30 bg-card/40 backdrop-blur-sm hover:bg-card/70 hover:border-border/50 transition-all duration-300 hover:shadow-lg hover:shadow-black/5 relative overflow-hidden">
+                <div className={`absolute inset-0 bg-gradient-to-br ${f.accent} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                <div className="relative z-10">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500/15 to-orange-500/15 flex items-center justify-center mb-3">
+                    <f.icon className="w-4 h-4 text-primary" />
+                  </div>
+                  <h3 className="text-sm font-semibold mb-1">{f.title}</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{f.description}</p>
                 </div>
-                <h3 className="text-xl font-medium text-card-foreground mb-3">{item.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">{item.description}</p>
               </div>
             ))}
           </div>
         </section>
 
-        {/* Steps Section */}
-        <section className="mb-20">
-          <h2 className="text-2xl font-medium text-foreground mb-8 px-2">{sections[2].title}</h2>
-          <div className="space-y-4">
-            {sections[2].steps?.map((step, index) => (
-              <div
-                key={index}
-                className="flex flex-col md:flex-row gap-6 md:gap-8 p-8 rounded-3xl bg-card border border-border items-start md:items-center hover:bg-secondary/10 transition-colors"
-              >
-                <div className="text-4xl font-medium text-primary/20 select-none min-w-[3rem]">{step.number}</div>
+        {/* Steps */}
+        <section className="mb-14">
+          <h2 className="text-lg font-bold mb-5">How to Start</h2>
+          <div className="space-y-3">
+            {steps.map((s, i) => (
+              <div key={i} className="group flex gap-5 p-5 rounded-xl border border-border/30 bg-card/40 backdrop-blur-sm items-start hover:bg-card/70 hover:border-border/50 transition-all duration-300">
+                <span className="text-2xl font-bold bg-gradient-to-br from-purple-500/30 to-orange-500/30 bg-clip-text text-transparent select-none group-hover:from-purple-500/50 group-hover:to-orange-500/50 transition-all">{s.n}</span>
                 <div>
-                  <h3 className="text-xl font-medium text-card-foreground mb-2">{step.title}</h3>
-                  <p className="text-muted-foreground leading-relaxed">{step.description}</p>
+                  <h3 className="text-sm font-semibold mb-1">{s.title}</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{s.description}</p>
                 </div>
               </div>
             ))}
           </div>
         </section>
 
-        {/* Best Practices */}
-        <section className="mb-20">
-          <div className="p-10 rounded-3xl bg-gradient-to-br from-secondary to-background border border-border shadow-sm relative overflow-hidden">
-            {/* Decorative background element for light mode subtle contrast */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
-
-            <h2 className="text-2xl font-medium text-foreground mb-8 relative z-10">{sections[3].title}</h2>
-            <ul className="grid gap-4 relative z-10">
-              {sections[3].tips?.map((tip, index) => (
-                <li key={index} className="flex items-start gap-4 text-muted-foreground group">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary/40 mt-2.5 group-hover:bg-primary transition-colors" />
-                  <span className="leading-relaxed group-hover:text-foreground transition-colors">{tip}</span>
-                </li>
-              ))}
-            </ul>
+        {/* Tips */}
+        <section className="mb-14">
+          <div className="p-6 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-sm relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-blue-500/5 pointer-events-none" />
+            <div className="relative z-10">
+              <h2 className="text-lg font-bold mb-4">Best Practices</h2>
+              <ul className="space-y-3">
+                {tips.map((tip, i) => (
+                  <li key={i} className="flex items-start gap-3 text-xs text-muted-foreground">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500/60 mt-0.5 shrink-0" />
+                    <span className="leading-relaxed">{tip}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </section>
 
-        {/* Bottom CTA */}
-        <div className="text-center pb-12">
-          <Button asChild size="lg" className="h-14 px-10 rounded-full text-base font-medium transition-all hover:scale-105 shadow-xl shadow-primary/20">
-            <Link to="/app">Start Generating Now</Link>
+        {/* CTA */}
+        <div className="text-center pb-8">
+          <Button asChild size="lg" className="rounded-xl px-8 text-sm font-semibold bg-gradient-to-r from-purple-600 to-orange-500 hover:from-purple-700 hover:to-orange-600 text-white border-0 shadow-lg shadow-purple-500/15">
+            <Link to="/app">
+              Start Generating
+              <ArrowRight className="ml-2 w-4 h-4" />
+            </Link>
           </Button>
         </div>
       </main>

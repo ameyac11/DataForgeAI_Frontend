@@ -14,8 +14,7 @@ import DetNest from "./pages/DetNest";
 import CustomGenerator from "./pages/CustomGenerator";
 import SampleDatasets from "./pages/SampleDatasets";
 import HistoryPage from "./pages/History";
-import SettingsPage from "./pages/Settings";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
+import SettingsPage from "./pages/Settings";import MyDatasets from './pages/MyDatasets';import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import GettingStarted from "./pages/GettingStarted";
 import Onboarding from "./pages/Onboarding";
@@ -43,8 +42,7 @@ const App = () => (
                 <Route path="/app" element={<Dashboard />}>
                   <Route index element={<DetNest />} />
                   <Route path="generator" element={<CustomGenerator />} />
-                  <Route path="samples" element={<SampleDatasets />} />
-                  <Route path="history" element={<HistoryPage />} />
+                  <Route path="samples" element={<SampleDatasets />} />                  <Route path="datasets" element={<MyDatasets />} />                  <Route path="history" element={<HistoryPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />

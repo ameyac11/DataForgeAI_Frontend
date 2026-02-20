@@ -2,82 +2,61 @@ import { Bot, Wand2, FolderOpen, Zap, Shield, Globe } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const features = [
-  {
-    icon: Bot,
-    title: 'DataForge AI Chat',
-    description: 'Intelligent chatbot that understands your data needs and generates datasets through natural conversation.',
-    gradient: 'from-blue-500/20 to-cyan-500/20',
-  },
-  {
-    icon: Wand2,
-    title: 'Custom Generator',
-    description: 'Visual drag-and-drop interface for precise control over every column and data type.',
-    gradient: 'from-purple-500/20 to-pink-500/20',
-  },
-  {
-    icon: FolderOpen,
-    title: 'Sample Library',
-    description: 'Curated ready-to-use datasets for common use cases like e-commerce, healthcare, and finance.',
-    gradient: 'from-orange-500/20 to-red-500/20',
-  },
-  {
-    icon: Zap,
-    title: 'Lightning Fast',
-    description: 'Generate millions of rows in seconds with optimized algorithms and parallel processing.',
-    gradient: 'from-yellow-500/20 to-orange-500/20',
-  },
-  {
-    icon: Shield,
-    title: 'Privacy First',
-    description: 'All data is synthetic. No real personal information is used or exposed in any generated dataset.',
-    gradient: 'from-green-500/20 to-emerald-500/20',
-  },
-  {
-    icon: Globe,
-    title: 'Global Data',
-    description: 'Localized data for any region or market with proper formatting and cultural context.',
-    gradient: 'from-indigo-500/20 to-blue-500/20',
-  },
+  { icon: Bot, title: 'AI Chat Interface', description: 'Generate datasets through natural conversation — describe what you need and get it instantly.', accent: 'purple' },
+  { icon: Wand2, title: 'Visual Schema Builder', description: 'Drag-and-drop column editor with 50+ data types for precise control over every field.', accent: 'orange' },
+  { icon: FolderOpen, title: 'Sample Library', description: 'Pre-built datasets for e-commerce, healthcare, finance, and more common use cases.', accent: 'blue' },
+  { icon: Zap, title: 'Fast Generation', description: 'Optimized algorithms generate thousands of rows in seconds with intelligent batching.', accent: 'yellow' },
+  { icon: Shield, title: 'Privacy Safe', description: 'All data is synthetic — no real personal information is ever used or exposed.', accent: 'emerald' },
+  { icon: Globe, title: 'Live Web Data', description: 'Compound models use live internet search for up-to-date, real-world enriched datasets.', accent: 'purple' },
 ];
+
+const accentColors: Record<string, string> = {
+  purple: 'from-purple-500/20 to-purple-500/5 group-hover:from-purple-500/30',
+  orange: 'from-orange-500/20 to-orange-500/5 group-hover:from-orange-500/30',
+  blue: 'from-blue-500/20 to-blue-500/5 group-hover:from-blue-500/30',
+  yellow: 'from-yellow-500/20 to-yellow-500/5 group-hover:from-yellow-500/30',
+  emerald: 'from-emerald-500/20 to-emerald-500/5 group-hover:from-emerald-500/30',
+};
 
 export function Features() {
   return (
-    <section id="features" className="py-20 sm:py-24 md:py-32 lg:py-36 bg-muted/30">
-      <div className="container px-4 sm:px-6">
+    <section id="features" className="py-24 md:py-32 relative">
+      {/* Subtle background */}
+      <div className="absolute inset-0 bg-muted/20" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none" />
+
+      <div className="container max-w-5xl mx-auto px-6 relative z-10">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-16 sm:mb-20"
+          transition={{ duration: 0.5 }}
+          className="text-center mb-16"
         >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-medium mb-4 sm:mb-6 text-foreground">
-            Powerful Features
-          </h2>
-          <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed px-4">
-            Everything you need to create and export high-quality datasets
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">Features</h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Everything you need to create production-ready datasets
           </p>
         </motion.div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 max-w-7xl mx-auto">
-          {features.map((feature, index) => (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {features.map((f, i) => (
             <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
+              key={i}
+              initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: index * 0.05, duration: 0.5 }}
-              className="group p-8 rounded-3xl bg-card border border-border hover:border-primary/20 transition-all duration-300 hover:bg-card/80 hover:shadow-lg hover:shadow-primary/5"
+              transition={{ delay: i * 0.05, duration: 0.4 }}
+              className="group relative p-5 rounded-xl border border-border/30 bg-card/40 backdrop-blur-sm hover:bg-card/70 hover:border-border/50 transition-all duration-300 hover:shadow-lg hover:shadow-black/5"
             >
-              <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-105 transition-transform duration-300`}>
-                <feature.icon className="w-7 h-7 sm:w-8 sm:h-8 text-primary" />
+              <div className={`absolute inset-0 rounded-xl bg-gradient-to-br ${accentColors[f.accent]} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+              <div className="relative z-10">
+                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/15 transition-colors">
+                  <f.icon className="w-4.5 h-4.5 text-primary" />
+                </div>
+                <h3 className="text-sm font-semibold mb-1.5">{f.title}</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">{f.description}</p>
               </div>
-              <h3 className="text-lg sm:text-xl font-medium mb-3 sm:mb-4 text-foreground">
-                {feature.title}
-              </h3>
-              <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-                {feature.description}
-              </p>
             </motion.div>
           ))}
         </div>

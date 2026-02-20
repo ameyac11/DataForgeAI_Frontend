@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Settings2, History, Plus, PanelLeft, FolderOpen, Search, Sparkles } from 'lucide-react';
+import { Settings2, History, Plus, PanelLeft, FolderOpen, Search, Sparkles, Database, X, MessageSquare, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -17,23 +17,93 @@ interface AppSidebarProps {
 
 const navItems = [
   { icon: FolderOpen, label: 'Sample Datasets', path: '/app/samples' },
+  { icon: Database, label: 'My Datasets', path: '/app/datasets' },
   { icon: History, label: 'History', path: '/app/history' },
 ];
 
-// Mock for Search Popup (to be implemented/hooked up later)
-const ChatSearchPopup = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
+// Functional Chat Search Popup
+const ChatSearchPopup = ({ open, onClose, chats, onSelect }: { open: boolean; onClose: () => void; chats: { id: string; title: string; updatedAt: Date; starred: boolean }[]; onSelect: (chatId: string) => void }) => {
+  const [query, setQuery] = useState('');
+
   if (!open) return null;
+
+  const filteredChats = query.trim()
+    ? chats.filter(c => c.title.toLowerCase().includes(query.toLowerCase()))
+    : chats;
+
+  const formatDate = (date: Date) => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center" onClick={onClose}>
-      <div className="bg-card border border-border rounded-xl p-6 w-[500px] shadow-lg" onClick={e => e.stopPropagation()}>
-        <h2 className="text-lg font-semibold mb-4">Search Chats</h2>
-        <div className="flex items-center gap-2 border rounded-lg px-3 py-2 bg-muted/50">
-          <Search className="w-4 h-4 text-muted-foreground" />
-          <input className="bg-transparent border-none outline-none flex-1 text-sm" placeholder="Search..." autoFocus />
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-start justify-center pt-[15vh]" onClick={onClose}>
+      <div className="bg-card border border-border rounded-xl w-[480px] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+        {/* Search Header */}
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+          <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+          <input
+            className="bg-transparent border-none outline-none flex-1 text-sm placeholder:text-muted-foreground/60"
+            placeholder="Search chats..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            autoFocus
+          />
+          {query && (
+            <button onClick={() => setQuery('')} className="text-muted-foreground hover:text-foreground transition-colors">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors ml-1">
+            <span className="text-[10px] font-semibold bg-secondary px-1.5 py-0.5 rounded border border-border">ESC</span>
+          </button>
         </div>
-        <div className="mt-4 text-sm text-muted-foreground text-center">
-          No results found.
+
+        {/* Results */}
+        <div className="max-h-[320px] overflow-y-auto">
+          {filteredChats.length === 0 ? (
+            <div className="py-10 text-center">
+              <MessageSquare className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">
+                {query ? `No chats matching "${query}"` : 'No chats yet'}
+              </p>
+            </div>
+          ) : (
+            <div className="py-1">
+              {filteredChats.map(chat => (
+                <button
+                  key={chat.id}
+                  onClick={() => { onSelect(chat.id); onClose(); setQuery(''); }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-secondary/50 transition-colors text-left group"
+                >
+                  <MessageSquare className="w-4 h-4 text-muted-foreground/50 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{chat.title}</p>
+                    <p className="text-[11px] text-muted-foreground">{formatDate(chat.updatedAt)}</p>
+                  </div>
+                  {chat.starred && <Star className="w-3 h-3 text-amber-500 fill-amber-500 shrink-0" />}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* Footer */}
+        {filteredChats.length > 0 && (
+          <div className="px-4 py-2 border-t border-border/50 bg-secondary/20">
+            <p className="text-[10px] text-muted-foreground">
+              {filteredChats.length} {filteredChats.length === 1 ? 'chat' : 'chats'} {query ? 'found' : 'total'}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -281,7 +351,7 @@ export function AppSidebar({ collapsed, onToggle, isMobile = false, onItemClick 
         </div>
       </aside>
 
-      <ChatSearchPopup open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <ChatSearchPopup open={searchOpen} onClose={() => setSearchOpen(false)} chats={chats} onSelect={handleSelectChat} />
     </>
   );
 }

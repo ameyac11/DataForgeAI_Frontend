@@ -1,113 +1,104 @@
-import { ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { ThemeLogo } from '@/components/ThemeLogo';
 import { motion } from 'framer-motion';
 
 export function Hero() {
-
   return (
-    <section className="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden">
-      {/* Texture Overlay */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-[0.03] dark:opacity-[0.03] invert dark:invert-0" style={{
-        backgroundImage: 'linear-gradient(to right, #404040 1px, transparent 1px), linear-gradient(to bottom, #404040 1px, transparent 1px)',
-        backgroundSize: '4rem 4rem'
-      }} />
+    <section className="relative min-h-[90vh] flex items-center justify-center pt-16 overflow-hidden">
+      {/* Animated gradient orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-500/6 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/3 rounded-full blur-3xl" />
+      </div>
 
-      <div className="container relative z-10 px-4 sm:px-6 py-16 sm:py-20 md:py-32">
-        <div className="text-center max-w-5xl mx-auto">
-          {/* Logo */}
+      {/* Subtle grid pattern */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none" />
+
+      <div className="container max-w-4xl mx-auto relative z-10 px-6 py-24 md:py-32">
+        <div className="text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="flex justify-center mb-8 sm:mb-10"
+            transition={{ duration: 0.6, delay: 0.1, type: 'spring', stiffness: 200, damping: 20 }}
+            className="flex justify-center mb-10"
           >
-            <div className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-card/50 border border-border backdrop-blur-xl shadow-2xl">
-              <ThemeLogo size="xl" />
+            <div className="relative p-5 rounded-2xl bg-card/40 border border-border/30 backdrop-blur-xl shadow-2xl shadow-primary/5">
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-purple-500/10 via-transparent to-orange-500/10" />
+              <ThemeLogo size="lg" className="relative z-10" />
             </div>
           </motion.div>
 
-          {/* Main Title */}
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium tracking-tight mb-6 sm:mb-8 px-4 text-foreground"
-          >
-            <span>Data</span>
-            <span className="text-primary">ForgeAI</span>
-          </motion.h1>
-
-          {/* Tagline */}
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.6 }}
-            className="text-base sm:text-lg md:text-xl text-muted-foreground mb-8 sm:mb-10 max-w-3xl mx-auto leading-relaxed px-4"
-          >
-            Generate high-quality synthetic, realistic, or hybrid datasets in seconds using natural language.
-            Built for developers, researchers, and enterprises.
-          </motion.p>
-
-          {/* Feature Pills */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35, duration: 0.6 }}
-            className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mb-10 sm:mb-12 px-4"
+            transition={{ delay: 0.15, duration: 0.5 }}
+            className="flex justify-center mb-5"
           >
-            {['No credit card required', 'Free trial', 'Privacy first'].map((item, index) => (
-              <div key={index} className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
-                <CheckCircle2 className="w-4 h-4 text-primary" />
-                <span>{item}</span>
-              </div>
-            ))}
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium border border-border/50 bg-card/60 backdrop-blur-sm text-muted-foreground">
+              <Sparkles className="w-3 h-3 text-purple-500" />
+              AI-Powered Data Generation Platform
+            </span>
           </motion.div>
 
-          {/* CTA Buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
+          <motion.h1
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.6 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-4"
+            transition={{ delay: 0.25, duration: 0.5 }}
+            className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-6 leading-[1.1]"
           >
-            <Button
-              asChild
-              size="lg"
-              className="w-full sm:w-auto h-12 sm:h-14 px-6 sm:px-10 text-base sm:text-lg font-medium shadow-xl shadow-primary/10 hover:shadow-primary/20 transition-all duration-300 hover:scale-105 rounded-full"
-            >
-              <Link to="/auth">
+            <span className="text-foreground">Generate </span>
+            <span className="bg-gradient-to-r from-purple-500 via-purple-400 to-orange-500 bg-clip-text text-transparent">production-ready</span>
+            <br className="hidden sm:block" />
+            <span className="text-foreground">datasets in seconds</span>
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35, duration: 0.5 }}
+            className="text-base md:text-lg text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed"
+          >
+            Describe what you need in natural language. Get synthetic, realistic, or live
+            web-enriched data — exported as CSV, JSON, SQL, or Parquet.
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45, duration: 0.5 }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-3"
+          >
+            <Button asChild size="lg" className="h-12 px-8 text-sm font-semibold rounded-xl bg-gradient-to-r from-purple-600 to-orange-500 hover:from-purple-700 hover:to-orange-600 text-white shadow-lg shadow-purple-500/20 border-0">
+              <Link to="/auth?mode=signup">
                 Get Started Free
-                <ArrowRight className="ml-2 w-5 h-5" />
+                <ArrowRight className="ml-2 w-4 h-4" />
               </Link>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="h-12 px-8 text-sm font-medium rounded-xl border-border/50 bg-card/40 backdrop-blur-sm hover:bg-card/60">
+              <Link to="/getting-started">Learn More</Link>
             </Button>
           </motion.div>
 
-          {/* Stats */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.6 }}
-            className="mt-16 sm:mt-20 md:mt-28 px-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.7, duration: 0.8 }}
+            className="mt-20 flex items-center justify-center gap-6 sm:gap-10"
           >
-            <div className="inline-flex flex-col sm:flex-row items-center gap-6 sm:gap-0 sm:divide-x divide-border bg-card/50 backdrop-blur-sm rounded-3xl border border-border p-6 sm:p-8 shadow-xl">
-              {[
-                { value: '50+', label: 'Data Types' },
-                { value: '1M+', label: 'Rows Generated' },
-                { value: '4', label: 'Export Formats' },
-              ].map((stat, index) => (
-                <div key={index} className="text-center px-6 sm:px-8 md:px-12">
-                  <div className="text-3xl sm:text-4xl md:text-5xl font-medium text-foreground mb-2">
-                    {stat.value}
-                  </div>
-                  <div className="text-xs sm:text-sm text-muted-foreground font-medium">
-                    {stat.label}
-                  </div>
-                </div>
-              ))}
-            </div>
+            {[
+              { value: '50+', label: 'Data Types' },
+              { value: '5', label: 'AI Models' },
+              { value: '4', label: 'Export Formats' },
+              { value: 'Free', label: 'To Start' },
+            ].map((stat, i) => (
+              <div key={i} className="px-4 py-3 rounded-xl border border-border/30 bg-card/30 backdrop-blur-sm">
+                <div className="text-xl font-bold text-foreground">{stat.value}</div>
+                <div className="text-[10px] text-muted-foreground mt-0.5 font-medium">{stat.label}</div>
+              </div>
+            ))}
           </motion.div>
         </div>
       </div>

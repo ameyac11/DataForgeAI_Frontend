@@ -35,8 +35,13 @@ import {
   Box,
   Shuffle,
   Server,
-  PackageCheck
+  PackageCheck,
+  CheckCircle2,
+  AlertTriangle,
+  ExternalLink,
+  Loader2
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -111,8 +116,8 @@ const dataTypeColors: Record<string, string> = {
 };
 
 const models = [
-  { value: 'Compound', label: 'Compound', badge: 'Web', color: 'text-green-500' },
-  { value: 'Compound Mini', label: 'Compound Mini', badge: 'Web', color: 'text-green-500' },
+  { value: 'Compound', label: 'Compound', badge: 'Web', color: 'text-purple-500' },
+  { value: 'Compound Mini', label: 'Compound Mini', badge: 'Web', color: 'text-purple-500' },
   { value: 'Llama 4 Scout', label: 'Llama 4 Scout', badge: 'Default', secondaryBadge: 'Vision', color: 'text-purple-500' },
   { value: 'GPT OSS 120B', label: 'GPT OSS 120B', color: 'text-gray-500' },
   { value: 'GPT-4.1', label: 'GPT-4.1', secondaryBadge: 'Vision', color: 'text-blue-500' },
@@ -252,17 +257,19 @@ const CustomGenerator = () => {
     { id: '2', name: 'email', dataType: 'Email' },
     { id: '3', name: 'address', dataType: 'Address' },
   ]);
-  const [rowCount, setRowCount] = useState(1000);
+  const [rowCount, setRowCount] = useState(100);
   const [dataFormat, setDataFormat] = useState<DataFormat>('JSON');
   const [sourceType, setSourceType] = useState<SourceType>('AI');
   const [specialPrompt, setSpecialPrompt] = useState('');
   const [model, setModel] = useState<Model>('Llama 4 Scout');
   const [dataMode, setDataMode] = useState<DataMode>('Synthetic');
+  const isCompoundModel = model === 'Compound' || model === 'Compound Mini';
   const [showAutoFillModal, setShowAutoFillModal] = useState(false);
   const [autoFillMode, setAutoFillMode] = useState<AutoFillMode>('ai');
   const [autoFillTopic, setAutoFillTopic] = useState('');
   const [templates, setTemplates] = useState<TemplateExample[]>(BUILT_IN_TEMPLATES);
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateExample | null>(null);
+  const [autoFillLoading, setAutoFillLoading] = useState(false);
 
   const [showDataTypeModal, setShowDataTypeModal] = useState<string | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -272,12 +279,17 @@ const CustomGenerator = () => {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [context, setContext] = useState('');
 
+  const navigate = useNavigate();
+
   // Generation State
   const [isGenerating, setIsGenerating] = useState(false);
   const [genProgress, setGenProgress] = useState(0);
   const [genStep, setGenStep] = useState(0);
   const [genDone, setGenDone] = useState(false);
   const [generatedData, setGeneratedData] = useState<any>(null);
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [genRowsGenerated, setGenRowsGenerated] = useState(0);
 
   const genSteps = [
     { icon: Search, label: 'Analyzing schema & configuration...', color: 'text-blue-400' },
@@ -366,6 +378,9 @@ const CustomGenerator = () => {
     setIsGenerating(true);
     setGenDone(false);
     setGeneratedData(null);
+    setSaveStatus(null);
+    setSaveMessage(null);
+    setGenRowsGenerated(0);
 
     try {
       const modelMap: Record<string, string> = {
@@ -377,14 +392,15 @@ const CustomGenerator = () => {
         'GPT-4o Mini': 'gpt-4o-mini',
       };
 
-      const res = await api.post<{ success: boolean; data: any; format: string; rows_generated: number }>(ENDPOINTS.GENERATE_DOWNLOAD, {
+      const res = await api.post<{ success: boolean; data: any; format: string; rows_generated: number; save_status?: string; save_message?: string }>(ENDPOINTS.GENERATE_DOWNLOAD, {
         columns: columns.map(c => ({ name: c.name, type: c.dataType })),
         rows: rowCount,
         format: dataFormat.toLowerCase(),
         source: sourceType,
         context: context || specialPrompt,
         model_id: sourceType === 'AI' ? modelMap[model] : undefined,
-        data_mode: dataMode.toLowerCase(),
+        data_mode: isCompoundModel ? 'live-data' : dataMode.toLowerCase(),
+        dataset_name: context?.slice(0, 100) || specialPrompt?.slice(0, 100) || 'Generated Dataset',
       });
 
       // res is the parsed JSON body: { success, data, format, rows_generated, error }
@@ -395,6 +411,9 @@ const CustomGenerator = () => {
         rawData = rawData.data;
       }
       setGeneratedData(rawData);
+      setSaveStatus((res as any).save_status || null);
+      setSaveMessage((res as any).save_message || null);
+      setGenRowsGenerated((res as any).rows_generated || rowCount);
       setGenProgress(100);
       setGenStep(genSteps.length - 1);
       setGenDone(true);
@@ -625,11 +644,17 @@ const CustomGenerator = () => {
                           <div className="flex items-center gap-2 shrink-0">
                             {m.badge && (
                               <span className={cn(
-                                "text-[9px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider",
-                                m.badge === 'Web' && "bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20",
+                                "p-1 rounded-md flex items-center justify-center",
+                                m.badge === 'Web' && "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20",
                                 m.badge === 'Default' && "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20"
                               )}>
-                                {m.badge}
+                                {m.badge === 'Web' && <Globe className="w-3 h-3" />}
+                                {m.badge === 'Default' && <Sparkles className="w-3 h-3" />}
+                              </span>
+                            )}
+                            {(m as any).secondaryBadge && (
+                              <span className="p-1 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-md flex items-center justify-center border border-blue-500/20">
+                                <Eye className="w-3 h-3" />
                               </span>
                             )}
                             {isSelected && (
@@ -656,11 +681,21 @@ const CustomGenerator = () => {
                 <Sparkles className="w-3.5 h-3.5 text-primary" />
                 Generation Mode
               </label>
+              {isCompoundModel ? (
+                <div className={cn(
+                  "flex items-center justify-center gap-2 p-3 rounded-xl border",
+                  "bg-purple-500/10 border-purple-500/30 text-purple-600 dark:text-purple-400"
+                )}>
+                  <Globe className="w-4 h-4" />
+                  <span className="text-xs font-bold">Live Data</span>
+                  <Lock className="w-3 h-3 ml-1 opacity-60" />
+                </div>
+              ) : (
               <div className="grid grid-cols-3 gap-2">
                 {([
                   { value: 'Synthetic' as DataMode, label: 'Synthetic', icon: Sparkles, desc: 'Fictional data' },
-                  { value: 'Realistic' as DataMode, label: 'Realistic', icon: Brain, desc: 'Real patterns' },
-                  { value: 'Hybrid' as DataMode, label: 'Hybrid', icon: Globe, desc: 'Mixed approach' },
+                  { value: 'Realistic' as DataMode, label: 'Realistic', icon: Globe, desc: 'Looks real' },
+                  { value: 'Hybrid' as DataMode, label: 'Hybrid', icon: Brain, desc: 'Mixed approach' },
                 ]).map(mode => (
                   <button
                     key={mode.value}
@@ -670,34 +705,66 @@ const CustomGenerator = () => {
                       "flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border transition-all",
                       sourceType === 'Library' && "opacity-40 cursor-not-allowed",
                       dataMode === mode.value && sourceType === 'AI'
-                        ? "bg-primary/10 border-primary/40 text-primary"
+                        ? mode.value === 'Synthetic'
+                          ? "bg-blue-500/10 border-blue-500/40 text-blue-600 dark:text-blue-400"
+                          : mode.value === 'Realistic'
+                            ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
+                            : "bg-orange-500/10 border-orange-500/40 text-orange-600 dark:text-orange-400"
                         : theme === 'dark'
                           ? "bg-zinc-900/40 border-white/10 hover:border-white/20 hover:bg-zinc-900/60 text-muted-foreground"
                           : "bg-background/30 border-border/40 hover:bg-background/50 hover:border-border/60 text-muted-foreground"
                     )}
                   >
-                    <mode.icon className={cn("w-4 h-4", dataMode === mode.value && sourceType === 'AI' ? "text-primary" : "opacity-70")} />
+                    <mode.icon className={cn(
+                      "w-4 h-4",
+                      dataMode === mode.value && sourceType === 'AI'
+                        ? mode.value === 'Synthetic' ? "text-blue-500" : mode.value === 'Realistic' ? "text-emerald-500" : "text-orange-500"
+                        : "opacity-70"
+                    )} />
                     <span className="text-[10px] font-medium">{mode.label}</span>
                   </button>
                 ))}
               </div>
+              )}
             </div>
-
-            {/* Row Count */}
+            {/* Web Search Indicator — only for Compound models */}
+            {sourceType === 'AI' && isCompoundModel && (
+              <div className={cn(
+                "flex items-center gap-2 p-2.5 rounded-xl border transition-all",
+                "bg-purple-500/5 border-purple-500/20"
+              )}>
+                <div className="relative flex items-center justify-center w-6 h-6">
+                  <Globe className={cn(
+                    "w-4 h-4 animate-pulse",
+                    "text-purple-500"
+                  )} />
+                  <span className={cn(
+                    "absolute inset-0 rounded-full border animate-ping",
+                    "border-purple-500/30"
+                  )} style={{ animationDuration: '2s' }} />
+                </div>
+                <span className={cn(
+                  "text-[10px] font-semibold",
+                  "text-purple-600 dark:text-purple-400"
+                )}>
+                  Internet data will be used during generation
+                </span>
+              </div>
+            )}
             <div className="space-y-3">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Quantity (Rows)</label>
               <div className={cn(
                 "flex items-center gap-1 p-1 rounded-xl border",
                 theme === 'dark' ? "bg-zinc-900/40 border-white/10" : "bg-background/50 border-border/50"
               )}>
-                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" onClick={() => setRowCount(Math.max(1, rowCount - 100))}>-</Button>
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" onClick={() => setRowCount(Math.max(50, rowCount - 50))}>-</Button>
                 <Input
                   type="number"
                   value={rowCount}
-                  onChange={e => setRowCount(Math.max(1, Math.min(10000, parseInt(e.target.value) || 0)))}
+                  onChange={e => setRowCount(Math.max(50, Math.min(1000, parseInt(e.target.value) || 50)))}
                   className="h-9 border-none text-center bg-transparent text-sm font-mono p-0 focus-visible:ring-0 shadow-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
-                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" onClick={() => setRowCount(Math.min(10000, rowCount + 100))}>+</Button>
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" onClick={() => setRowCount(Math.min(1000, rowCount + 50))}>+</Button>
               </div>
             </div>
 
@@ -742,8 +809,8 @@ const CustomGenerator = () => {
                 </h2>
                 <Button
                   onClick={() => setShowAutoFillModal(true)}
-                  variant="ghost"
-                  className="h-8 gap-2 text-xs text-muted-foreground hover:text-primary"
+                  variant="outline"
+                  className="h-8 gap-2 text-xs font-semibold border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/50 shadow-sm"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   Auto-Fill Columns
@@ -794,6 +861,13 @@ const CustomGenerator = () => {
           {/* Action Buttons - outside the scroll container */}
           <div className="p-4 border-t border-border/40 bg-background">
             <div className="max-w-4xl mx-auto space-y-4">
+              {/* Preview Note for Compound modes only */}
+              {isCompoundModel && sourceType === 'AI' && (
+                <div className="flex items-center gap-2 p-2.5 rounded-lg text-[11px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/5 border border-amber-500/10">
+                  <Globe className="w-3.5 h-3.5 shrink-0" />
+                  <span>Dataset will be generated using live internet data during download.</span>
+                </div>
+              )}
               <motion.div
                 animate={isGenerating || genDone ? { y: -2 } : { y: 0 }}
                 className="grid grid-cols-2 gap-4"
@@ -886,6 +960,39 @@ const CustomGenerator = () => {
                           );
                         })}
                       </div>
+
+                      {/* Save Status & Navigation (shown when done) */}
+                      {genDone && (
+                        <div className="space-y-2 pt-1 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                          {saveStatus === 'saved' && (
+                            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400">
+                              <CheckCircle2 className="w-4 h-4 shrink-0" />
+                              <span className="text-xs font-medium">{saveMessage || 'Dataset saved to My Datasets.'}</span>
+                            </div>
+                          )}
+                          {saveStatus === 'size_exceeded' && (
+                            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400">
+                              <AlertTriangle className="w-4 h-4 shrink-0" />
+                              <span className="text-xs font-medium">{saveMessage || 'Dataset exceeds 2MB limit.'}</span>
+                            </div>
+                          )}
+                          {saveStatus === 'limit_exceeded' && (
+                            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+                              <AlertTriangle className="w-4 h-4 shrink-0" />
+                              <span className="text-xs font-medium">{saveMessage || 'Dataset storage is full (10/10). Download will continue without saving.'}</span>
+                            </div>
+                          )}
+                          {saveStatus === 'saved' && (
+                            <button
+                              onClick={() => navigate('/app/datasets')}
+                              className="w-full flex items-center justify-center gap-2 h-9 rounded-xl border border-border/50 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              Go to My Datasets
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 )}
@@ -1063,10 +1170,11 @@ const CustomGenerator = () => {
               </Button>
               <Button
                 className="h-10 rounded-lg font-bold shadow-md bg-primary hover:bg-primary/90 text-primary-foreground text-sm"
-                disabled={autoFillMode === 'ai' ? !autoFillTopic : !selectedTemplate}
+                disabled={autoFillLoading || (autoFillMode === 'ai' ? !autoFillTopic : !selectedTemplate)}
                 onClick={async () => {
                   if (autoFillMode === 'ai') {
                     // Call backend AI column suggestion
+                    setAutoFillLoading(true);
                     try {
                       const allTypes = Object.values(dataTypeCategories).flat();
                       const res = await api.post<{ status: string; data: any }>(ENDPOINTS.GENERATE_COLUMNS, {
@@ -1082,6 +1190,8 @@ const CustomGenerator = () => {
                       }
                     } catch (err) {
                       console.error('AI column suggestion failed:', err);
+                    } finally {
+                      setAutoFillLoading(false);
                     }
                     setShowAutoFillModal(false);
                   } else if (selectedTemplate) {
@@ -1089,7 +1199,17 @@ const CustomGenerator = () => {
                   }
                 }}
               >
-                {autoFillMode === 'ai' ? 'Magic Generate' : 'Apply Template'}
+                {autoFillLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : autoFillMode === 'ai' ? (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Magic Generate
+                  </>
+                ) : 'Apply Template'}
               </Button>
             </div>
           </div>
