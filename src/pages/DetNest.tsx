@@ -184,7 +184,7 @@ function DownloadModal({ open, onClose, chatId, dataFormat, dataMode, modelId, c
 
     api.post<{ success: boolean; data: any; format: string; rows_generated: number; save_status?: string; save_message?: string; dataset_id?: string }>(ENDPOINTS.CHAT_DOWNLOAD(chatId), {
       format: dataFormat.toLowerCase(),
-      rows: 100,
+      rows: 20,
       source: 'AI',
       data_mode: effectiveMode,
       model_id: modelId,
