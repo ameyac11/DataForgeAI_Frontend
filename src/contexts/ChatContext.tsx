@@ -46,6 +46,8 @@ interface ChatContextType {
     sendMessage: (content: string, attachments: Attachment[], options: {
         dataFormat: DataFormat;
         dataMode: DataMode;
+        images?: string[];
+        webSearch?: boolean;
     }) => Promise<void>;
     selectChat: (chatId: string) => void;
     deleteChat: (chatId: string) => void;
@@ -201,6 +203,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     const sendMessage = useCallback(async (content: string, attachments: Attachment[], options: {
         dataFormat: DataFormat;
         dataMode: DataMode;
+        images?: string[];
+        webSearch?: boolean;
     }) => {
         // 1. Create optimistic user message
         const userMessage: Message = {
@@ -241,6 +245,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
                 model: modelId,
                 data_format: options.dataFormat,
                 data_mode: options.dataMode,
+                ...(options.images && options.images.length > 0 ? { images: options.images } : {}),
+                ...(options.webSearch ? { web_search: true } : {}),
             })) {
                 if (controller.signal.aborted) break;
 

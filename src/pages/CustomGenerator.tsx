@@ -62,6 +62,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 type DataFormat = 'CSV' | 'JSON' | 'SQL' | 'Parquet';
 type SourceType = 'AI' | 'Library';
 type AutoFillMode = 'ai' | 'template';
+type DataMode = 'Synthetic' | 'Realistic' | 'Hybrid';
 type Model = 'Compound' | 'Compound Mini' | 'Llama 4 Scout' | 'GPT OSS 120B' | 'GPT-4.1' | 'GPT-4o Mini';
 
 interface Column {
@@ -114,7 +115,7 @@ const models = [
   { value: 'Compound Mini', label: 'Compound Mini', badge: 'Web', color: 'text-green-500' },
   { value: 'Llama 4 Scout', label: 'Llama 4 Scout', badge: 'Default', secondaryBadge: 'Vision', color: 'text-purple-500' },
   { value: 'GPT OSS 120B', label: 'GPT OSS 120B', color: 'text-gray-500' },
-  { value: 'GPT-4.1', label: 'GPT-4.1', color: 'text-blue-500' },
+  { value: 'GPT-4.1', label: 'GPT-4.1', secondaryBadge: 'Vision', color: 'text-blue-500' },
   { value: 'GPT-4o Mini', label: 'GPT-4o Mini', secondaryBadge: 'Vision', color: 'text-blue-500' },
 ];
 
@@ -139,6 +140,54 @@ const popularTopics = [
   'employee records',
   'real estate listings',
   'student grades',
+];
+
+// Hardcoded auto-fill column templates (module-level so they never change)
+const BUILT_IN_TEMPLATES: TemplateExample[] = [
+  {
+    id: 'user-profile',
+    name: 'User Profiles',
+    description: 'Standard user database with personal & account info',
+    icon: User,
+    columns: [
+      { id: '1', name: 'user_id', dataType: 'Number' },
+      { id: '2', name: 'first_name', dataType: 'First Name' },
+      { id: '3', name: 'last_name', dataType: 'Last Name' },
+      { id: '4', name: 'email', dataType: 'Email' },
+      { id: '5', name: 'phone', dataType: 'Phone' },
+      { id: '6', name: 'city', dataType: 'City' },
+      { id: '7', name: 'signup_date', dataType: 'Date' },
+    ],
+  },
+  {
+    id: 'product-catalog',
+    name: 'Product Catalog',
+    description: 'E-commerce product inventory with pricing',
+    icon: ShoppingCart,
+    columns: [
+      { id: '1', name: 'product_id', dataType: 'Number' },
+      { id: '2', name: 'product_name', dataType: 'String' },
+      { id: '3', name: 'category', dataType: 'String' },
+      { id: '4', name: 'price', dataType: 'Price' },
+      { id: '5', name: 'description', dataType: 'Sentence' },
+      { id: '6', name: 'in_stock', dataType: 'Boolean' },
+    ],
+  },
+  {
+    id: 'financial-transaction',
+    name: 'Financial Transactions',
+    description: 'Banking & payment transaction records',
+    icon: CreditCard,
+    columns: [
+      { id: '1', name: 'transaction_id', dataType: 'UUID' },
+      { id: '2', name: 'account_holder', dataType: 'Full Name' },
+      { id: '3', name: 'amount', dataType: 'Currency' },
+      { id: '4', name: 'transaction_date', dataType: 'DateTime' },
+      { id: '5', name: 'credit_card', dataType: 'Credit Card' },
+      { id: '6', name: 'country', dataType: 'Country' },
+      { id: '7', name: 'status', dataType: 'Boolean' },
+    ],
+  },
 ];
 
 const ReorderItem = ({ col, updateColumn, removeColumn, setShowDataTypeModal, dataTypeColors, theme }: any) => {
@@ -208,27 +257,12 @@ const CustomGenerator = () => {
   const [sourceType, setSourceType] = useState<SourceType>('AI');
   const [specialPrompt, setSpecialPrompt] = useState('');
   const [model, setModel] = useState<Model>('Llama 4 Scout');
+  const [dataMode, setDataMode] = useState<DataMode>('Synthetic');
   const [showAutoFillModal, setShowAutoFillModal] = useState(false);
   const [autoFillMode, setAutoFillMode] = useState<AutoFillMode>('ai');
   const [autoFillTopic, setAutoFillTopic] = useState('');
-  const [templates, setTemplates] = useState<TemplateExample[]>([]);
+  const [templates, setTemplates] = useState<TemplateExample[]>(BUILT_IN_TEMPLATES);
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateExample | null>(null);
-
-  React.useEffect(() => {
-    const fetchTemplates = async () => {
-      try {
-        const data = await api.get<any[]>(ENDPOINTS.TEMPLATES);
-        const processed = data?.map(t => ({
-          ...t,
-          icon: iconMap[t.id] || Database // Fallback icon
-        })) || [];
-        setTemplates(processed);
-      } catch (error) {
-        console.error('Failed to fetch templates:', error);
-      }
-    };
-    fetchTemplates();
-  }, []);
 
   const [showDataTypeModal, setShowDataTypeModal] = useState<string | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -271,21 +305,56 @@ const CustomGenerator = () => {
         clearInterval(interval);
       }
       setGenProgress(p);
-      setGenStep(Math.min(Math.floor((Math.min(p, 99)) / 20), genSteps.length - 1));
+      setGenStep(Math.min(Math.floor((Math.min(p, 99)) / 20), 4));
     }, 150);
     return () => clearInterval(interval);
-  }, [isGenerating, rowCount, dataFormat]);
+  }, [isGenerating, rowCount, dataFormat, genDone]);
 
   const handleGenerate = async () => {
     if (genDone && generatedData) {
-      // Download the generated data
-      const blob = new Blob([
-        typeof generatedData === 'string' ? generatedData : JSON.stringify(generatedData, null, 2)
-      ], { type: 'application/octet-stream' });
+      // Download the generated data with proper format handling
+      const fmt = dataFormat.toLowerCase();
+      let content: BlobPart;
+      let mimeType = 'application/octet-stream';
+      let ext = fmt;
+
+      if (fmt === 'json') {
+        // JSON: generatedData is an array of objects
+        content = Array.isArray(generatedData)
+          ? JSON.stringify(generatedData, null, 2)
+          : typeof generatedData === 'string'
+            ? generatedData
+            : JSON.stringify(generatedData, null, 2);
+        mimeType = 'application/json';
+      } else if (fmt === 'csv') {
+        // CSV: generatedData is a CSV string from the backend
+        content = typeof generatedData === 'string' ? generatedData : String(generatedData);
+        mimeType = 'text/csv';
+      } else if (fmt === 'sql') {
+        // SQL: generatedData is a SQL string from the backend
+        content = typeof generatedData === 'string' ? generatedData : String(generatedData);
+        mimeType = 'application/sql';
+      } else if (fmt === 'parquet') {
+        // Parquet: generatedData is a base64-encoded string from the backend
+        try {
+          const binaryStr = atob(generatedData as string);
+          const bytes = new Uint8Array(binaryStr.length);
+          for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+          content = bytes;
+        } catch {
+          content = typeof generatedData === 'string' ? generatedData : JSON.stringify(generatedData);
+          ext = 'json'; // fallback
+        }
+        mimeType = 'application/octet-stream';
+      } else {
+        content = typeof generatedData === 'string' ? generatedData : JSON.stringify(generatedData, null, 2);
+      }
+
+      const blob = new Blob([content], { type: mimeType });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `dataset.${dataFormat.toLowerCase()}`;
+      a.download = `dataset.${ext}`;
       a.click();
       URL.revokeObjectURL(url);
       setGenDone(false);
@@ -308,16 +377,24 @@ const CustomGenerator = () => {
         'GPT-4o Mini': 'gpt-4o-mini',
       };
 
-      const res = await api.post<{ status: string; data: any }>(ENDPOINTS.GENERATE_DOWNLOAD, {
+      const res = await api.post<{ success: boolean; data: any; format: string; rows_generated: number }>(ENDPOINTS.GENERATE_DOWNLOAD, {
         columns: columns.map(c => ({ name: c.name, type: c.dataType })),
         rows: rowCount,
         format: dataFormat.toLowerCase(),
         source: sourceType,
         context: context || specialPrompt,
         model_id: sourceType === 'AI' ? modelMap[model] : undefined,
+        data_mode: dataMode.toLowerCase(),
       });
 
-      setGeneratedData(res.data);
+      // res is the parsed JSON body: { success, data, format, rows_generated, error }
+      // res.data is the actual formatted content
+      let rawData = (res as any).data;
+      // Guard against any remaining wrapper layers
+      if (rawData && typeof rawData === 'object' && !Array.isArray(rawData) && 'data' in rawData && 'format' in rawData) {
+        rawData = rawData.data;
+      }
+      setGeneratedData(rawData);
       setGenProgress(100);
       setGenStep(genSteps.length - 1);
       setGenDone(true);
@@ -414,6 +491,7 @@ const CustomGenerator = () => {
         source: sourceType,
         context: context || specialPrompt,
         model_id: sourceType === 'AI' ? modelMap[model] : undefined,
+        data_mode: dataMode.toLowerCase(),
       });
 
       // Convert response data to 2D array for the table
@@ -569,6 +647,39 @@ const CustomGenerator = () => {
                     })}
                   </DropdownMenuContent>
                 </DropdownMenu>
+              </div>
+            </div>
+
+            {/* Generation Mode — only in AI mode */}
+            <div className="space-y-3">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-primary" />
+                Generation Mode
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { value: 'Synthetic' as DataMode, label: 'Synthetic', icon: Sparkles, desc: 'Fictional data' },
+                  { value: 'Realistic' as DataMode, label: 'Realistic', icon: Brain, desc: 'Real patterns' },
+                  { value: 'Hybrid' as DataMode, label: 'Hybrid', icon: Globe, desc: 'Mixed approach' },
+                ]).map(mode => (
+                  <button
+                    key={mode.value}
+                    onClick={() => setDataMode(mode.value)}
+                    disabled={sourceType === 'Library'}
+                    className={cn(
+                      "flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border transition-all",
+                      sourceType === 'Library' && "opacity-40 cursor-not-allowed",
+                      dataMode === mode.value && sourceType === 'AI'
+                        ? "bg-primary/10 border-primary/40 text-primary"
+                        : theme === 'dark'
+                          ? "bg-zinc-900/40 border-white/10 hover:border-white/20 hover:bg-zinc-900/60 text-muted-foreground"
+                          : "bg-background/30 border-border/40 hover:bg-background/50 hover:border-border/60 text-muted-foreground"
+                    )}
+                  >
+                    <mode.icon className={cn("w-4 h-4", dataMode === mode.value && sourceType === 'AI' ? "text-primary" : "opacity-70")} />
+                    <span className="text-[10px] font-medium">{mode.label}</span>
+                  </button>
+                ))}
               </div>
             </div>
 

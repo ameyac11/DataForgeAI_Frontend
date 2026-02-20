@@ -32,13 +32,26 @@ import { ENDPOINTS } from '@/services/endpoints';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+// --- Helpers ---
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      // result is data:image/...;base64,... — we send the full data URI
+      resolve(reader.result as string);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 // --- Config ---
 const models = [
   { value: 'Compound', label: 'Compound', badge: 'Web', color: 'text-green-500' },
   { value: 'Compound Mini', label: 'Compound Mini', badge: 'Web', color: 'text-green-500' },
   { value: 'Llama 4 Scout', label: 'Llama 4 Scout', badge: 'Default', secondaryBadge: 'Vision', color: 'text-purple-500' },
   { value: 'GPT OSS 120B', label: 'GPT OSS 120B', color: 'text-gray-500' },
-  { value: 'GPT-4.1', label: 'GPT-4.1', color: 'text-blue-500' },
+  { value: 'GPT-4.1', label: 'GPT-4.1', secondaryBadge: 'Vision', color: 'text-blue-500' },
   { value: 'GPT-4o Mini', label: 'GPT-4o Mini', secondaryBadge: 'Vision', color: 'text-blue-500' },
 ];
 
@@ -116,6 +129,14 @@ const AnimatedDots = () => (
 );
 
 // ===== DOWNLOAD MODAL =====
+const DOWNLOAD_STEPS = [
+  { icon: Search, label: 'Analyzing chat history...', color: 'text-blue-400' },
+  { icon: Brain, label: 'Inferring schema & data types...', color: 'text-cyan-400' },
+  { icon: Shuffle, label: 'Generating synthetic records...', color: 'text-indigo-400' },
+  { icon: Server, label: 'Packaging dataset...', color: 'text-violet-400' },
+  { icon: PackageCheck, label: 'Finalizing & compressing...', color: 'text-primary' },
+];
+
 function DownloadModal({ open, onClose, chatId, dataFormat }: { open: boolean; onClose: () => void; chatId: string | null; dataFormat: string }) {
   const [progress, setProgress] = useState(0);
   const [step, setStep] = useState(0);
@@ -123,13 +144,7 @@ function DownloadModal({ open, onClose, chatId, dataFormat }: { open: boolean; o
   const [downloadData, setDownloadData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const steps = [
-    { icon: Search, label: 'Analyzing chat history...', color: 'text-blue-400' },
-    { icon: Brain, label: 'Inferring schema & data types...', color: 'text-cyan-400' },
-    { icon: Shuffle, label: 'Generating synthetic records...', color: 'text-indigo-400' },
-    { icon: Server, label: 'Packaging dataset...', color: 'text-violet-400' },
-    { icon: PackageCheck, label: 'Finalizing & compressing...', color: 'text-primary' },
-  ];
+  const steps = DOWNLOAD_STEPS;
 
   useEffect(() => {
     if (!open || !chatId) { setProgress(0); setStep(0); setDone(false); setError(null); setDownloadData(null); return; }
@@ -143,20 +158,27 @@ function DownloadModal({ open, onClose, chatId, dataFormat }: { open: boolean; o
       p += Math.random() * 1.2 + 0.3;
       if (p > 95) p = 95; // cap at 95% until API returns
       setProgress(Math.min(p, 95));
-      setStep(Math.min(Math.floor((Math.min(p, 99)) / 20), steps.length - 1));
+      setStep(Math.min(Math.floor((Math.min(p, 99)) / 20), DOWNLOAD_STEPS.length - 1));
     }, 180);
 
-    // Call backend
-    api.post<{ status: string; data: any }>(ENDPOINTS.CHAT_DOWNLOAD(chatId), {
+    // Call backend — response shape: { success, data, format, rows_generated, error }
+    api.post<{ success: boolean; data: any; format: string; rows_generated: number }>(ENDPOINTS.CHAT_DOWNLOAD(chatId), {
       format: dataFormat.toLowerCase(),
       rows: 100,
       source: 'AI',
     }).then(res => {
       if (cancelled) return;
       clearInterval(interval);
-      setDownloadData(res.data);
+      // res IS the parsed JSON body: { success, data, format, rows_generated, error }
+      // res.data is the actual formatted content (JSON array, CSV string, SQL string, or base64 parquet)
+      // Guard against any remaining wrapper layers
+      let rawData = (res as any).data;
+      if (rawData && typeof rawData === 'object' && !Array.isArray(rawData) && 'data' in rawData && 'format' in rawData) {
+        rawData = rawData.data; // unwrap if still double-wrapped
+      }
+      setDownloadData(rawData);
       setProgress(100);
-      setStep(steps.length - 1);
+      setStep(DOWNLOAD_STEPS.length - 1);
       setDone(true);
     }).catch(err => {
       if (cancelled) return;
@@ -172,13 +194,48 @@ function DownloadModal({ open, onClose, chatId, dataFormat }: { open: boolean; o
 
   const handleDownload = () => {
     if (!downloadData) return;
-    const blob = new Blob([
-      typeof downloadData === 'string' ? downloadData : JSON.stringify(downloadData, null, 2)
-    ], { type: 'application/octet-stream' });
+    const fmt = dataFormat.toLowerCase();
+    let content: BlobPart;
+    let mimeType = 'application/octet-stream';
+    let ext = fmt;
+
+    if (fmt === 'json') {
+      // JSON: downloadData is an array of objects
+      content = Array.isArray(downloadData)
+        ? JSON.stringify(downloadData, null, 2)
+        : typeof downloadData === 'string'
+          ? downloadData
+          : JSON.stringify(downloadData, null, 2);
+      mimeType = 'application/json';
+    } else if (fmt === 'csv') {
+      // CSV: downloadData is a CSV string from backend
+      content = typeof downloadData === 'string' ? downloadData : String(downloadData);
+      mimeType = 'text/csv';
+    } else if (fmt === 'sql') {
+      // SQL: downloadData is a SQL string from backend
+      content = typeof downloadData === 'string' ? downloadData : String(downloadData);
+      mimeType = 'application/sql';
+    } else if (fmt === 'parquet') {
+      // Parquet: downloadData is a base64-encoded string from backend
+      try {
+        const binaryStr = atob(downloadData as string);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+        content = bytes;
+      } catch {
+        content = typeof downloadData === 'string' ? downloadData : JSON.stringify(downloadData);
+        ext = 'json'; // fallback
+      }
+      mimeType = 'application/octet-stream';
+    } else {
+      content = typeof downloadData === 'string' ? downloadData : JSON.stringify(downloadData, null, 2);
+    }
+
+    const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `dataset.${dataFormat.toLowerCase()}`;
+    a.download = `dataset.${ext}`;
     a.click();
     URL.revokeObjectURL(url);
     onClose();
@@ -273,11 +330,16 @@ export default function DetNest() {
   const [input, setInput] = useState('');
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [webSearchEnabled, setWebSearchEnabled] = useState(false);
+  const [imageFiles, setImageFiles] = useState<{ file: File; preview: string; base64: string }[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const hasMessages = messages.length > 0;
   const currentModel = models.find(m => m.value === model) ?? models[0];
+
+  // Check if current model supports vision
+  const isVisionModel = currentModel?.secondaryBadge === 'Vision';
   const currentFormat = dataFormats.find(f => f.value === dataFormat) ?? dataFormats[0];
   const currentMode = dataModes.find(m => m.value === dataMode) ?? dataModes[0];
 
@@ -303,9 +365,42 @@ export default function DetNest() {
     e?.preventDefault();
     if (!input.trim() || isLoading) return;
     const currentInput = input;
+    const currentImages = imageFiles.map(f => f.base64);
     setInput('');
+    setImageFiles([]);
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
-    await sendMessage(currentInput, [], { dataFormat, dataMode });
+    await sendMessage(currentInput, [], {
+      dataFormat,
+      dataMode,
+      images: isVisionModel ? currentImages : undefined,
+      webSearch: webSearchEnabled,
+    });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const newImages: typeof imageFiles = [];
+    for (const file of Array.from(files).slice(0, 4 - imageFiles.length)) {
+      if (!file.type.startsWith('image/')) continue;
+      const base64 = await fileToBase64(file);
+      newImages.push({
+        file,
+        preview: URL.createObjectURL(file),
+        base64,
+      });
+    }
+    setImageFiles(prev => [...prev, ...newImages].slice(0, 4));
+    if (e.target) e.target.value = '';
+  };
+
+  const removeImage = (index: number) => {
+    setImageFiles(prev => {
+      const newFiles = [...prev];
+      URL.revokeObjectURL(newFiles[index].preview);
+      newFiles.splice(index, 1);
+      return newFiles;
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -319,11 +414,55 @@ export default function DetNest() {
   const renderSearchBar = () => (
     <div className="flex items-start gap-3 w-full max-w-2xl mx-auto">
       <div className="flex-1 bg-secondary/40 dark:bg-secondary/60 border border-border/60 dark:border-border rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 backdrop-blur-sm group focus-within:shadow-md focus-within:border-border">
+        {/* Image Previews */}
+        {imageFiles.length > 0 && (
+          <div className="flex gap-2 px-4 pt-3 flex-wrap">
+            {imageFiles.map((img, idx) => (
+              <div key={idx} className="relative group/img w-16 h-16 rounded-lg overflow-hidden border border-border/50">
+                <img src={img.preview} alt="upload" className="w-full h-full object-cover" />
+                <button
+                  onClick={() => removeImage(idx)}
+                  className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Input Row */}
         <div className="flex items-end gap-2 px-4 py-3">
-          <button className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-background/80 transition-all duration-200 shrink-0 mb-1 active:scale-95">
-            <Plus className="w-5 h-5" />
-          </button>
+          {/* Hidden file input */}
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={handleImageUpload}
+          />
+          <TooltipProvider>
+            <Tooltip delayDuration={100}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => isVisionModel ? imageInputRef.current?.click() : undefined}
+                  disabled={!isVisionModel}
+                  className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 shrink-0 mb-1 active:scale-95",
+                    isVisionModel
+                      ? "text-muted-foreground hover:text-foreground hover:bg-background/80"
+                      : "text-muted-foreground/30 cursor-not-allowed"
+                  )}
+                >
+                  <ImageIcon className="w-5 h-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">
+                {isVisionModel ? 'Upload Image (max 4)' : 'Vision not supported by this model'}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
           <textarea
             ref={textareaRef}
