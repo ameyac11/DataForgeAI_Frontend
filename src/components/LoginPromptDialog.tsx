@@ -36,7 +36,7 @@ export function LoginPromptDialog({ isAnonymous }: LoginPromptDialogProps) {
   if (!isAnonymous) return null;
 
   const features = [
-    { icon: Sparkles, text: 'Access GPT-4.1 model' },
+    { icon: Sparkles, text: 'Access GPT-4o model' },
     { icon: Zap, text: 'Unlimited dataset generation' },
     { icon: Shield, text: 'Save & sync your history' },
   ];

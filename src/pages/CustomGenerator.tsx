@@ -68,7 +68,7 @@ type DataFormat = 'CSV' | 'JSON' | 'SQL' | 'Parquet';
 type SourceType = 'AI' | 'Library';
 type AutoFillMode = 'ai' | 'template';
 type DataMode = 'Synthetic' | 'Realistic' | 'Hybrid';
-type Model = 'Compound' | 'Compound Mini' | 'Llama 4 Scout' | 'GPT OSS 120B' | 'GPT-4.1' | 'GPT-4o Mini';
+type Model = 'Compound' | 'Compound Mini' | 'Llama 4 Scout' | 'GPT OSS 120B' | 'GPT-4o' | 'GPT-4o Mini';
 
 interface Column {
   id: string;
@@ -120,7 +120,7 @@ const models = [
   { value: 'Compound Mini', label: 'Compound Mini', badge: 'Web', color: 'text-purple-500' },
   { value: 'Llama 4 Scout', label: 'Llama 4 Scout', badge: 'Default', secondaryBadge: 'Vision', color: 'text-purple-500' },
   { value: 'GPT OSS 120B', label: 'GPT OSS 120B', color: 'text-gray-500' },
-  { value: 'GPT-4.1', label: 'GPT-4.1', secondaryBadge: 'Vision', color: 'text-blue-500' },
+  { value: 'GPT-4o', label: 'GPT-4o', secondaryBadge: 'Vision', color: 'text-blue-500' },
   { value: 'GPT-4o Mini', label: 'GPT-4o Mini', secondaryBadge: 'Vision', color: 'text-blue-500' },
 ];
 
@@ -388,7 +388,7 @@ const CustomGenerator = () => {
         'Compound Mini': 'compound-mini',
         'Llama 4 Scout': 'llama-scout-4',
         'GPT OSS 120B': 'gpt-oss-120b',
-        'GPT-4.1': 'gpt-4.1',
+        'GPT-4o': 'gpt-4o',
         'GPT-4o Mini': 'gpt-4o-mini',
       };
 
@@ -501,7 +501,7 @@ const CustomGenerator = () => {
         'Compound Mini': 'compound-mini',
         'Llama 4 Scout': 'llama-scout-4',
         'GPT OSS 120B': 'gpt-oss-120b',
-        'GPT-4.1': 'gpt-4.1',
+        'GPT-4o': 'gpt-4o',
         'GPT-4o Mini': 'gpt-4o-mini',
       };
 
