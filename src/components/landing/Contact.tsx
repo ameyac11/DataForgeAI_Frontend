@@ -11,10 +11,36 @@ export function Contact() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    toast({ title: 'Message sent!', description: "We'll get back to you within 24 hours." });
-    setIsSubmitting(false);
-    (e.target as HTMLFormElement).reset();
+
+    const accessKey = import.meta.env.VITE_WEB3FORMS_KEY;
+    if (!accessKey) {
+      toast({ title: 'Configuration Error', description: 'Web3Forms API key is missing. Please add VITE_WEB3FORMS_KEY to .env', variant: 'destructive' });
+      setIsSubmitting(false);
+      return;
+    }
+
+    const formData = new FormData(e.currentTarget);
+    formData.append("access_key", accessKey);
+
+    try {
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({ title: 'Message sent!', description: "We'll get back to you within 24 hours." });
+        (e.target as HTMLFormElement).reset();
+      } else {
+        toast({ title: 'Error', description: data.message || "Failed to send message.", variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Error', description: "An error occurred while sending your message.", variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -53,16 +79,16 @@ export function Contact() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Name</label>
-                  <Input type="text" placeholder="John Doe" required className="h-10 rounded-lg text-sm bg-background/50" />
+                  <Input type="text" name="name" placeholder="John Doe" required className="h-10 rounded-lg text-sm bg-background/50" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Email</label>
-                  <Input type="email" placeholder="john@example.com" required className="h-10 rounded-lg text-sm bg-background/50" />
+                  <Input type="email" name="email" placeholder="john@example.com" required className="h-10 rounded-lg text-sm bg-background/50" />
                 </div>
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Message</label>
-                <Textarea placeholder="How can we help?" required rows={4} className="rounded-lg text-sm resize-none bg-background/50" />
+                <Textarea name="message" placeholder="How can we help?" required rows={4} className="rounded-lg text-sm resize-none bg-background/50" />
               </div>
               <Button type="submit" className="w-full h-10 rounded-xl text-sm font-semibold bg-gradient-to-r from-purple-600 to-orange-500 hover:from-purple-700 hover:to-orange-600 text-white border-0 shadow-sm shadow-purple-500/10" disabled={isSubmitting}>
                 {isSubmitting ? 'Sending...' : 'Send Message'}

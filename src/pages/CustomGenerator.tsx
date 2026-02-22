@@ -195,7 +195,7 @@ const BUILT_IN_TEMPLATES: TemplateExample[] = [
   },
 ];
 
-const ReorderItem = ({ col, updateColumn, removeColumn, setShowDataTypeModal, dataTypeColors, theme }: any) => {
+const ReorderItem = ({ index, col, updateColumn, removeColumn, setShowDataTypeModal, dataTypeColors, theme }: any) => {
   const controls = useDragControls();
 
   return (
@@ -213,9 +213,10 @@ const ReorderItem = ({ col, updateColumn, removeColumn, setShowDataTypeModal, da
     >
       <div
         onPointerDown={(e) => controls.start(e)}
-        className="flex items-center justify-center text-muted-foreground/50 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing"
+        className="flex items-center justify-center cursor-grab active:cursor-grabbing relative w-full h-full"
       >
-        <GripVertical className="w-4 h-4" />
+        <span className="text-xs font-bold text-muted-foreground/60 transition-opacity group-hover:opacity-0 absolute">{index + 1}</span>
+        <GripVertical className="w-4 h-4 text-muted-foreground/50 transition-opacity opacity-0 group-hover:opacity-100 absolute" />
       </div>
 
       <div>
@@ -691,40 +692,40 @@ const CustomGenerator = () => {
                   <Lock className="w-3 h-3 ml-1 opacity-60" />
                 </div>
               ) : (
-              <div className="grid grid-cols-3 gap-2">
-                {([
-                  { value: 'Synthetic' as DataMode, label: 'Synthetic', icon: Sparkles, desc: 'Fictional data' },
-                  { value: 'Realistic' as DataMode, label: 'Realistic', icon: Globe, desc: 'Looks real' },
-                  { value: 'Hybrid' as DataMode, label: 'Hybrid', icon: Brain, desc: 'Mixed approach' },
-                ]).map(mode => (
-                  <button
-                    key={mode.value}
-                    onClick={() => setDataMode(mode.value)}
-                    disabled={sourceType === 'Library'}
-                    className={cn(
-                      "flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border transition-all",
-                      sourceType === 'Library' && "opacity-40 cursor-not-allowed",
-                      dataMode === mode.value && sourceType === 'AI'
-                        ? mode.value === 'Synthetic'
-                          ? "bg-blue-500/10 border-blue-500/40 text-blue-600 dark:text-blue-400"
-                          : mode.value === 'Realistic'
-                            ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
-                            : "bg-orange-500/10 border-orange-500/40 text-orange-600 dark:text-orange-400"
-                        : theme === 'dark'
-                          ? "bg-zinc-900/40 border-white/10 hover:border-white/20 hover:bg-zinc-900/60 text-muted-foreground"
-                          : "bg-background/30 border-border/40 hover:bg-background/50 hover:border-border/60 text-muted-foreground"
-                    )}
-                  >
-                    <mode.icon className={cn(
-                      "w-4 h-4",
-                      dataMode === mode.value && sourceType === 'AI'
-                        ? mode.value === 'Synthetic' ? "text-blue-500" : mode.value === 'Realistic' ? "text-emerald-500" : "text-orange-500"
-                        : "opacity-70"
-                    )} />
-                    <span className="text-[10px] font-medium">{mode.label}</span>
-                  </button>
-                ))}
-              </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { value: 'Synthetic' as DataMode, label: 'Synthetic', icon: Sparkles, desc: 'Fictional data' },
+                    { value: 'Realistic' as DataMode, label: 'Realistic', icon: Globe, desc: 'Looks real' },
+                    { value: 'Hybrid' as DataMode, label: 'Hybrid', icon: Brain, desc: 'Mixed approach' },
+                  ]).map(mode => (
+                    <button
+                      key={mode.value}
+                      onClick={() => setDataMode(mode.value)}
+                      disabled={sourceType === 'Library'}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border transition-all",
+                        sourceType === 'Library' && "opacity-40 cursor-not-allowed",
+                        dataMode === mode.value && sourceType === 'AI'
+                          ? mode.value === 'Synthetic'
+                            ? "bg-blue-500/10 border-blue-500/40 text-blue-600 dark:text-blue-400"
+                            : mode.value === 'Realistic'
+                              ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
+                              : "bg-orange-500/10 border-orange-500/40 text-orange-600 dark:text-orange-400"
+                          : theme === 'dark'
+                            ? "bg-zinc-900/40 border-white/10 hover:border-white/20 hover:bg-zinc-900/60 text-muted-foreground"
+                            : "bg-background/30 border-border/40 hover:bg-background/50 hover:border-border/60 text-muted-foreground"
+                      )}
+                    >
+                      <mode.icon className={cn(
+                        "w-4 h-4",
+                        dataMode === mode.value && sourceType === 'AI'
+                          ? mode.value === 'Synthetic' ? "text-blue-500" : mode.value === 'Realistic' ? "text-emerald-500" : "text-orange-500"
+                          : "opacity-70"
+                      )} />
+                      <span className="text-[10px] font-medium">{mode.label}</span>
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
             {/* Web Search Indicator — only for Compound models */}
@@ -806,6 +807,7 @@ const CustomGenerator = () => {
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                   <LayoutTemplate className="w-5 h-5 text-primary" />
                   Schema Definition
+                  <span className="text-sm font-medium text-muted-foreground bg-secondary/60 px-2 py-0.5 rounded-md ml-1">{columns.length} columns</span>
                 </h2>
                 <Button
                   onClick={() => setShowAutoFillModal(true)}
@@ -825,13 +827,14 @@ const CustomGenerator = () => {
                   <div className="flex justify-center text-center">#</div>
                   <div className="pl-3">Column Name</div>
                   <div className="pl-3">Data Type</div>
-                  <div className="text-right pr-2">Actions</div>
+                  <div className="text-right pr-2"></div>
                 </div>
 
                 <Reorder.Group as="ul" axis="y" values={columns} onReorder={setColumns} className="flex flex-col gap-3 list-none p-0 m-0">
-                  {columns.map((col) => (
+                  {columns.map((col, index) => (
                     <ReorderItem
                       key={col.id}
+                      index={index}
                       col={col}
                       updateColumn={updateColumn}
                       removeColumn={removeColumn}
@@ -1308,52 +1311,52 @@ const CustomGenerator = () => {
       </Dialog >
 
       {/* Preview Modal */}
-      < Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal} >
-        <DialogContent className="max-w-4xl glass-panel border-border/40 p-0 overflow-hidden flex flex-col max-h-[85vh] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)]">
-          <div className="p-5 border-b border-border/40 flex items-center justify-between bg-secondary/10 backdrop-blur-md">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
-                <Eye className="w-5 h-5" />
+      <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
+        <DialogContent className="max-w-5xl bg-background border-border/40 p-0 overflow-hidden flex flex-col shadow-2xl rounded-2xl w-fit min-w-[800px]">
+          <div className="p-6 border-b border-border/40 flex items-center justify-between bg-background">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                <Eye className="w-6 h-6" />
               </div>
               <div>
-                <h2 className="font-bold text-sm tracking-tight">Data Preview</h2>
-                <p className="text-[10px] text-muted-foreground flex items-center gap-1.5 uppercase tracking-widest font-semibold mt-0.5">
-                  <Sparkles className="w-2.5 h-2.5" />
+                <h2 className="font-bold text-lg tracking-tight">Data Preview</h2>
+                <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 uppercase tracking-widest font-bold mt-1">
+                  <Sparkles className="w-3 h-3" />
                   Showing First 5 Rows & 5 Columns
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="flex items-center px-3 py-1.5 rounded-lg bg-background/50 border border-border/40 shadow-sm gap-4">
+            <div className="flex items-center">
+              <div className="flex items-center px-4 py-2 rounded-xl border border-border/40 shadow-sm gap-6 bg-background">
                 <div className="flex flex-col items-center">
-                  <span className="text-[9px] uppercase tracking-tighter text-muted-foreground/60 font-bold">Columns</span>
-                  <span className="text-xs font-mono font-bold text-primary">{columns.length}</span>
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-0.5">Columns</span>
+                  <span className="text-sm font-bold text-primary">{columns.length}</span>
                 </div>
-                <div className="w-px h-6 bg-border/40" />
+                <div className="w-px h-8 bg-border/40" />
                 <div className="flex flex-col items-center">
-                  <span className="text-[9px] uppercase tracking-tighter text-muted-foreground/60 font-bold">Rows</span>
-                  <span className="text-xs font-mono font-bold">{rowCount}</span>
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-0.5">Rows</span>
+                  <span className="text-sm font-bold">{rowCount}</span>
                 </div>
-                <div className="w-px h-6 bg-border/40" />
+                <div className="w-px h-8 bg-border/40" />
                 <div className="flex flex-col items-center">
-                  <span className="text-[9px] uppercase tracking-tighter text-muted-foreground/60 font-bold">Format</span>
-                  <span className="text-xs font-mono font-bold text-amber-500">{dataFormat}</span>
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-0.5">Format</span>
+                  <span className="text-sm font-bold text-amber-500">{dataFormat}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flex-1 overflow-auto p-4 bg-background/20">
-            <div className="rounded-xl border border-border/40 overflow-hidden shadow-sm bg-background/50">
+          <div className="p-6 bg-secondary/5">
+            <div className="rounded-2xl border border-border/30 overflow-hidden shadow-sm bg-background">
               <table className="w-full border-collapse">
-                <thead className="bg-secondary/40 border-b border-border/40">
+                <thead className="bg-background border-b border-border/30">
                   <tr>
                     {columns.slice(0, 5).map((col) => (
-                      <th key={col.id} className="px-5 py-3 text-left">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{col.name || 'untitled'}</span>
-                          <span className={cn("text-[9px] font-medium px-1.5 py-0.5 rounded bg-background/50 w-fit border border-border/20", dataTypeColors[col.dataType])}>
+                      <th key={col.id} className="px-6 py-4 text-left">
+                        <div className="flex flex-col gap-1.5">
+                          <span className="text-xs font-bold text-foreground uppercase tracking-widest">{col.name || 'untitled'}</span>
+                          <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-md bg-transparent w-fit", dataTypeColors[col.dataType])}>
                             {col.dataType}
                           </span>
                         </div>
@@ -1370,13 +1373,13 @@ const CustomGenerator = () => {
                     </tr>
                   ) : previewData.length > 0 ? (
                     previewData.map((row, rowIndex) => (
-                    <tr key={rowIndex} className="hover:bg-primary/5 transition-colors group">
-                      {row.slice(0, 5).map((cell, cellIndex) => (
-                        <td key={cellIndex} className="px-5 py-3.5 text-xs text-foreground/80 font-mono whitespace-nowrap">
-                          <span className="group-hover:text-primary transition-colors">{cell}</span>
-                        </td>
-                      ))}
-                    </tr>
+                      <tr key={rowIndex} className="hover:bg-primary/5 transition-colors group">
+                        {row.slice(0, 5).map((cell, cellIndex) => (
+                          <td key={cellIndex} className="px-5 py-3.5 text-xs text-foreground/80 font-mono whitespace-nowrap">
+                            <span className="group-hover:text-primary transition-colors">{cell}</span>
+                          </td>
+                        ))}
+                      </tr>
                     ))
                   ) : (
                     <tr>
@@ -1390,25 +1393,25 @@ const CustomGenerator = () => {
             </div>
 
             {(columns.length > 5 || rowCount > 5) && (
-              <div className="mt-4 p-3 rounded-xl bg-orange-500/5 border border-orange-500/20 flex items-center justify-center gap-2">
-                <LayoutTemplate className="w-3.5 h-3.5 text-orange-500" />
-                <p className="text-[10px] font-bold text-orange-600/80 uppercase tracking-widest text-center">
+              <div className="mt-6 p-4 rounded-xl bg-orange-50 border-2 border-orange-100 flex items-center justify-center gap-2 dark:bg-orange-500/5 dark:border-orange-500/20">
+                <LayoutTemplate className="w-4 h-4 text-orange-500" />
+                <p className="text-xs font-bold text-orange-500 uppercase tracking-widest text-center">
                   Truncated for preview — full dataset contains {columns.length} columns and {rowCount} rows
                 </p>
               </div>
             )}
           </div>
 
-          <div className="p-4 border-t border-border/40 bg-secondary/5 flex items-center justify-end gap-3">
+          <div className="p-5 border-t border-border/40 bg-background flex items-center justify-end gap-4">
             <Button
               variant="ghost"
               onClick={() => setShowPreviewModal(false)}
-              className="h-10 rounded-lg text-xs font-bold hover:bg-secondary/40"
+              className="h-11 rounded-xl text-sm font-bold hover:bg-secondary"
             >
               Close Preview
             </Button>
             <Button
-              className="h-10 rounded-lg font-bold shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs px-6"
+              className="h-11 rounded-xl font-bold shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground text-sm px-8"
             >
               <Download className="w-4 h-4 mr-2" />
               Download Sample

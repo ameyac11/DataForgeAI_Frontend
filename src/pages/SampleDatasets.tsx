@@ -34,9 +34,7 @@ const SampleDatasets = () => {
         {/* Compact Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-9 h-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center border border-zinc-200 dark:border-zinc-700">
-              <Database className="w-4.5 h-4.5 text-zinc-900 dark:text-zinc-100" />
-            </div>
+            <Database className="w-5 h-5 text-purple-500" />
             <h1 className="text-2xl font-bold tracking-tight">Sample Datasets</h1>
           </div>
           <p className="text-sm text-muted-foreground max-w-2xl mb-4">

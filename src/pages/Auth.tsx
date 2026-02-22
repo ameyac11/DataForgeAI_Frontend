@@ -162,10 +162,12 @@ const Auth = () => {
             >
               {/* Header */}
               <div className="text-center mb-8">
-                <div className="w-12 h-12 flex items-center justify-center mx-auto mb-4">
-                  <ThemeLogo size="custom" className="w-10 h-10 object-contain" />
-                </div>
-                <h1 className="text-xl font-semibold tracking-tight mb-1">DataForgeAI</h1>
+                <Link to="/" className="inline-block group">
+                  <div className="w-12 h-12 flex items-center justify-center mx-auto mb-4 transition-transform group-hover:scale-105">
+                    <ThemeLogo size="custom" className="w-10 h-10 object-contain" />
+                  </div>
+                  <h1 className="text-xl font-semibold tracking-tight mb-1 group-hover:text-primary transition-colors">DataForgeAI</h1>
+                </Link>
                 <p className="text-xs text-muted-foreground">
                   {step === 'method' && (isSignUp ? "Create your account" : "Sign in to continue")}
                   {step !== 'method' && (isSignUp ? "Create your account" : "Welcome back")}

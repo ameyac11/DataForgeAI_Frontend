@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import { toast } from '@/hooks/use-toast';
 
 type MenuState = 'closed' | 'menu' | 'contact';
 
@@ -23,15 +24,45 @@ export function HelpMenu() {
     if (!name || !email || !message) return;
 
     setIsSending(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsSending(false);
 
-    // Reset form
-    setName('');
-    setEmail('');
-    setMessage('');
-    setState('menu');
+    const accessKey = import.meta.env.VITE_WEB3FORMS_KEY;
+    if (!accessKey) {
+      toast({ title: 'Configuration Error', description: 'Web3Forms API key is missing. Please add VITE_WEB3FORMS_KEY to .env', variant: 'destructive' });
+      setIsSending(false);
+      return;
+    }
+
+    try {
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          access_key: accessKey,
+          name,
+          email,
+          message,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({ title: 'Message sent!', description: "We'll get back to you soon." });
+        setName('');
+        setEmail('');
+        setMessage('');
+        setState('menu');
+      } else {
+        toast({ title: 'Error', description: data.message || "Failed to send message.", variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Error', description: "An error occurred while sending your message.", variant: 'destructive' });
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handleGetStarted = () => {

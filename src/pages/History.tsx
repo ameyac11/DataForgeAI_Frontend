@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Pin, Pencil, Trash2, Check, X, Clock, Calendar, ChevronDown } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, Pin, Pencil, Trash2, Check, X, Clock, Calendar, ChevronDown, CheckSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -22,6 +23,7 @@ const HistoryPage = () => {
   const [sortBy, setSortBy] = useState<'recent' | 'name'>('recent');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+  const [selectedChats, setSelectedChats] = useState<string[]>([]);
 
   const filteredChats = chats
     .filter(chat => {
@@ -36,23 +38,28 @@ const HistoryPage = () => {
 
   // Group chats by date
   const groupedChats = filteredChats.reduce((groups, chat) => {
-    const now = new Date();
-    const chatDate = chat.updatedAt;
-    const diffDays = Math.floor((now.getTime() - chatDate.getTime()) / (1000 * 60 * 60 * 24));
-
     let groupName: string;
-    if (diffDays === 0) groupName = 'Today';
-    else if (diffDays === 1) groupName = 'Yesterday';
-    else if (diffDays < 7) groupName = 'This Week';
-    else if (diffDays < 30) groupName = 'This Month';
-    else groupName = 'Older';
+
+    if (chat.pinned) {
+      groupName = 'Pinned';
+    } else {
+      const now = new Date();
+      const chatDate = chat.updatedAt;
+      const diffDays = Math.floor((now.getTime() - chatDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 0) groupName = 'Today';
+      else if (diffDays === 1) groupName = 'Yesterday';
+      else if (diffDays < 7) groupName = 'This Week';
+      else if (diffDays < 30) groupName = 'This Month';
+      else groupName = 'Older';
+    }
 
     if (!groups[groupName]) groups[groupName] = [];
     groups[groupName].push(chat);
     return groups;
   }, {} as Record<string, typeof filteredChats>);
 
-  const groupOrder = ['Today', 'Yesterday', 'This Week', 'This Month', 'Older'];
+  const groupOrder = ['Pinned', 'Today', 'Yesterday', 'This Week', 'This Month', 'Older'];
 
   const startRename = (id: string, name: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -88,20 +95,39 @@ const HistoryPage = () => {
     navigate('/app');
   };
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const toggleSelection = (id: string) => {
+    setSelectedChats(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
+  };
+
+  const handleSelectAll = () => {
+    const allFilteredIds = filteredChats.map(c => c.id);
+    setSelectedChats(allFilteredIds);
+  };
+
+  const handleBatchDelete = () => {
+    selectedChats.forEach(id => deleteChat(id));
+    setSelectedChats([]);
+  };
+
+  const handleBatchPin = () => {
+    selectedChats.forEach(id => pinChat(id));
+    setSelectedChats([]);
   };
 
   return (
     <div className="h-full overflow-y-auto bg-background">
       <div className="max-w-4xl mx-auto p-6 md:p-8">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Clock className="w-6 h-6 text-primary" />
-            <h1 className="text-2xl font-semibold text-foreground">History</h1>
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-1">
+            <Clock className="w-5 h-5 text-primary" />
+            <h1 className="text-xl font-semibold text-foreground tracking-tight">History</h1>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-[13px] text-muted-foreground">
             Browse and manage your past conversations
           </p>
         </div>
@@ -174,11 +200,30 @@ const HistoryPage = () => {
                       key={chat.id}
                       onClick={() => editingId !== chat.id && handleSelectChat(chat.id)}
                       className={cn(
-                        "flex items-center gap-4 p-4 rounded-xl border border-border bg-card",
-                        "hover:bg-accent/50 hover:border-accent transition-all cursor-pointer group",
-                        editingId === chat.id && "bg-accent/30"
+                        "flex items-center gap-4 py-3 px-4 rounded-xl border-b border-border/50 last:border-b-0",
+                        "hover:bg-accent/30 transition-all cursor-pointer group",
+                        editingId === chat.id && "bg-accent/30",
+                        selectedChats.includes(chat.id) && "bg-primary/5"
                       )}
                     >
+                      {/* Checkbox */}
+                      <div
+                        className="flex items-center justify-center -ml-1 pr-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSelection(chat.id);
+                        }}
+                      >
+                        <div className={cn(
+                          "w-5 h-5 rounded border flex items-center justify-center transition-colors shadow-sm",
+                          selectedChats.includes(chat.id)
+                            ? "bg-primary border-primary text-primary-foreground"
+                            : "border-border/60 group-hover:border-primary/50 text-transparent bg-background/20"
+                        )}>
+                          <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                        </div>
+                      </div>
+
                       {/* Pin indicator */}
                       <div className="w-5 flex-shrink-0">
                         {chat.pinned && (
@@ -225,16 +270,16 @@ const HistoryPage = () => {
                         )}
                       </div>
 
-                      {/* Time */}
+                      {/* Date */}
                       {editingId !== chat.id && (
                         <span className="text-xs text-muted-foreground flex-shrink-0">
-                          {formatTime(chat.updatedAt)}
+                          {formatDate(chat.updatedAt)}
                         </span>
                       )}
 
                       {/* Direct Action Buttons */}
                       {editingId !== chat.id && (
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-1.5 shrink-0 bg-secondary/50 p-1 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -293,6 +338,70 @@ const HistoryPage = () => {
           </div>
         )}
       </div>
+
+      {/* Batch Selection Bar */}
+      <AnimatePresence>
+        {selectedChats.length > 0 && (
+          <div className="sticky bottom-8 pointer-events-none flex justify-center z-50">
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 50 }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              className="bg-popover/90 backdrop-blur-xl border border-border shadow-[0_0_40px_rgba(0,0,0,0.1)] rounded-full px-5 py-2.5 flex items-center gap-3 overflow-hidden pointer-events-auto"
+            >
+              <span className="text-sm font-semibold text-foreground whitespace-nowrap flex items-center gap-2 pl-2">
+                <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold border border-primary/20">
+                  {selectedChats.length}
+                </div>
+                Selected
+              </span>
+              <div className="w-px h-6 bg-border mx-1" />
+              <div className="flex items-center gap-1">
+                {selectedChats.length < filteredChats.length ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleSelectAll}
+                    className="h-9 rounded-full px-4 hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <CheckSquare className="w-4 h-4 mr-2" />
+                    Select All
+                  </Button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedChats([])}
+                    className="h-9 rounded-full px-4 hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <CheckSquare className="w-4 h-4 mr-2 opacity-50" />
+                    Deselect All
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBatchDelete}
+                  className="h-9 rounded-full px-4 text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </Button>
+              </div>
+              <div className="w-px h-6 bg-border mx-1" />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSelectedChats([])}
+                className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

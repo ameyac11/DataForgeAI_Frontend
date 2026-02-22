@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MoreHorizontal, Pencil, Trash2, Star, StarOff } from 'lucide-react';
+import { MoreHorizontal, Pencil, Trash2, Pin, PinOff } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -14,11 +14,11 @@ interface ChatItemMenuProps {
     chatTitle: string;
     updatedAt: Date;
     isActive: boolean;
-    isStarred: boolean;
+    isPinned: boolean;
     onSelect: (id: string) => void;
     onRename: (id: string, newTitle: string) => void;
     onDelete: (id: string) => void;
-    onStar: (id: string) => void;
+    onPin: (id: string) => void;
 }
 
 export function ChatItemMenu({
@@ -26,11 +26,11 @@ export function ChatItemMenu({
     chatTitle,
     updatedAt,
     isActive,
-    isStarred,
+    isPinned,
     onSelect,
     onRename,
     onDelete,
-    onStar
+    onPin
 }: ChatItemMenuProps) {
     const [isRenaming, setIsRenaming] = useState(false);
     const [newTitle, setNewTitle] = useState(chatTitle);
@@ -64,22 +64,38 @@ export function ChatItemMenu({
         );
     }
 
+    const formatDate = (date: Date) => {
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    };
+
     return (
         <div
             className={cn(
-                "group flex items-center justify-between gap-2 px-3 py-2 text-sm rounded-lg cursor-pointer transition-all",
+                "group relative flex items-center justify-between gap-2 px-3 py-2 text-sm rounded-lg cursor-pointer transition-all",
                 isActive
                     ? "bg-sidebar-accent text-sidebar-primary font-medium"
                     : "text-sidebar-foreground hover:bg-sidebar-accent/50"
             )}
             onClick={() => onSelect(chatId)}
         >
-            <div className="flex-1 truncate">
-                {chatTitle}
+            <div className="flex-1 flex flex-col min-w-0 pr-4">
+                <span className="truncate">{chatTitle}</span>
+                <span className="text-[10px] text-muted-foreground truncate">{formatDate(updatedAt)}</span>
             </div>
 
+            {/* Always show pin if pinned */}
+            {isPinned && !isActive && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center opacity-100 group-hover:opacity-0 transition-opacity pointer-events-none">
+                    <Pin className="w-3.5 h-3.5 text-primary fill-primary shrink-0" />
+                </div>
+            )}
+
             {/* Show menu trigger on hover or if active */}
-            <div className={cn("opacity-0 group-hover:opacity-100 flex items-center", isActive && "opacity-100")}>
+            <div className={cn(
+                "opacity-0 group-hover:opacity-100 flex items-center bg-background/50 rounded-md backdrop-blur-sm transition-opacity",
+                isActive && "opacity-100",
+                "absolute right-2 top-1/2 -translate-y-1/2"
+            )}>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <button
@@ -90,9 +106,9 @@ export function ChatItemMenu({
                         </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-40">
-                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStar(chatId); }}>
-                            {isStarred ? <StarOff className="w-4 h-4 mr-2" /> : <Star className="w-4 h-4 mr-2" />}
-                            {isStarred ? 'Unstar' : 'Star'}
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPin(chatId); }}>
+                            {isPinned ? <PinOff className="w-4 h-4 mr-2" /> : <Pin className="w-4 h-4 mr-2" />}
+                            {isPinned ? 'Unpin' : 'Pin'}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setIsRenaming(true); }}>
                             <Pencil className="w-4 h-4 mr-2" />

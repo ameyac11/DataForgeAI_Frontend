@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Settings2, History, Plus, PanelLeft, FolderOpen, Search, Sparkles, Database, X, MessageSquare, Star } from 'lucide-react';
+import { Settings2, History, Plus, PanelLeft, FolderOpen, Search, Sparkles, Database, X, MessageSquare, Pin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -22,7 +22,7 @@ const navItems = [
 ];
 
 // Functional Chat Search Popup
-const ChatSearchPopup = ({ open, onClose, chats, onSelect }: { open: boolean; onClose: () => void; chats: { id: string; title: string; updatedAt: Date; starred: boolean }[]; onSelect: (chatId: string) => void }) => {
+const ChatSearchPopup = ({ open, onClose, chats, onSelect }: { open: boolean; onClose: () => void; chats: { id: string; title: string; updatedAt: Date; pinned?: boolean }[]; onSelect: (chatId: string) => void }) => {
   const [query, setQuery] = useState('');
 
   if (!open) return null;
@@ -32,38 +32,31 @@ const ChatSearchPopup = ({ open, onClose, chats, onSelect }: { open: boolean; on
     : chats;
 
   const formatDate = (date: Date) => {
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
-    const diffDays = Math.floor(diffHours / 24);
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-start justify-center pt-[15vh]" onClick={onClose}>
-      <div className="bg-card border border-border rounded-xl w-[480px] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+      <div className="glass-panel border border-border/50 rounded-xl w-[480px] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
         {/* Search Header */}
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
-          <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+        <div className="p-4 border-b border-border/40 flex items-center gap-3 bg-secondary/10">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Search className="w-4 h-4 text-primary shrink-0" />
+          </div>
           <input
-            className="bg-transparent border-none outline-none flex-1 text-sm placeholder:text-muted-foreground/60"
+            className="flex-1 bg-transparent border-none outline-none text-base font-medium placeholder:text-muted-foreground/50"
             placeholder="Search chats..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             autoFocus
           />
           {query && (
-            <button onClick={() => setQuery('')} className="text-muted-foreground hover:text-foreground transition-colors">
-              <X className="w-3.5 h-3.5" />
+            <button onClick={() => setQuery('')} className="text-muted-foreground hover:text-foreground transition-colors p-1 hover:bg-muted rounded-md shrink-0">
+              <X className="w-4 h-4" />
             </button>
           )}
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors ml-1">
-            <span className="text-[10px] font-semibold bg-secondary px-1.5 py-0.5 rounded border border-border">ESC</span>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors ml-1 shrink-0 p-1 hover:bg-muted rounded-md hidden sm:block">
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -89,7 +82,7 @@ const ChatSearchPopup = ({ open, onClose, chats, onSelect }: { open: boolean; on
                     <p className="text-sm font-medium text-foreground truncate">{chat.title}</p>
                     <p className="text-[11px] text-muted-foreground">{formatDate(chat.updatedAt)}</p>
                   </div>
-                  {chat.starred && <Star className="w-3 h-3 text-amber-500 fill-amber-500 shrink-0" />}
+                  {chat.pinned && <Pin className="w-3 h-3 text-primary fill-primary shrink-0" />}
                 </button>
               ))}
             </div>
@@ -98,8 +91,8 @@ const ChatSearchPopup = ({ open, onClose, chats, onSelect }: { open: boolean; on
 
         {/* Footer */}
         {filteredChats.length > 0 && (
-          <div className="px-4 py-2 border-t border-border/50 bg-secondary/20">
-            <p className="text-[10px] text-muted-foreground">
+          <div className="px-4 py-2 border-t border-border/40 bg-secondary/5">
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest text-center">
               {filteredChats.length} {filteredChats.length === 1 ? 'chat' : 'chats'} {query ? 'found' : 'total'}
             </p>
           </div>
@@ -112,7 +105,7 @@ const ChatSearchPopup = ({ open, onClose, chats, onSelect }: { open: boolean; on
 export function AppSidebar({ collapsed, onToggle, isMobile = false, onItemClick }: AppSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { chats, currentChat, selectChat, deleteChat, renameChat, starChat, createNewChat } = useChat();
+  const { chats, currentChat, selectChat, deleteChat, renameChat, pinChat, createNewChat } = useChat();
   const [searchOpen, setSearchOpen] = useState(false);
 
   // Safely use theme context
@@ -122,8 +115,8 @@ export function AppSidebar({ collapsed, onToggle, isMobile = false, onItemClick 
 
   // Sort pinned chats first, then by date
   const recentChats = [...chats].sort((a, b) => {
-    if (a.starred && !b.starred) return -1;
-    if (!a.starred && b.starred) return 1;
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
     return b.updatedAt.getTime() - a.updatedAt.getTime();
   });
 
@@ -149,7 +142,7 @@ export function AppSidebar({ collapsed, onToggle, isMobile = false, onItemClick 
   };
 
   const handlePin = (chatId: string) => {
-    starChat(chatId);
+    pinChat(chatId);
   };
 
   const handleDelete = (chatId: string) => {
@@ -324,10 +317,10 @@ export function AppSidebar({ collapsed, onToggle, isMobile = false, onItemClick 
                   key={chat.id}
                   chatId={chat.id}
                   chatTitle={chat.title}
-                  isStarred={chat.starred}
+                  isPinned={!!chat.pinned}
                   isActive={currentChat?.id === chat.id}
                   onRename={handleRename}
-                  onStar={handlePin}
+                  onPin={handlePin}
                   onDelete={handleDelete}
                   onSelect={handleSelectChat}
                   updatedAt={chat.updatedAt}

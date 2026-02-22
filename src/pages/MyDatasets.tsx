@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import {
   Database, Download, Trash2, Clock, HardDrive,
   FileJson, FileSpreadsheet, FileCode, Zap,
-  Loader2, Search
+  Loader2, Search, BarChart3, Fingerprint, RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { api } from '@/services/api';
@@ -15,6 +15,13 @@ const formatIcons: Record<string, any> = {
   csv: FileSpreadsheet,
   sql: FileCode,
   parquet: Zap,
+};
+
+const formatColors: Record<string, string> = {
+  json: 'text-yellow-500 bg-yellow-500/10',
+  csv: 'text-green-500 bg-green-500/10',
+  sql: 'text-blue-500 bg-blue-500/10',
+  parquet: 'text-purple-500 bg-purple-500/10',
 };
 
 interface Dataset {
@@ -129,90 +136,122 @@ const MyDatasets = () => {
   };
 
   return (
-    <div className="h-full overflow-y-auto bg-background">
-      <div className="max-w-4xl mx-auto p-6 md:p-8">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-1">
-            <Database className="w-6 h-6 text-primary" />
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">My Datasets</h1>
+    <div className="h-full overflow-y-auto bg-background relative selection:bg-primary/20">
+
+      {/* Background Effects */}
+      <div className="absolute top-0 inset-x-0 h-[500px] bg-gradient-to-b from-primary/5 via-primary/5 space-y-8 to-transparent pointer-events-none -z-10" />
+      <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary/20 blur-[120px] rounded-full pointer-events-none -z-10" />
+
+      <div className="max-w-4xl mx-auto p-6 md:p-10">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8 relative">
+          {/* Header */}
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <Database className="w-5 h-5 text-purple-500" />
+              <h1 className="text-xl font-semibold text-foreground tracking-tight">
+                My Datasets
+              </h1>
+            </div>
+            <p className="text-[13px] text-muted-foreground">
+              Manage and download your generated datasets
+            </p>
           </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            Manage and download your saved datasets
-          </p>
-          <div className="h-px w-full bg-border/60" />
+
+          {/* Storage Indicator (Top Right Circular) */}
+          <div className="flex-shrink-0 flex items-center gap-3">
+            <div className="relative w-10 h-10 flex items-center justify-center shrink-0">
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                {/* Background Circle */}
+                <circle
+                  cx="18"
+                  cy="18"
+                  r="15"
+                  className="fill-none stroke-secondary"
+                  strokeWidth="3.5"
+                />
+                {/* Progress Circle */}
+                <circle
+                  cx="18"
+                  cy="18"
+                  r="15"
+                  className={cn(
+                    "fill-none transition-all duration-1000 ease-out",
+                    count >= limit ? "stroke-red-500" : count >= limit * 0.8 ? "stroke-amber-500" : "stroke-primary"
+                  )}
+                  strokeWidth="3.5"
+                  strokeDasharray={`${Math.min((count / limit) * 100, 100)} 100`}
+                  strokeLinecap="round"
+                />
+              </svg>
+              <Database className="w-3.5 h-3.5 text-muted-foreground absolute" />
+            </div>
+
+            <div className="flex flex-col">
+              <span className="text-[11px] font-medium text-muted-foreground tracking-wide mb-0.5">Storage</span>
+              <div className="flex items-baseline gap-0.5">
+                <span className={cn(
+                  "text-base font-bold leading-none tracking-tighter",
+                  count >= limit ? "text-red-500" : count >= limit * 0.8 ? "text-amber-500" : "text-primary"
+                )}>
+                  {count}
+                </span>
+                <span className="text-[10px] font-medium text-muted-foreground">/ {limit}</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Search Bar */}
-        <div className="mb-6">
+        <div className="mb-8 group">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <input
               type="text"
               placeholder="Search datasets by name, mode, model, or format..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-10 pl-10 pr-4 rounded-xl border border-border bg-secondary/30 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all"
+              className="w-full h-12 pl-12 pr-4 rounded-2xl border border-border bg-card text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               >
-                <span className="text-xs font-medium">Clear</span>
+                <div className="px-2 py-1 rounded-md bg-secondary text-xs font-medium border border-border hover:bg-secondary/80 transition-colors">
+                  Clear
+                </div>
               </button>
             )}
           </div>
         </div>
 
-        {/* Storage Indicator */}
-        <div className="mb-6 p-4 rounded-xl border border-border bg-card">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <HardDrive className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Storage</span>
-            </div>
-            <span className={cn(
-              "text-sm font-bold",
-              count >= limit ? "text-red-500" : count >= limit * 0.8 ? "text-amber-500" : "text-primary"
-            )}>
-              {count} / {limit} Used
-            </span>
-          </div>
-          <div className="h-2 w-full bg-secondary/50 rounded-full overflow-hidden">
-            <div
-              className={cn(
-                "h-full rounded-full transition-all",
-                count >= limit ? "bg-red-500" : count >= limit * 0.8 ? "bg-amber-500" : "bg-primary"
-              )}
-              style={{ width: `${Math.min((count / limit) * 100, 100)}%` }}
-            />
-          </div>
-        </div>
 
         {/* Datasets List */}
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          <div className="flex flex-col items-center justify-center py-24 space-y-4">
+            <div className="w-12 h-12 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+            <p className="text-sm text-muted-foreground animate-pulse">Loading datasets...</p>
           </div>
         ) : datasets.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
-              <Database className="w-8 h-8 text-muted-foreground" />
+          <div className="relative overflow-hidden rounded-3xl border border-white/5 bg-white/5 backdrop-blur-sm p-12 text-center">
+            <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
+            <div className="w-20 h-20 rounded-3xl bg-secondary/30 flex items-center justify-center mx-auto mb-6 border border-white/10 shadow-inner relative z-10">
+              <Database className="w-10 h-10 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-medium text-foreground mb-2">No datasets yet</h3>
-            <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-              Generate a dataset using the chat or custom generator to see it here.
+            <h3 className="text-xl font-semibold text-foreground mb-3 relative z-10">No datasets yet</h3>
+            <p className="text-sm text-muted-foreground max-w-sm mx-auto relative z-10 leading-relaxed">
+              Generate a dataset using the chat or custom generator to see it appear here.
             </p>
           </div>
         ) : filteredDatasets.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
-              <Search className="w-8 h-8 text-muted-foreground" />
+          <div className="relative overflow-hidden rounded-3xl border border-white/5 bg-white/5 backdrop-blur-sm p-12 text-center">
+            <div className="w-20 h-20 rounded-3xl bg-secondary/30 flex items-center justify-center mx-auto mb-6 border border-white/10 shadow-inner">
+              <Search className="w-10 h-10 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-medium text-foreground mb-2">No matches found</h3>
-            <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-              No datasets match "{searchQuery}". Try a different search term.
+            <h3 className="text-xl font-semibold text-foreground mb-3">No matches found</h3>
+            <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
+              No datasets match "{searchQuery}". Try adjusting your search terms.
             </p>
           </div>
         ) : (
@@ -220,65 +259,75 @@ const MyDatasets = () => {
             {filteredDatasets.map((dataset, index) => {
               const ext = getFormatFromPath(dataset.file_path);
               const FormatIcon = formatIcons[ext] || FileJson;
+              const formatColor = formatColors[ext] || 'text-primary bg-primary/10';
 
               return (
                 <motion.div
                   key={dataset.id}
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:border-primary/30 transition-all group"
+                  className="flex flex-col sm:flex-row sm:items-center gap-4 py-4 px-4 rounded-xl border-b border-border/50 last:border-b-0 hover:bg-accent/30 transition-all duration-300 group cursor-default relative overflow-hidden"
                 >
-                  {/* Format Icon */}
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <FormatIcon className="w-5 h-5 text-primary" />
+
+                  <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm", formatColor)}>
+                    <FormatIcon className="w-6 h-6" />
                   </div>
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-medium text-foreground truncate">
+                    <h3 className="text-base font-semibold text-foreground truncate group-hover:text-primary transition-colors">
                       {dataset.dataset_name}
                     </h3>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                      <span>{modeLabels[dataset.generation_mode] || dataset.generation_mode}</span>
-                      <span>•</span>
-                      <span>{dataset.model_used}</span>
-                      <span>•</span>
-                      <span>{formatFileSize(dataset.file_size_bytes)}</span>
+                    <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-muted-foreground font-medium">
+                      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-secondary/50 text-secondary-foreground">
+                        <Fingerprint className="w-3.5 h-3.5 opacity-70" />
+                        {modeLabels[dataset.generation_mode] || dataset.generation_mode}
+                      </div>
+                      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-secondary/50 text-secondary-foreground">
+                        <BarChart3 className="w-3.5 h-3.5 opacity-70" />
+                        {dataset.model_used}
+                      </div>
+                      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-secondary/50 text-secondary-foreground">
+                        <HardDrive className="w-3.5 h-3.5 opacity-70" />
+                        {formatFileSize(dataset.file_size_bytes)}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Date */}
-                  <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
-                    <Clock className="w-3.5 h-3.5" />
-                    {formatDate(dataset.created_at)}
-                  </div>
+                  <div className="flex items-center justify-between sm:justify-end gap-6 sm:w-auto w-full mt-2 sm:mt-0">
+                    {/* Date */}
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground shrink-0 bg-secondary/50 px-2.5 py-1.5 rounded-lg">
+                      <Clock className="w-3.5 h-3.5 opacity-70" />
+                      {formatDate(dataset.created_at)}
+                    </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDownload(dataset)}
-                      className="h-8 w-8 text-muted-foreground hover:text-primary"
-                      title="Download"
-                    >
-                      <Download className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(dataset.id)}
-                      disabled={deletingId === dataset.id}
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      title="Delete"
-                    >
-                      {deletingId === dataset.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
-                      )}
-                    </Button>
+                    {/* Actions */}
+                    <div className="flex items-center gap-1.5 shrink-0 bg-secondary/50 p-1 rounded-xl">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDownload(dataset)}
+                        className="h-9 w-9 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                        title="Download"
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(dataset.id)}
+                        disabled={deletingId === dataset.id}
+                        className="h-9 w-9 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                        title="Delete"
+                      >
+                        {deletingId === dataset.id ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </motion.div>
               );
