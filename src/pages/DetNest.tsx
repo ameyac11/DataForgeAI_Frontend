@@ -421,6 +421,7 @@ export default function DetNest() {
   const [input, setInput] = useState('');
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [imageFiles, setImageFiles] = useState<{ file: File; preview: string; base64: string }[]>([]);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -518,7 +519,12 @@ export default function DetNest() {
           <div className="flex gap-2 px-4 pt-3 flex-wrap">
             {imageFiles.map((img, idx) => (
               <div key={idx} className="relative group/img w-16 h-16 rounded-lg overflow-hidden border border-border/50">
-                <img src={img.preview} alt="upload" className="w-full h-full object-cover" />
+                <img
+                  src={img.preview}
+                  alt="upload"
+                  className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => setPreviewImage(img.preview)}
+                />
                 <button
                   onClick={() => removeImage(idx)}
                   className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity"
@@ -898,6 +904,33 @@ export default function DetNest() {
         modelId={modelIdMap[model] || 'llama-scout-4'}
         chatTitle={currentChat?.title}
       />
+
+      {/* ─── Image Preview Modal ─── */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div
+            className="relative max-w-[90vw] max-h-[90vh] flex items-center justify-center bg-transparent animate-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="absolute -top-5 -right-5 z-10 flex gap-2">
+              <button
+                onClick={() => setPreviewImage(null)}
+                className="w-10 h-10 rounded-full bg-background/50 hover:bg-background flex items-center justify-center text-foreground transition-colors backdrop-blur-md border border-border/50 shadow-sm"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <img
+              src={previewImage}
+              alt="Preview"
+              className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl border border-border/20 bg-background/50"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
