@@ -624,38 +624,38 @@ export default function DetNest() {
                 </Tooltip>
               </TooltipProvider>
             ) : (
-            <DropdownMenu>
-              <TooltipProvider>
-                <Tooltip delayDuration={100}>
-                  <DropdownMenuTrigger asChild>
-                    <TooltipTrigger asChild>
-                      <button className={cn(
-                        "w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 hover:bg-secondary active:scale-95",
-                        dataMode === 'Synthetic'
-                          ? "text-blue-500 bg-blue-500/10"
-                          : dataMode === 'Realistic'
-                            ? "text-emerald-500 bg-emerald-500/10"
-                            : dataMode === 'Hybrid'
-                              ? "text-orange-500 bg-orange-500/10"
-                              : "text-muted-foreground hover:text-foreground"
-                      )}>
-                        <Database className="w-3.5 h-3.5" />
-                      </button>
-                    </TooltipTrigger>
-                  </DropdownMenuTrigger>
-                  <TooltipContent side="top" className="text-xs">Generation Mode: {currentMode.label}</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <DropdownMenuContent align="start" className="w-[150px]">
-                <DropdownMenuLabel className="text-[10px] text-muted-foreground uppercase opacity-70">Generation Mode</DropdownMenuLabel>
-                {dataModes.map(m => (
-                  <DropdownMenuItem key={m.value} onClick={() => setDataMode(m.value as DataMode)} className="gap-2">
-                    <m.icon className="w-3.5 h-3.5" />
-                    {m.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              <DropdownMenu>
+                <TooltipProvider>
+                  <Tooltip delayDuration={100}>
+                    <DropdownMenuTrigger asChild>
+                      <TooltipTrigger asChild>
+                        <button className={cn(
+                          "w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 hover:bg-secondary active:scale-95",
+                          dataMode === 'Synthetic'
+                            ? "text-blue-500 bg-blue-500/10"
+                            : dataMode === 'Realistic'
+                              ? "text-emerald-500 bg-emerald-500/10"
+                              : dataMode === 'Hybrid'
+                                ? "text-orange-500 bg-orange-500/10"
+                                : "text-muted-foreground hover:text-foreground"
+                        )}>
+                          <Database className="w-3.5 h-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                    </DropdownMenuTrigger>
+                    <TooltipContent side="top" className="text-xs">Generation Mode: {currentMode.label}</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <DropdownMenuContent align="start" className="w-[150px]">
+                  <DropdownMenuLabel className="text-[10px] text-muted-foreground uppercase opacity-70">Generation Mode</DropdownMenuLabel>
+                  {dataModes.map(m => (
+                    <DropdownMenuItem key={m.value} onClick={() => setDataMode(m.value as DataMode)} className="gap-2">
+                      <m.icon className="w-3.5 h-3.5" />
+                      {m.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
 
