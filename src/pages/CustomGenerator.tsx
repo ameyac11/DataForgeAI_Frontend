@@ -258,7 +258,7 @@ const CustomGenerator = () => {
     { id: '2', name: 'email', dataType: 'Email' },
     { id: '3', name: 'address', dataType: 'Address' },
   ]);
-  const [rowCount, setRowCount] = useState(100);
+  const [rowCount, setRowCount] = useState(50);
   const [dataFormat, setDataFormat] = useState<DataFormat>('JSON');
   const [sourceType, setSourceType] = useState<SourceType>('AI');
   const [specialPrompt, setSpecialPrompt] = useState('');
@@ -372,6 +372,7 @@ const CustomGenerator = () => {
       URL.revokeObjectURL(url);
       setGenDone(false);
       setGenProgress(0);
+      setGenStep(0);
       setGeneratedData(null);
       return;
     }
@@ -422,6 +423,7 @@ const CustomGenerator = () => {
       console.error('Generation failed:', err);
       setGenDone(false);
       setGenProgress(0);
+      setGenStep(0);
     } finally {
       setIsGenerating(false);
     }
@@ -454,6 +456,7 @@ const CustomGenerator = () => {
     : dataTypeCategories[selectedCategory] || [];
 
   const addColumn = () => {
+    if (columns.length >= 10) return;
     setColumns([
       ...columns,
       { id: Date.now().toString(), name: '', dataType: 'String' },
@@ -758,14 +761,15 @@ const CustomGenerator = () => {
                 "flex items-center gap-1 p-1 rounded-xl border",
                 theme === 'dark' ? "bg-zinc-900/40 border-white/10" : "bg-background/50 border-border/50"
               )}>
-                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" onClick={() => setRowCount(Math.max(50, rowCount - 50))}>-</Button>
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" onClick={() => setRowCount(Math.max(10, rowCount - 10))}>-</Button>
                 <Input
                   type="number"
                   value={rowCount}
-                  onChange={e => setRowCount(Math.max(50, Math.min(1000, parseInt(e.target.value) || 50)))}
+                  onChange={e => setRowCount(parseInt(e.target.value) || 10)}
+                  onBlur={() => setRowCount(Math.max(10, Math.min(200, rowCount)))}
                   className="h-9 border-none text-center bg-transparent text-sm font-mono p-0 focus-visible:ring-0 shadow-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
-                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" onClick={() => setRowCount(Math.min(1000, rowCount + 50))}>+</Button>
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" onClick={() => setRowCount(Math.min(200, rowCount + 10))}>+</Button>
               </div>
             </div>
 
@@ -877,18 +881,22 @@ const CustomGenerator = () => {
               >
                 <Button
                   variant="outline"
-                  onClick={() => { setShowPreviewModal(true); loadPreviewData(); }}
-                  disabled={isGenerating}
+                  onClick={async () => { await loadPreviewData(); setShowPreviewModal(true); }}
+                  disabled={isGenerating || previewLoading}
                   className="h-11 border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary w-full"
                 >
-                  <Eye className="w-4 h-4 mr-2" />
-                  Preview Data
+                  {previewLoading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Eye className="w-4 h-4 mr-2" />
+                  )}
+                  {previewLoading ? 'Loading Preview...' : 'Preview Data'}
                 </Button>
                 <Button
                   onClick={handleGenerate}
                   disabled={isGenerating}
                   className={cn(
-                    "h-11 shadow-lg transition-all duration-500 w-full",
+                    "h-11 shadow-lg transition-all duration-500 w-full relative group overflow-hidden",
                     genDone
                       ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20"
                       : "bg-gradient-to-r from-purple-600 to-orange-500 hover:from-purple-700 hover:to-orange-600 text-white shadow-purple-500/20"
@@ -901,7 +909,11 @@ const CustomGenerator = () => {
                     </>
                   ) : (
                     <>
-                      <Download className="w-4 h-4 mr-2" />
+                      {isGenerating ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Download className="w-4 h-4 mr-2 transition-transform group-hover:-translate-y-0.5" />
+                      )}
                       {isGenerating ? 'Generating...' : 'Generate Dataset'}
                     </>
                   )}
