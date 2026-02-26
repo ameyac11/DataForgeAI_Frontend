@@ -341,30 +341,6 @@ function DownloadModal({ open, onClose, chatId, dataFormat, dataMode, modelId, c
           </div>
           {done && (
             <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              {/* Dataset Stats */}
-              {(rowsGenerated > 0 || columnsCount > 0) && (
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/40">
-                  {rowsGenerated > 0 && (
-                    <div className="flex flex-col items-center flex-1">
-                      <span className="text-lg font-bold text-primary">{rowsGenerated.toLocaleString()}</span>
-                      <span className="text-[9px] uppercase tracking-widest text-muted-foreground font-semibold">Rows</span>
-                    </div>
-                  )}
-                  {rowsGenerated > 0 && columnsCount > 0 && <div className="w-px h-8 bg-border/40" />}
-                  {columnsCount > 0 && (
-                    <div className="flex flex-col items-center flex-1">
-                      <span className="text-lg font-bold text-primary">{columnsCount}</span>
-                      <span className="text-[9px] uppercase tracking-widest text-muted-foreground font-semibold">Columns</span>
-                    </div>
-                  )}
-                  <div className="w-px h-8 bg-border/40" />
-                  <div className="flex flex-col items-center flex-1">
-                    <span className="text-lg font-bold text-amber-500 uppercase">{dataFormat}</span>
-                    <span className="text-[9px] uppercase tracking-widest text-muted-foreground font-semibold">Format</span>
-                  </div>
-                </div>
-              )}
-
               {/* Save Status Message */}
               {saveStatus === 'saved' && (
                 <div className="flex items-center gap-2 p-2.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400">
