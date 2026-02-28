@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ThemeLogo } from '@/components/ThemeLogo';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -22,6 +23,7 @@ const Auth = () => {
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [step, setStep] = useState<AuthStep>('method');
   const [isLoading, setIsLoading] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const [email, setEmail] = useState('');
@@ -37,6 +39,7 @@ const Auth = () => {
 
   useEffect(() => {
     if (isAuthenticated && user) {
+      setRedirecting(true);
       navigate(user.onboarding_completed ? '/app' : '/onboarding', { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
@@ -127,14 +130,18 @@ const Auth = () => {
   const backBtnClass = "flex items-center text-xs text-muted-foreground hover:text-foreground transition-colors mb-4";
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-background transition-colors relative overflow-hidden">
-      {/* Gradient background orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-purple-500/8 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-orange-500/6 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-primary/3 rounded-full blur-3xl" />
-      </div>
-      {/* Grid pattern */}
+    <>
+      {/* Loading screen while navigating after successful auth */}
+      <LoadingScreen show={redirecting} />
+
+      <div className="min-h-screen w-full flex items-center justify-center bg-background transition-colors relative overflow-hidden">
+        {/* Gradient background orbs */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 -left-32 w-96 h-96 bg-purple-500/8 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-orange-500/6 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-primary/3 rounded-full blur-3xl" />
+        </div>
+        {/* Grid pattern */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.03)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.07)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.07)_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none transform-gpu" />
 
       {/* Theme Toggle */}
@@ -324,6 +331,7 @@ const Auth = () => {
         </p>
       </div>
     </div>
+    </>
   );
 };
 

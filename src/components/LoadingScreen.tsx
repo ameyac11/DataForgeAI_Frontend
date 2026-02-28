@@ -1,93 +1,70 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeLogo } from './ThemeLogo';
 
 interface LoadingScreenProps {
-  onComplete?: () => void;
-  minDuration?: number;
+  /** Controls visibility — screen fades out when false */
+  show?: boolean;
 }
 
-export function LoadingScreen({ onComplete, minDuration = 2000 }: LoadingScreenProps) {
-  const [progress, setProgress] = useState(0);
-
-  useEffect(() => {
-    const duration = minDuration;
-    const interval = 50;
-    const increment = 100 / (duration / interval);
-
-    const timer = setInterval(() => {
-      setProgress((prev) => {
-        const next = prev + increment;
-        if (next >= 100) {
-          clearInterval(timer);
-          setTimeout(() => onComplete?.(), 200);
-          return 100;
-        }
-        return next;
-      });
-    }, interval);
-
-    return () => clearInterval(timer);
-  }, [minDuration, onComplete]);
-
+export function LoadingScreen({ show = true }: LoadingScreenProps) {
   return (
-    <motion.div
-      initial={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.3 }}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background"
-    >
-      {/* Logo with subtle animation */}
-      <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="mb-8"
-      >
-        <div className="p-6 rounded-2xl bg-card/50 border border-border">
-          <ThemeLogo size="xl" forceTheme="dark" />
-        </div>
-      </motion.div>
+    <AnimatePresence mode="wait">
+      {show && (
+        <motion.div
+          key="splash"
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white dark:bg-background"
+          initial={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.35, ease: 'easeOut' }}
+        >
+          {/* Subtle radial glow */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(139,92,246,0.06)_0%,_transparent_70%)]" />
 
-      {/* Brand Name */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2, duration: 0.4 }}
-        className="text-center mb-2"
-      >
-        <h1 className="text-3xl font-bold">
-          <span className="text-foreground">Data</span>
-          <span className="text-primary">ForgeAI</span>
-        </h1>
-      </motion.div>
-
-      {/* Tagline */}
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.4, duration: 0.4 }}
-        className="text-sm text-muted-foreground tracking-widest uppercase mb-12"
-      >
-        AI-Powered Dataset Generation
-      </motion.p>
-
-      {/* Progress Bar */}
-      <motion.div
-        initial={{ opacity: 0, width: 0 }}
-        animate={{ opacity: 1, width: 280 }}
-        transition={{ delay: 0.5, duration: 0.3 }}
-        className="relative"
-      >
-        <div className="h-1 bg-muted rounded-full overflow-hidden">
+          {/* Content */}
           <motion.div
-            className="h-full bg-gradient-to-r from-primary to-purple-400"
-            style={{ width: `${progress}%` }}
-            transition={{ duration: 0.1 }}
-          />
-        </div>
-        <p className="text-xs text-muted-foreground text-center mt-4">Loading...</p>
-      </motion.div>
-    </motion.div>
+            className="relative z-10 flex flex-col items-center gap-8"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+          >
+            {/* Logo */}
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.4 }}
+            >
+              <ThemeLogo size="lg" />
+            </motion.div>
+
+            {/* Brand */}
+            <div className="text-center space-y-1">
+              <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-white">
+                Data<span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-violet-400">ForgeAI</span>
+              </h1>
+              <p className="text-xs tracking-widest uppercase text-zinc-500 dark:text-zinc-400">
+                AI-Powered Dataset Generation
+              </p>
+            </div>
+
+            {/* Pulsing dots */}
+            <div className="flex items-center gap-1.5">
+              {[0, 1, 2].map((i) => (
+                <motion.div
+                  key={i}
+                  className="w-1.5 h-1.5 rounded-full bg-zinc-400/60 dark:bg-white/40"
+                  animate={{ opacity: [0.3, 1, 0.3] }}
+                  transition={{
+                    duration: 1,
+                    repeat: Infinity,
+                    delay: i * 0.2,
+                    ease: 'easeInOut',
+                  }}
+                />
+              ))}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

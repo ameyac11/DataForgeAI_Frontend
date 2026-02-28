@@ -6,6 +6,7 @@ import { LoginPromptDialog } from '@/components/LoginPromptDialog';
 import { HelpMenu } from '@/components/HelpMenu';
 import { OnboardingFlow } from '@/components/OnboardingFlow';
 import { GuideTour } from '@/components/GuideTour';
+import { LoadingScreen } from '@/components/LoadingScreen';
 
 const Dashboard = () => {
   const { isAuthenticated, isAnonymous, user } = useAuth();
@@ -42,9 +43,9 @@ const Dashboard = () => {
     setShowGuideTour(false);
   };
 
-  // Wait for auth state
+  // Show loading screen while the auth redirect is in-flight
   if (!isAuthenticated) {
-    return null;
+    return <LoadingScreen show={true} />;
   }
 
   return (

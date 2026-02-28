@@ -42,8 +42,7 @@ export function UserMenu({ collapsed }: UserMenuProps) {
 
                         {!collapsed && (
                             <div className="flex-1 text-left text-sm leading-tight">
-                                <span className="truncate font-semibold block">{user.displayName}</span>
-                                <span className="truncate text-xs text-muted-foreground block">{user.email}</span>
+                                <span className="truncate font-semibold block">{user.displayName || user.username}</span>
                             </div>
                         )}
 

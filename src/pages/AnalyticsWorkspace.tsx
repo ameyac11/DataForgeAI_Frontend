@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Upload, BarChart3, Columns3, GitCompareArrows, Activity,
@@ -641,46 +641,56 @@ function CorrelationPanel({ correlation, timeseries, loading }: {
 
       {/* heatmap */}
       {hasCorr && correlation && (
-        <div className="rounded-xl border border-border bg-card p-5 mb-6 overflow-x-auto">
+        <div className="rounded-xl border border-border bg-card p-5 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-sm flex items-center gap-2">
               <GitCompareArrows className="w-4 h-4 text-primary" /> Correlation Heatmap
             </h3>
             <ExpandButton onClick={() => setZoomedHeatmap(true)} />
           </div>
-          <div className="inline-block min-w-fit">
-            <table className="border-collapse">
-              <thead>
-                <tr>
-                  <th className="p-1 text-[10px]" />
-                  {correlation.columns.map(c => (
-                    <th key={c} className="p-1 text-[10px] font-medium text-muted-foreground" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
-                      {c.length > 12 ? c.slice(0, 12) + '…' : c}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {correlation.matrix.map((row, i) => (
-                  <tr key={i}>
-                    <td className="p-1 text-[10px] font-medium text-right pr-2 text-muted-foreground whitespace-nowrap">
-                      {correlation.columns[i].length > 14 ? correlation.columns[i].slice(0, 14) + '…' : correlation.columns[i]}
-                    </td>
-                    {row.map((val, j) => (
-                      <td key={j} className="p-0">
-                        <div
-                          className="w-10 h-10 flex items-center justify-center text-[9px] font-mono rounded-sm m-0.5 transition-transform hover:scale-110"
-                          style={{ backgroundColor: corrColor(val), color: Math.abs(val) > 0.5 ? 'white' : 'hsl(var(--foreground))' }}
-                          title={`${correlation.columns[i]} × ${correlation.columns[j]}: ${val.toFixed(3)}`}
-                        >
-                          {val.toFixed(2)}
-                        </div>
-                      </td>
-                    ))}
-                  </tr>
+
+          {/* Responsive heatmap grid — fills available width */}
+          <div
+            className="grid w-full gap-[2px]"
+            style={{
+              /* +1 for the row label column */
+              gridTemplateColumns: `minmax(60px, 0.8fr) repeat(${correlation.columns.length}, 1fr)`,
+              gridTemplateRows: `auto repeat(${correlation.columns.length}, 1fr)`,
+            }}
+          >
+            {/* Top-left empty cell */}
+            <div />
+            {/* Column headers */}
+            {correlation.columns.map(c => (
+              <div key={c} className="flex items-end justify-center pb-1 min-h-[32px]">
+                <span className="text-[10px] font-medium text-muted-foreground truncate max-w-full [writing-mode:vertical-rl] rotate-180">
+                  {c.length > 14 ? c.slice(0, 14) + '…' : c}
+                </span>
+              </div>
+            ))}
+
+            {/* Rows */}
+            {correlation.matrix.map((row, i) => (
+              <React.Fragment key={i}>
+                {/* Row label */}
+                <div className="flex items-center justify-end pr-2">
+                  <span className="text-[10px] font-medium text-muted-foreground truncate max-w-full text-right">
+                    {correlation.columns[i].length > 16 ? correlation.columns[i].slice(0, 16) + '…' : correlation.columns[i]}
+                  </span>
+                </div>
+                {/* Cells */}
+                {row.map((val, j) => (
+                  <div
+                    key={j}
+                    className="aspect-square flex items-center justify-center text-[10px] font-mono rounded-sm transition-transform hover:scale-105 cursor-default min-h-[28px]"
+                    style={{ backgroundColor: corrColor(val), color: Math.abs(val) > 0.5 ? 'white' : 'hsl(var(--foreground))' }}
+                    title={`${correlation.columns[i]} × ${correlation.columns[j]}: ${val.toFixed(3)}`}
+                  >
+                    {val.toFixed(2)}
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </React.Fragment>
+            ))}
           </div>
 
           {/* color legend */}
@@ -732,35 +742,38 @@ function CorrelationPanel({ correlation, timeseries, loading }: {
       <AnimatePresence>
         {zoomedHeatmap && hasCorr && correlation && (
           <ChartZoomModal title="Correlation Heatmap" onClose={() => setZoomedHeatmap(false)}>
-            <div className="overflow-auto h-full flex items-start justify-center">
-              <table className="border-collapse">
-                <thead>
-                  <tr>
-                    <th className="p-1.5 text-xs" />
-                    {correlation.columns.map(c => (
-                      <th key={c} className="p-1.5 text-xs font-medium text-muted-foreground" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>{c}</th>
+            <div className="overflow-auto h-full flex items-start justify-center p-4">
+              <div
+                className="grid w-full max-w-4xl gap-[2px]"
+                style={{
+                  gridTemplateColumns: `minmax(80px, 0.6fr) repeat(${correlation.columns.length}, 1fr)`,
+                  gridTemplateRows: `auto repeat(${correlation.columns.length}, 1fr)`,
+                }}
+              >
+                <div />
+                {correlation.columns.map(c => (
+                  <div key={c} className="flex items-end justify-center pb-1 min-h-[36px]">
+                    <span className="text-xs font-medium text-muted-foreground truncate max-w-full [writing-mode:vertical-rl] rotate-180">{c}</span>
+                  </div>
+                ))}
+                {correlation.matrix.map((row, i) => (
+                  <React.Fragment key={i}>
+                    <div className="flex items-center justify-end pr-3">
+                      <span className="text-xs font-medium text-muted-foreground truncate max-w-full text-right">{correlation.columns[i]}</span>
+                    </div>
+                    {row.map((val, j) => (
+                      <div
+                        key={j}
+                        className="aspect-square flex items-center justify-center text-[10px] font-mono rounded-sm min-h-[36px]"
+                        style={{ backgroundColor: corrColor(val), color: Math.abs(val) > 0.5 ? 'white' : 'hsl(var(--foreground))' }}
+                        title={`${correlation.columns[i]} × ${correlation.columns[j]}: ${val.toFixed(3)}`}
+                      >
+                        {val.toFixed(3)}
+                      </div>
                     ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {correlation.matrix.map((row, i) => (
-                    <tr key={i}>
-                      <td className="p-1.5 text-xs font-medium text-right pr-3 text-muted-foreground whitespace-nowrap">{correlation.columns[i]}</td>
-                      {row.map((val, j) => (
-                        <td key={j} className="p-0">
-                          <div
-                            className="w-14 h-14 flex items-center justify-center text-[10px] font-mono rounded-sm m-0.5"
-                            style={{ backgroundColor: corrColor(val), color: Math.abs(val) > 0.5 ? 'white' : 'hsl(var(--foreground))' }}
-                            title={`${correlation.columns[i]} × ${correlation.columns[j]}: ${val.toFixed(3)}`}
-                          >
-                            {val.toFixed(3)}
-                          </div>
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </React.Fragment>
+                ))}
+              </div>
             </div>
           </ChartZoomModal>
         )}
