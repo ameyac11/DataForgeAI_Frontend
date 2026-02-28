@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Settings2, History, Plus, PanelLeft, FolderOpen, Search, Sparkles, Database, X, MessageSquare, Pin } from 'lucide-react';
+import { Settings2, History, Plus, PanelLeft, FolderOpen, Search, Sparkles, Database, X, MessageSquare, Pin, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -16,6 +16,7 @@ interface AppSidebarProps {
 }
 
 const navItems = [
+  { icon: BarChart3, label: 'Analytics', path: '/app/analytics' },
   { icon: FolderOpen, label: 'Sample Datasets', path: '/app/samples' },
   { icon: Database, label: 'My Datasets', path: '/app/datasets' },
   { icon: History, label: 'History', path: '/app/history' },

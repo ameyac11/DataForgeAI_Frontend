@@ -31,6 +31,20 @@ export const ENDPOINTS = {
     DATASETS_DELETE: (id: string) => `/datasets/${id}`,
     DATASETS_DOWNLOAD: (id: string) => `/datasets/${id}/download`,
 
+    // Analytics
+    ANALYTICS_UPLOAD: '/analytics/upload',
+    ANALYTICS_SUMMARY: '/analytics/summary',
+    ANALYTICS_COLUMNS: '/analytics/columns',
+    ANALYTICS_DISTRIBUTION: '/analytics/distribution',
+    ANALYTICS_CORRELATION: '/analytics/correlation',
+    ANALYTICS_SCATTER: '/analytics/scatter',
+    ANALYTICS_BOXPLOT: '/analytics/boxplot',
+    ANALYTICS_OUTLIERS: '/analytics/outliers',
+    ANALYTICS_TIMESERIES: '/analytics/timeseries',
+    ANALYTICS_PREVIEW: '/analytics/preview',
+    ANALYTICS_REPORT: '/analytics/report',
+    ANALYTICS_SESSION: '/analytics/session',
+
     // Misc
     TEMPLATES: '/templates',
     HEALTH: '/health',

@@ -19,6 +19,7 @@ import TermsOfService from "./pages/TermsOfService";
 import GettingStarted from "./pages/GettingStarted";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
+import AnalyticsWorkspace from "./pages/AnalyticsWorkspace";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ const App = () => (
                   <Route index element={<DetNest />} />
                   <Route path="generator" element={<CustomGenerator />} />
                   <Route path="samples" element={<SampleDatasets />} />                  <Route path="datasets" element={<MyDatasets />} />                  <Route path="history" element={<HistoryPage />} />
+                  <Route path="analytics" element={<AnalyticsWorkspace />} />
                   <Route path="settings" element={<SettingsPage />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
