@@ -53,6 +53,7 @@ const models = [
   { value: 'Compound Mini', label: 'Compound Mini', badge: 'Web', color: 'text-purple-500' },
   { value: 'Llama 4 Scout', label: 'Llama 4 Scout', badge: 'Default', secondaryBadge: 'Vision', color: 'text-purple-500' },
   { value: 'GPT OSS 120B', label: 'GPT OSS 120B', color: 'text-gray-500' },
+  { value: 'Kimi K2', label: 'Kimi K2', color: 'text-teal-500' },
   { value: 'GPT-4o', label: 'GPT-4o', secondaryBadge: 'Vision', color: 'text-blue-500' },
   { value: 'GPT-4o Mini', label: 'GPT-4o Mini', secondaryBadge: 'Vision', color: 'text-blue-500' },
 ];
@@ -413,6 +414,7 @@ export default function DetNest() {
     'GPT OSS 120B': 'gpt-oss-120b',
     'GPT-4o': 'gpt-4o',
     'GPT-4o Mini': 'gpt-4o-mini',
+    'Kimi K2': 'kimi-k2',
   };
 
   // Check if current model supports vision
@@ -688,7 +690,7 @@ export default function DetNest() {
                     {m.badge && (
                       <span className={cn(
                         "p-1 rounded-full flex items-center justify-center",
-                        m.badge === 'Web' ? "bg-purple-500/10 text-purple-600 dark:text-purple-400" :
+                        m.badge === 'Web' ? "bg-green-500/10 text-green-600 dark:text-green-400" :
                           m.badge === 'Default' ? "bg-purple-500/10 text-purple-600 dark:text-purple-400" :
                             "bg-muted text-muted-foreground"
                       )}>

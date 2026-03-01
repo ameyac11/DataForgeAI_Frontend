@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 // Types
 export type DataFormat = 'CSV' | 'JSON' | 'SQL' | 'Parquet';
 export type DataMode = 'Synthetic' | 'Realistic' | 'Hybrid';
-export type Model = 'Compound' | 'Compound Mini' | 'Llama 4 Scout' | 'GPT OSS 120B' | 'GPT-4o' | 'GPT-4o Mini';
+export type Model = 'Compound' | 'Compound Mini' | 'Llama 4 Scout' | 'GPT OSS 120B' | 'GPT-4o' | 'GPT-4o Mini' | 'Kimi K2';
 export type LoadingPhase = 'thinking' | 'analyzing' | 'generating' | null;
 
 export interface Attachment {
@@ -74,6 +74,7 @@ const MODEL_MAP: Record<Model, string> = {
     'GPT OSS 120B': 'gpt-oss-120b',
     'GPT-4o': 'gpt-4o',
     'GPT-4o Mini': 'gpt-4o-mini',
+    'Kimi K2': 'kimi-k2',
 };
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);

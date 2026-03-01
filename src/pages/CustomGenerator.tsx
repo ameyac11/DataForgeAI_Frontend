@@ -68,7 +68,7 @@ type DataFormat = 'CSV' | 'JSON' | 'SQL' | 'Parquet';
 type SourceType = 'AI' | 'Library';
 type AutoFillMode = 'ai' | 'template';
 type DataMode = 'Synthetic' | 'Realistic' | 'Hybrid';
-type Model = 'Compound' | 'Compound Mini' | 'Llama 4 Scout' | 'GPT OSS 120B' | 'GPT-4o' | 'GPT-4o Mini';
+type Model = 'Compound' | 'Compound Mini' | 'Llama 4 Scout' | 'GPT OSS 120B' | 'GPT-4o' | 'GPT-4o Mini' | 'Kimi K2';
 
 interface Column {
   id: string;
@@ -120,6 +120,7 @@ const models = [
   { value: 'Compound Mini', label: 'Compound Mini', badge: 'Web', color: 'text-purple-500' },
   { value: 'Llama 4 Scout', label: 'Llama 4 Scout', badge: 'Default', secondaryBadge: 'Vision', color: 'text-purple-500' },
   { value: 'GPT OSS 120B', label: 'GPT OSS 120B', color: 'text-gray-500' },
+  { value: 'Kimi K2', label: 'Kimi K2', color: 'text-teal-500' },
   { value: 'GPT-4o', label: 'GPT-4o', secondaryBadge: 'Vision', color: 'text-blue-500' },
   { value: 'GPT-4o Mini', label: 'GPT-4o Mini', secondaryBadge: 'Vision', color: 'text-blue-500' },
 ];
@@ -392,6 +393,7 @@ const CustomGenerator = () => {
         'GPT OSS 120B': 'gpt-oss-120b',
         'GPT-4o': 'gpt-4o',
         'GPT-4o Mini': 'gpt-4o-mini',
+        'Kimi K2': 'kimi-k2',
       };
 
       const res = await api.post<{ success: boolean; data: any; format: string; rows_generated: number; save_status?: string; save_message?: string }>(ENDPOINTS.GENERATE_DOWNLOAD, {
@@ -507,6 +509,7 @@ const CustomGenerator = () => {
         'GPT OSS 120B': 'gpt-oss-120b',
         'GPT-4o': 'gpt-4o',
         'GPT-4o Mini': 'gpt-4o-mini',
+        'Kimi K2': 'kimi-k2',
       };
 
       const res = await api.post<{ status: string; data: any }>(ENDPOINTS.GENERATE_PREVIEW, {
@@ -649,7 +652,7 @@ const CustomGenerator = () => {
                             {m.badge && (
                               <span className={cn(
                                 "p-1 rounded-md flex items-center justify-center",
-                                m.badge === 'Web' && "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20",
+                                m.badge === 'Web' && "bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20",
                                 m.badge === 'Default' && "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20"
                               )}>
                                 {m.badge === 'Web' && <Globe className="w-3 h-3" />}

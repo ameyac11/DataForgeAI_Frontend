@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { HelpCircle, X, Mail, ArrowLeft, Send, BookOpen } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { HelpCircle, X, Mail, ArrowLeft, Send, BookOpen, Database, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,17 +7,32 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
+import { api } from '@/services/api';
+import { ENDPOINTS } from '@/services/endpoints';
 
 type MenuState = 'closed' | 'menu' | 'contact';
 
+interface UsageData {
+  datasets_generated: { used: number; limit: number };
+  queries: { used: number; limit: number };
+}
+
 export function HelpMenu() {
   const navigate = useNavigate();
-  // Force Update
   const [state, setState] = useState<MenuState>('closed');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [usage, setUsage] = useState<UsageData | null>(null);
+
+  useEffect(() => {
+    if (state === 'menu') {
+      api.get<{ success: boolean; data: UsageData }>(ENDPOINTS.USAGE_STATUS)
+        .then(res => { if (res.success && res.data) setUsage(res.data); })
+        .catch(() => {});
+    }
+  }, [state]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,6 +131,55 @@ export function HelpMenu() {
                 <Mail className="w-5 h-5 text-primary" />
                 <span className="text-sm font-medium">Contact Support</span>
               </button>
+
+              {/* Usage section */}
+              {usage && (
+                <div className="mt-1 px-3 pb-2 pt-1 border-t border-border/50">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2 mt-1">Today's Usage</p>
+                  <div className="space-y-2">
+                    {/* Datasets */}
+                    <div className="flex items-center gap-2">
+                      <Database className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-center mb-0.5">
+                          <span className="text-[11px] text-muted-foreground">Datasets</span>
+                          <span className="text-[11px] font-mono text-muted-foreground">{usage.datasets_generated.used}/{usage.datasets_generated.limit}</span>
+                        </div>
+                        <div className="h-1 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className={cn(
+                              "h-full rounded-full transition-all",
+                              usage.datasets_generated.used >= usage.datasets_generated.limit ? "bg-red-500" :
+                                usage.datasets_generated.used >= usage.datasets_generated.limit * 0.8 ? "bg-amber-500" : "bg-primary"
+                            )}
+                            style={{ width: `${Math.min((usage.datasets_generated.used / usage.datasets_generated.limit) * 100, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    {/* Queries */}
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-center mb-0.5">
+                          <span className="text-[11px] text-muted-foreground">Queries</span>
+                          <span className="text-[11px] font-mono text-muted-foreground">{usage.queries.used}/{usage.queries.limit}</span>
+                        </div>
+                        <div className="h-1 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className={cn(
+                              "h-full rounded-full transition-all",
+                              usage.queries.used >= usage.queries.limit ? "bg-red-500" :
+                                usage.queries.used >= usage.queries.limit * 0.8 ? "bg-amber-500" : "bg-primary"
+                            )}
+                            style={{ width: `${Math.min((usage.queries.used / usage.queries.limit) * 100, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end">

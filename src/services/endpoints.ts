@@ -45,6 +45,10 @@ export const ENDPOINTS = {
     ANALYTICS_REPORT: '/analytics/report',
     ANALYTICS_SESSION: '/analytics/session',
 
+    // Usage
+    USAGE_STATUS: '/usage/status',
+    USAGE_LIMITS: '/usage/limits',
+
     // Misc
     TEMPLATES: '/templates',
     HEALTH: '/health',

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { User, Settings, X, LogOut } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { User, Settings, X, LogOut, BarChart3 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,11 +13,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Progress } from '@/components/ui/progress';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/services/api';
+import { ENDPOINTS } from '@/services/endpoints';
 import { cn } from '@/lib/utils';
 
-type SettingsSection = 'general' | 'account';
+type SettingsSection = 'general' | 'account' | 'usage';
+
+interface UsageData {
+  datasets_generated: { used: number; limit: number };
+  queries: { used: number; limit: number };
+}
 
 interface SettingsDialogProps {
   open: boolean;
@@ -30,6 +38,22 @@ export function SettingsDialog({ open, onOpenChange, defaultSection = 'general' 
   const { user, isAnonymous, signOut } = useAuth();
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<SettingsSection>(defaultSection);
+  const [usage, setUsage] = useState<UsageData | null>(null);
+  const [usageLoading, setUsageLoading] = useState(false);
+
+  const fetchUsage = useCallback(async () => {
+    setUsageLoading(true);
+    try {
+      const res = await api.get<{ success: boolean; data: UsageData }>(ENDPOINTS.USAGE_STATUS);
+      if (res.success && res.data) {
+        setUsage(res.data);
+      }
+    } catch {
+      // silently fail — usage is non-critical
+    } finally {
+      setUsageLoading(false);
+    }
+  }, []);
 
   // Update active section when defaultSection changes
   useEffect(() => {
@@ -38,9 +62,17 @@ export function SettingsDialog({ open, onOpenChange, defaultSection = 'general' 
     }
   }, [defaultSection, open]);
 
+  // Fetch usage when opening the usage tab
+  useEffect(() => {
+    if (open && activeSection === 'usage') {
+      fetchUsage();
+    }
+  }, [open, activeSection, fetchUsage]);
+
   const sections = [
     { id: 'general' as const, label: 'General', icon: Settings },
     { id: 'account' as const, label: 'Account', icon: User },
+    { id: 'usage' as const, label: 'Usage', icon: BarChart3 },
   ];
 
   return (
@@ -202,6 +234,85 @@ export function SettingsDialog({ open, onOpenChange, defaultSection = 'general' 
                       </div>
                       <Button variant="outline" size="sm" className="h-8 text-xs">Update</Button>
                     </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeSection === 'usage' && (
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div>
+                  <h2 className="text-xl font-semibold mb-1">Usage</h2>
+                  <p className="text-sm text-muted-foreground">Your daily usage limits reset every 24 hours.</p>
+                </div>
+
+                {usageLoading ? (
+                  <div className="space-y-6">
+                    {[1, 2].map((i) => (
+                      <div key={i} className="space-y-3 animate-pulse">
+                        <div className="h-4 w-32 bg-muted rounded" />
+                        <div className="h-2.5 w-full bg-muted rounded-full" />
+                        <div className="h-3 w-20 bg-muted rounded" />
+                      </div>
+                    ))}
+                  </div>
+                ) : usage ? (
+                  <div className="space-y-6">
+                    {/* Datasets Generated */}
+                    <div className="space-y-3 p-4 rounded-xl border border-border/50 bg-secondary/20">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">Datasets Generated</p>
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {usage.datasets_generated.used} / {usage.datasets_generated.limit}
+                        </span>
+                      </div>
+                      <Progress
+                        value={Math.min((usage.datasets_generated.used / usage.datasets_generated.limit) * 100, 100)}
+                        className={cn(
+                          "h-2.5",
+                          usage.datasets_generated.used >= usage.datasets_generated.limit
+                            ? "[&>div]:bg-red-500"
+                            : usage.datasets_generated.used >= usage.datasets_generated.limit * 0.8
+                              ? "[&>div]:bg-amber-500"
+                              : "[&>div]:bg-primary"
+                        )}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        {usage.datasets_generated.limit - usage.datasets_generated.used > 0
+                          ? `${usage.datasets_generated.limit - usage.datasets_generated.used} remaining today`
+                          : 'Daily limit reached — resets in 24h'}
+                      </p>
+                    </div>
+
+                    {/* Queries */}
+                    <div className="space-y-3 p-4 rounded-xl border border-border/50 bg-secondary/20">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">Chat Queries</p>
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {usage.queries.used} / {usage.queries.limit}
+                        </span>
+                      </div>
+                      <Progress
+                        value={Math.min((usage.queries.used / usage.queries.limit) * 100, 100)}
+                        className={cn(
+                          "h-2.5",
+                          usage.queries.used >= usage.queries.limit
+                            ? "[&>div]:bg-red-500"
+                            : usage.queries.used >= usage.queries.limit * 0.8
+                              ? "[&>div]:bg-amber-500"
+                              : "[&>div]:bg-primary"
+                        )}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        {usage.queries.limit - usage.queries.used > 0
+                          ? `${usage.queries.limit - usage.queries.used} remaining today`
+                          : 'Daily limit reached — resets in 24h'}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-6 rounded-xl border border-dashed border-muted-foreground/30 bg-muted/10 text-center">
+                    <p className="text-sm text-muted-foreground">Unable to load usage data. Please try again later.</p>
                   </div>
                 )}
               </div>
