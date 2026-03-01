@@ -88,7 +88,7 @@ const AnalyticsWorkspace = () => {
 
   useEffect(() => {
     return () => {
-      if (sessionId) analyticsApi.deleteSession(sessionId).catch(() => {});
+      if (sessionId) analyticsApi.deleteSession(sessionId).catch(() => { });
     };
   }, [sessionId]);
 
@@ -96,7 +96,7 @@ const AnalyticsWorkspace = () => {
     setUploading(true);
     setError(null);
     try {
-      if (sessionId) await analyticsApi.deleteSession(sessionId).catch(() => {});
+      if (sessionId) await analyticsApi.deleteSession(sessionId).catch(() => { });
       const res = await analyticsApi.upload(file);
       setSessionId(res.session_id);
       setSummary(res.summary);
@@ -207,7 +207,7 @@ const AnalyticsWorkspace = () => {
   }, [sessionId]);
 
   const handleClear = useCallback(async () => {
-    if (sessionId) await analyticsApi.deleteSession(sessionId).catch(() => {});
+    if (sessionId) await analyticsApi.deleteSession(sessionId).catch(() => { });
     setSessionId(null);
     setSummary(null);
     setColumns([]);
@@ -541,8 +541,8 @@ function ColumnsPanel({ columns, loading }: { columns: ColumnInfo[]; loading: bo
                 <span className={cn(
                   'text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase',
                   col.category === 'numeric' ? 'bg-violet-500/10 text-violet-500' :
-                  col.category === 'datetime' ? 'bg-cyan-500/10 text-cyan-500' :
-                  'bg-amber-500/10 text-amber-500'
+                    col.category === 'datetime' ? 'bg-cyan-500/10 text-cyan-500' :
+                      'bg-amber-500/10 text-amber-500'
                 )}>{col.category}</span>
                 <h4 className="font-semibold text-sm">{col.name}</h4>
                 <span className="text-[10px] text-muted-foreground">({col.dtype})</span>
