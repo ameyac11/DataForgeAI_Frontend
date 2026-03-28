@@ -92,10 +92,42 @@ export interface PreviewData {
   total_pages: number;
 }
 
+export interface AnalyticsHistoryItem {
+  session_id: string;
+  filename: string;
+  rows: number;
+  columns: number;
+  numeric_columns: number;
+  categorical_columns: number;
+  file_size_bytes: number;
+  state: 'active' | 'ended' | 'expired';
+  created_at: string;
+  last_accessed_at: string;
+}
+
 interface ApiResponse<T> {
   success: boolean;
   data: T;
   error: string | null;
+  error_code?: string | null;
+  details?: Record<string, unknown> | null;
+}
+
+const ERROR_CODE_MESSAGES: Record<string, string> = {
+  SESSION_EXPIRED: 'Your analytics session expired. Re-upload your dataset to continue.',
+  SESSION_NOT_FOUND: 'Analytics session not found. It may belong to another account or be expired.',
+  ANALYTICS_LIMIT_EXCEEDED: 'Daily analytics limit reached for this operation. Try again tomorrow.',
+  INVALID_COLUMN: 'Selected column is not available in this dataset.',
+  INVALID_FILE: 'Invalid file. Please upload CSV, JSON, Parquet, or SQL within the allowed size.',
+  REPORT_FAILED: 'Report generation failed for this session. Please retry.',
+};
+
+function resolveApiError(body: any, fallback: string): string {
+  const code = body?.error_code as string | undefined;
+  if (code && ERROR_CODE_MESSAGES[code]) {
+    return ERROR_CODE_MESSAGES[code];
+  }
+  return body?.error || body?.detail || fallback;
 }
 
 async function analyticsRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -107,10 +139,10 @@ async function analyticsRequest<T>(endpoint: string, options: RequestInit = {}):
   const res = await fetch(url, { ...options, headers, credentials: 'include' });
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(body?.error || body?.detail || 'Request failed');
+    throw new Error(resolveApiError(body, 'Request failed'));
   }
   const json: ApiResponse<T> = await res.json();
-  if (!json.success) throw new Error(json.error || 'Request failed');
+  if (!json.success) throw new Error(resolveApiError(json, 'Request failed'));
   return json.data;
 }
 
@@ -154,10 +186,16 @@ export const analyticsApi = {
   downloadReport: async (sessionId: string) => {
     const url = `${API_URL}${ENDPOINTS.ANALYTICS_REPORT}?session_id=${sessionId}`;
     const res = await fetch(url, { credentials: 'include' });
-    if (!res.ok) throw new Error('Failed to download report');
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(resolveApiError(body, 'Failed to download report'));
+    }
     return res.blob();
   },
 
   deleteSession: (sessionId: string) =>
     analyticsRequest<{ deleted: boolean }>(`${ENDPOINTS.ANALYTICS_SESSION}?session_id=${sessionId}`, { method: 'DELETE' }),
+
+  getHistory: (limit = 30) =>
+    analyticsRequest<AnalyticsHistoryItem[]>(`${ENDPOINTS.ANALYTICS_HISTORY}?limit=${limit}`),
 };

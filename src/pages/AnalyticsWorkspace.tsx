@@ -20,6 +20,7 @@ import {
 import {
   analyticsApi,
   type AnalyticsSummary,
+  type AnalyticsHistoryItem,
   type ColumnInfo,
   type DistributionData,
   type CorrelationData,
@@ -38,16 +39,25 @@ const TABS = [
   { id: 'correlation', icon: GitCompareArrows, label: 'Correlation' },
   { id: 'distributions', icon: Activity, label: 'Distributions' },
   { id: 'scatter', icon: ScatterIcon, label: 'Scatter & Box' },
+  { id: 'history', icon: Clock, label: 'History' },
   { id: 'report', icon: FileText, label: 'Report' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
 
 const CHART_COLORS = [
-  '#7c3aed', '#ec4899', '#f97316', '#06b6d4', '#10b981',
-  '#f59e0b', '#8b5cf6', '#ef4444', '#3b82f6', '#14b8a6',
-  '#e879f9', '#a78bfa', '#fb923c', '#34d399', '#fbbf24',
+  '#0f766e', '#f97316', '#0284c7', '#ef4444', '#16a34a',
+  '#ca8a04', '#b91c1c', '#0369a1', '#0ea5e9', '#22c55e',
+  '#ea580c', '#0891b2', '#84cc16', '#65a30d', '#f59e0b',
 ];
+
+const CATEGORY_BAR_COLORS = [
+  '#0f766e', '#0e7490', '#0369a1', '#1d4ed8', '#15803d',
+  '#4d7c0f', '#a16207', '#b45309', '#be123c', '#334155',
+  '#475569', '#0f172a',
+];
+
+const PRIMARY_CHART_COLOR = '#0e7490';
 
 const TOOLTIP_STYLE = {
   background: 'hsl(var(--card))',
@@ -67,6 +77,8 @@ const AnalyticsWorkspace = () => {
   const [timeseries, setTimeseries] = useState<TimeseriesData[]>([]);
   const [preview, setPreview] = useState<PreviewData | null>(null);
   const [previewPage, setPreviewPage] = useState(1);
+  const [history, setHistory] = useState<AnalyticsHistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   // scatter & box plot state
   const [scatterData, setScatterData] = useState<ScatterData | null>(null);
@@ -92,6 +104,23 @@ const AnalyticsWorkspace = () => {
     };
   }, [sessionId]);
 
+  useEffect(() => {
+    const canNavigate = !!sessionId && !!summary;
+    const onKey = (e: KeyboardEvent) => {
+      if (!canNavigate) return;
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      const enabledTabs = TABS.filter((tab) => tab.id === 'upload' || canNavigate);
+      const idx = enabledTabs.findIndex((t) => t.id === activeTab);
+      if (idx < 0) return;
+      const next = e.key === 'ArrowRight'
+        ? enabledTabs[(idx + 1) % enabledTabs.length]
+        : enabledTabs[(idx - 1 + enabledTabs.length) % enabledTabs.length];
+      setActiveTab(next.id);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [activeTab, sessionId, summary]);
+
   const handleUpload = useCallback(async (file: File) => {
     setUploading(true);
     setError(null);
@@ -100,6 +129,7 @@ const AnalyticsWorkspace = () => {
       const res = await analyticsApi.upload(file);
       setSessionId(res.session_id);
       setSummary(res.summary);
+      setHistory(await analyticsApi.getHistory(30).catch(() => []));
       setColumns([]);
       setCorrelation(null);
       setDistributions({});
@@ -127,20 +157,25 @@ const AnalyticsWorkspace = () => {
 
   const switchTab = useCallback(async (tab: TabId) => {
     setActiveTab(tab);
-    if (!sessionId) return;
+    if (!sessionId && tab !== 'history') return;
     setLoadingTab(true);
     try {
-      if ((tab === 'columns' || tab === 'distributions' || tab === 'scatter') && columns.length === 0) {
+      if (sessionId && (tab === 'columns' || tab === 'distributions' || tab === 'scatter') && columns.length === 0) {
         setColumns(await analyticsApi.getColumns(sessionId));
       }
-      if (tab === 'correlation' && !correlation) {
+      if (sessionId && tab === 'correlation' && !correlation) {
         setCorrelation(await analyticsApi.getCorrelation(sessionId));
         setTimeseries(await analyticsApi.getTimeseries(sessionId));
+      }
+      if (tab === 'history') {
+        setHistoryLoading(true);
+        setHistory(await analyticsApi.getHistory(40));
       }
     } catch (e: any) {
       setError(e.message);
     } finally {
       setLoadingTab(false);
+      setHistoryLoading(false);
     }
   }, [sessionId, columns.length, correlation]);
 
@@ -235,18 +270,21 @@ const AnalyticsWorkspace = () => {
           <p className="text-[11px] text-muted-foreground mt-0.5">Session-based workspace</p>
         </div>
         <ScrollArea className="flex-1">
-          <nav className="p-2 space-y-1">
+          <nav className="p-2 space-y-1" role="tablist" aria-label="Analytics sections">
             {TABS.map(tab => {
-              const disabled = tab.id !== 'upload' && !hasSession;
+              const disabled = tab.id !== 'upload' && tab.id !== 'history' && !hasSession;
               return (
                 <button
                   key={tab.id}
+                  role="tab"
+                  aria-selected={activeTab === tab.id}
+                  aria-controls={`panel-${tab.id}`}
                   disabled={disabled}
                   onClick={() => switchTab(tab.id)}
                   className={cn(
                     'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
                     activeTab === tab.id
-                      ? 'bg-primary/10 text-primary'
+                      ? 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300'
                       : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground',
                     disabled && 'opacity-40 cursor-not-allowed'
                   )}
@@ -284,51 +322,71 @@ const AnalyticsWorkspace = () => {
         </AnimatePresence>
 
         <div className="p-6 max-w-7xl mx-auto">
+          {hasSession && summary && (
+            <div className="mb-6 rounded-2xl border border-border bg-gradient-to-r from-cyan-500/10 via-sky-500/5 to-emerald-500/10 p-4">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Operational Dataset</p>
+                  <h3 className="text-base font-semibold">{summary.filename}</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {summary.rows.toLocaleString()} rows, {summary.columns.toLocaleString()} columns, {summary.memory_display} in memory
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                  <div className="rounded-lg bg-background/80 px-3 py-2 border border-border">Quality Score: <span className="font-semibold">{computeDataQualityScore(summary)}/100</span></div>
+                  <div className="rounded-lg bg-background/80 px-3 py-2 border border-border">Missing: <span className="font-semibold">{summary.missing_pct}%</span></div>
+                  <div className="rounded-lg bg-background/80 px-3 py-2 border border-border">Numeric: <span className="font-semibold">{summary.numeric_columns}</span></div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <AnimatePresence mode="wait">
             {activeTab === 'upload' && (
-              <UploadPanel key="upload" uploading={uploading} fileRef={fileRef} onUpload={handleUpload} onDrop={handleDrop} hasSession={hasSession} summary={summary} />
+              <div key="upload" id="panel-upload" role="tabpanel"><UploadPanel uploading={uploading} fileRef={fileRef} onUpload={handleUpload} onDrop={handleDrop} hasSession={hasSession} summary={summary} /></div>
             )}
             {activeTab === 'summary' && summary && (
-              <SummaryPanel key="summary" summary={summary} loading={loadingTab} />
+              <div key="summary" id="panel-summary" role="tabpanel"><SummaryPanel summary={summary} loading={loadingTab} /></div>
             )}
             {activeTab === 'columns' && (
-              <ColumnsPanel key="columns" columns={columns} loading={loadingTab} />
+              <div key="columns" id="panel-columns" role="tabpanel"><ColumnsPanel columns={columns} loading={loadingTab} /></div>
             )}
             {activeTab === 'correlation' && (
-              <CorrelationPanel key="correlation" correlation={correlation} timeseries={timeseries} loading={loadingTab} />
+              <div key="correlation" id="panel-correlation" role="tabpanel"><CorrelationPanel correlation={correlation} timeseries={timeseries} loading={loadingTab} /></div>
             )}
             {activeTab === 'distributions' && (
-              <DistributionsPanel
-                key="distributions"
-                columns={columns}
-                distributions={distributions}
-                outliers={outliers}
-                selectedDistCol={selectedDistCol}
-                selectedOutlierCol={selectedOutlierCol}
-                onSelectDist={(c) => { setSelectedDistCol(c); loadDistribution(c); }}
-                onSelectOutlier={(c) => { setSelectedOutlierCol(c); loadOutlier(c); }}
-                loading={loadingTab}
-              />
+              <div key="distributions" id="panel-distributions" role="tabpanel"><DistributionsPanel
+                  columns={columns}
+                  distributions={distributions}
+                  outliers={outliers}
+                  selectedDistCol={selectedDistCol}
+                  selectedOutlierCol={selectedOutlierCol}
+                  onSelectDist={(c) => { setSelectedDistCol(c); loadDistribution(c); }}
+                  onSelectOutlier={(c) => { setSelectedOutlierCol(c); loadOutlier(c); }}
+                  loading={loadingTab}
+                /></div>
             )}
             {activeTab === 'scatter' && (
-              <ScatterBoxPanel
-                key="scatter"
-                columns={columns}
-                scatterData={scatterData}
-                scatterColX={scatterColX}
-                scatterColY={scatterColY}
-                scatterLoading={scatterLoading}
-                onScatterColXChange={(c) => { setScatterColX(c); if (scatterColY) loadScatter(c, scatterColY); }}
-                onScatterColYChange={(c) => { setScatterColY(c); if (scatterColX) loadScatter(scatterColX, c); }}
-                boxPlotData={boxPlotData}
-                boxPlotCol={boxPlotCol}
-                boxPlotLoading={boxPlotLoading}
-                onBoxPlotColChange={(c) => { setBoxPlotCol(c); loadBoxPlot(c); }}
-                loading={loadingTab}
-              />
+              <div key="scatter" id="panel-scatter" role="tabpanel"><ScatterBoxPanel
+                  columns={columns}
+                  scatterData={scatterData}
+                  scatterColX={scatterColX}
+                  scatterColY={scatterColY}
+                  scatterLoading={scatterLoading}
+                  onScatterColXChange={(c) => { setScatterColX(c); if (scatterColY) loadScatter(c, scatterColY); }}
+                  onScatterColYChange={(c) => { setScatterColY(c); if (scatterColX) loadScatter(scatterColX, c); }}
+                  boxPlotData={boxPlotData}
+                  boxPlotCol={boxPlotCol}
+                  boxPlotLoading={boxPlotLoading}
+                  onBoxPlotColChange={(c) => { setBoxPlotCol(c); loadBoxPlot(c); }}
+                  loading={loadingTab}
+                /></div>
+            )}
+            {activeTab === 'history' && (
+              <div key="history" id="panel-history" role="tabpanel"><HistoryPanel history={history} loading={historyLoading} /></div>
             )}
             {activeTab === 'report' && (
-              <ReportPanel key="report" loading={reportLoading} onGenerate={handleReport} hasSession={hasSession} />
+              <div key="report" id="panel-report" role="tabpanel"><ReportPanel loading={reportLoading} onGenerate={handleReport} hasSession={hasSession} /></div>
             )}
           </AnimatePresence>
 
@@ -574,7 +632,11 @@ function ColumnsPanel({ columns, loading }: { columns: ColumnInfo[]; loading: bo
                       <XAxis type="number" hide />
                       <YAxis type="category" dataKey="label" width={180} tick={{ fontSize: 10 }} />
                       <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(val: number) => [val.toLocaleString(), 'Count']} labelFormatter={(label: string) => col.top_values?.find(v => truncateLabel(v.value, 28) === label)?.value || label} />
-                      <Bar dataKey="count" fill="#7c3aed" radius={[0, 4, 4, 0]} />
+                      <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                        {col.top_values.slice(0, 8).map((entry, i) => (
+                          <Cell key={`${entry.value}-${i}`} fill={getCategoryBarColor(entry.value)} />
+                        ))}
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -604,7 +666,11 @@ function ColumnsPanel({ columns, loading }: { columns: ColumnInfo[]; loading: bo
                   <XAxis type="number" tick={{ fontSize: 11 }} />
                   <YAxis type="category" dataKey="label" width={250} tick={{ fontSize: 11 }} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(val: number) => [val.toLocaleString(), 'Count']} />
-                  <Bar dataKey="count" fill="#7c3aed" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                    {col.top_values.map((entry, i) => (
+                      <Cell key={`${entry.value}-${i}`} fill={getCategoryBarColor(entry.value)} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </ChartZoomModal>
@@ -622,6 +688,13 @@ function CorrelationPanel({ correlation, timeseries, loading }: {
 }) {
   const [zoomedHeatmap, setZoomedHeatmap] = useState(false);
   const [zoomedTs, setZoomedTs] = useState<string | null>(null);
+  const [hoveredCorr, setHoveredCorr] = useState<{
+    x: number;
+    y: number;
+    row: string;
+    col: string;
+    value: number;
+  } | null>(null);
   if (loading) return <LoadingSkeleton />;
 
   const hasMessage = correlation?.message && correlation.columns.length < 2;
@@ -650,47 +723,79 @@ function CorrelationPanel({ correlation, timeseries, loading }: {
           </div>
 
           {/* Responsive heatmap grid — fills available width */}
-          <div
-            className="grid w-full gap-[2px]"
-            style={{
-              /* +1 for the row label column */
-              gridTemplateColumns: `minmax(60px, 0.8fr) repeat(${correlation.columns.length}, 1fr)`,
-              gridTemplateRows: `auto repeat(${correlation.columns.length}, 1fr)`,
-            }}
-          >
-            {/* Top-left empty cell */}
-            <div />
-            {/* Column headers */}
-            {correlation.columns.map(c => (
-              <div key={c} className="flex items-end justify-center pb-1 min-h-[32px]">
-                <span className="text-[10px] font-medium text-muted-foreground truncate max-w-full [writing-mode:vertical-rl] rotate-180">
-                  {c.length > 14 ? c.slice(0, 14) + '…' : c}
-                </span>
-              </div>
-            ))}
-
-            {/* Rows */}
-            {correlation.matrix.map((row, i) => (
-              <React.Fragment key={i}>
-                {/* Row label */}
-                <div className="flex items-center justify-end pr-2">
-                  <span className="text-[10px] font-medium text-muted-foreground truncate max-w-full text-right">
-                    {correlation.columns[i].length > 16 ? correlation.columns[i].slice(0, 16) + '…' : correlation.columns[i]}
+          <div className="relative">
+            <div
+              className="grid w-full gap-[2px]"
+              style={{
+                /* +1 for the row label column */
+                gridTemplateColumns: `minmax(60px, 0.8fr) repeat(${correlation.columns.length}, 1fr)`,
+                gridTemplateRows: `auto repeat(${correlation.columns.length}, 1fr)`,
+              }}
+            >
+              {/* Top-left empty cell */}
+              <div />
+              {/* Column headers */}
+              {correlation.columns.map(c => (
+                <div key={c} className="flex items-end justify-center pb-1 min-h-[32px]">
+                  <span className="text-[10px] font-medium text-muted-foreground truncate max-w-full [writing-mode:vertical-rl] rotate-180">
+                    {c.length > 14 ? c.slice(0, 14) + '…' : c}
                   </span>
                 </div>
-                {/* Cells */}
-                {row.map((val, j) => (
-                  <div
-                    key={j}
-                    className="aspect-square flex items-center justify-center text-[10px] font-mono rounded-sm transition-transform hover:scale-105 cursor-default min-h-[28px]"
-                    style={{ backgroundColor: corrColor(val), color: Math.abs(val) > 0.5 ? 'white' : 'hsl(var(--foreground))' }}
-                    title={`${correlation.columns[i]} × ${correlation.columns[j]}: ${val.toFixed(3)}`}
-                  >
-                    {val.toFixed(2)}
+              ))}
+
+              {/* Rows */}
+              {correlation.matrix.map((row, i) => (
+                <React.Fragment key={i}>
+                  {/* Row label */}
+                  <div className="flex items-center justify-end pr-2">
+                    <span className="text-[10px] font-medium text-muted-foreground truncate max-w-full text-right">
+                      {correlation.columns[i].length > 16 ? correlation.columns[i].slice(0, 16) + '…' : correlation.columns[i]}
+                    </span>
                   </div>
-                ))}
-              </React.Fragment>
-            ))}
+                  {/* Cells */}
+                  {row.map((val, j) => (
+                    <div
+                      key={j}
+                      className="aspect-square flex items-center justify-center text-[10px] font-mono rounded-sm transition-transform hover:scale-[1.02] cursor-default min-h-[28px] ring-1 ring-transparent hover:ring-white/70"
+                      style={{ backgroundColor: corrColor(val), color: Math.abs(val) > 0.5 ? 'white' : 'hsl(var(--foreground))' }}
+                      onMouseEnter={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setHoveredCorr({
+                          x: rect.left + rect.width / 2,
+                          y: rect.top,
+                          row: correlation.columns[i],
+                          col: correlation.columns[j],
+                          value: val,
+                        });
+                      }}
+                      onMouseMove={(e) => {
+                        setHoveredCorr((prev) => {
+                          if (!prev) return prev;
+                          return { ...prev, x: e.clientX, y: e.clientY };
+                        });
+                      }}
+                      onMouseLeave={() => setHoveredCorr(null)}
+                    >
+                      {val.toFixed(2)}
+                    </div>
+                  ))}
+                </React.Fragment>
+              ))}
+            </div>
+
+            {hoveredCorr && (
+              <div
+                className="pointer-events-none fixed z-[80] px-3 py-2 rounded-lg border border-slate-700/70 bg-slate-950/95 text-slate-100 shadow-xl"
+                style={{ left: hoveredCorr.x + 14, top: hoveredCorr.y - 12 }}
+              >
+                <p className="text-[11px] font-semibold leading-tight">
+                  {hoveredCorr.row} × {hoveredCorr.col}
+                </p>
+                <p className="text-[11px] text-cyan-300 mt-0.5">
+                  Correlation: {hoveredCorr.value.toFixed(3)}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* color legend */}
@@ -729,7 +834,7 @@ function CorrelationPanel({ correlation, timeseries, loading }: {
                     <XAxis dataKey="date" tick={{ fontSize: 9 }} />
                     <YAxis tick={{ fontSize: 10 }} />
                     <Tooltip contentStyle={TOOLTIP_STYLE} />
-                    <Line type="monotone" dataKey="count" stroke="#7c3aed" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="count" stroke="#0e7490" strokeWidth={2} dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -764,9 +869,8 @@ function CorrelationPanel({ correlation, timeseries, loading }: {
                     {row.map((val, j) => (
                       <div
                         key={j}
-                        className="aspect-square flex items-center justify-center text-[10px] font-mono rounded-sm min-h-[36px]"
+                        className="aspect-square flex items-center justify-center text-[10px] font-mono rounded-sm min-h-[36px] ring-1 ring-transparent hover:ring-white/70"
                         style={{ backgroundColor: corrColor(val), color: Math.abs(val) > 0.5 ? 'white' : 'hsl(var(--foreground))' }}
-                        title={`${correlation.columns[i]} × ${correlation.columns[j]}: ${val.toFixed(3)}`}
                       >
                         {val.toFixed(3)}
                       </div>
@@ -791,7 +895,7 @@ function CorrelationPanel({ correlation, timeseries, loading }: {
                   <XAxis dataKey="date" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} />
-                  <Line type="monotone" dataKey="count" stroke="#7c3aed" strokeWidth={2} dot={{ r: 2 }} />
+                  <Line type="monotone" dataKey="count" stroke="#0e7490" strokeWidth={2} dot={{ r: 2 }} />
                 </LineChart>
               </ResponsiveContainer>
             </ChartZoomModal>
@@ -848,7 +952,11 @@ function DistributionsPanel({ columns, distributions, outliers, selectedDistCol,
                 <XAxis dataKey={dist.type === 'histogram' ? 'range' : 'label'} tick={{ fontSize: 9 }} angle={-35} textAnchor="end" />
                 <YAxis tick={{ fontSize: 10 }} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} />
-                <Bar dataKey="count" fill="#7c3aed" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="count" fill={PRIMARY_CHART_COLOR} radius={[4, 4, 0, 0]}>
+                  {(dist.bins || dist.values || []).map((entry: any, i: number) => (
+                    <Cell key={`${entry?.range || entry?.label || i}`} fill={CATEGORY_BAR_COLORS[i % CATEGORY_BAR_COLORS.length]} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -916,7 +1024,11 @@ function DistributionsPanel({ columns, distributions, outliers, selectedDistCol,
                 <XAxis dataKey={dist.type === 'histogram' ? 'range' : 'label'} tick={{ fontSize: 10 }} angle={-35} textAnchor="end" />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} />
-                <Bar dataKey="count" fill="#7c3aed" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="count" fill={PRIMARY_CHART_COLOR} radius={[4, 4, 0, 0]}>
+                  {(dist.bins || dist.values || []).map((entry: any, i: number) => (
+                    <Cell key={`${entry?.range || entry?.label || i}`} fill={CATEGORY_BAR_COLORS[i % CATEGORY_BAR_COLORS.length]} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </ChartZoomModal>
@@ -1016,13 +1128,18 @@ function ScatterBoxPanel({
                         contentStyle={TOOLTIP_STYLE}
                         formatter={(value: number, name: string) => [value.toLocaleString(undefined, { maximumFractionDigits: 3 }), name]}
                       />
-                      <Scatter data={scatterData.points} fill="#7c3aed" fillOpacity={0.6} strokeWidth={0} />
+                      <Scatter data={scatterData.points} fill="#0369a1" fillOpacity={0.6} strokeWidth={0} />
                     </ScatterChart>
                   </ResponsiveContainer>
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-2 text-center">
                   {scatterData.count} data points plotted{scatterData.count >= 500 ? ' (sampled)' : ''}
                 </p>
+                {scatterData.count >= 500 && (
+                  <div className="mt-2">
+                    <InfoBanner message="This scatter chart is sampled for performance (max 500 points). Use filters or narrower columns for higher-fidelity exploration." variant="warning" />
+                  </div>
+                )}
               </>
             )}
 
@@ -1122,7 +1239,7 @@ function ScatterBoxPanel({
                   label={{ value: scatterData.col_y, angle: -90, position: 'insideLeft', offset: 0, fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
                 <ZAxis range={[40, 40]} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(value: number, name: string) => [value.toLocaleString(undefined, { maximumFractionDigits: 3 }), name]} />
-                <Scatter data={scatterData.points} fill="#7c3aed" fillOpacity={0.6} strokeWidth={0} />
+                <Scatter data={scatterData.points} fill="#0369a1" fillOpacity={0.6} strokeWidth={0} />
               </ScatterChart>
             </ResponsiveContainer>
           </ChartZoomModal>
@@ -1217,6 +1334,59 @@ function BoxPlotVisual({ data }: { data: BoxPlotData }) {
   );
 }
 
+// ─── History Panel ───
+
+function HistoryPanel({ history, loading }: { history: AnalyticsHistoryItem[]; loading: boolean }) {
+  if (loading) return <LoadingSkeleton />;
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+      <h1 className="text-2xl font-bold mb-1">Analysis History</h1>
+      <p className="text-sm text-muted-foreground mb-6">Persistent timeline of your analytics sessions and operational status.</p>
+
+      {history.length === 0 && (
+        <InfoBanner message="No analytics history yet. Upload a dataset to begin building your analysis timeline." />
+      )}
+
+      <div className="space-y-3">
+        {history.map((item, idx) => (
+          <motion.div
+            key={`${item.session_id}-${idx}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.02 }}
+            className="rounded-xl border border-border bg-card p-4"
+          >
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2">
+              <div>
+                <p className="font-semibold text-sm">{item.filename}</p>
+                <p className="text-xs text-muted-foreground">Session: {item.session_id}</p>
+              </div>
+              <span className={cn(
+                'text-[10px] px-2 py-1 rounded-full uppercase font-semibold w-fit',
+                item.state === 'active' ? 'bg-emerald-500/10 text-emerald-600' :
+                  item.state === 'expired' ? 'bg-amber-500/10 text-amber-600' :
+                    'bg-slate-500/10 text-slate-600'
+              )}>
+                {item.state}
+              </span>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 md:grid-cols-6 gap-2 text-xs">
+              <div className="rounded-lg bg-muted/50 p-2">Rows: <span className="font-semibold">{item.rows.toLocaleString()}</span></div>
+              <div className="rounded-lg bg-muted/50 p-2">Columns: <span className="font-semibold">{item.columns}</span></div>
+              <div className="rounded-lg bg-muted/50 p-2">Numeric: <span className="font-semibold">{item.numeric_columns}</span></div>
+              <div className="rounded-lg bg-muted/50 p-2">Categorical: <span className="font-semibold">{item.categorical_columns}</span></div>
+              <div className="rounded-lg bg-muted/50 p-2">File Size: <span className="font-semibold">{bytesToDisplay(item.file_size_bytes)}</span></div>
+              <div className="rounded-lg bg-muted/50 p-2">Created: <span className="font-semibold">{formatDateTime(item.created_at)}</span></div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
 // ─── Report Panel ───
 
 const REPORT_STAGES = [
@@ -1295,7 +1465,7 @@ function ReportPanel({ loading, onGenerate, hasSession }: { loading: boolean; on
           onClick={onGenerate}
           disabled={!hasSession || loading}
           size="lg"
-          className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-0 px-8"
+          className="gap-2 bg-gradient-to-r from-cyan-700 to-emerald-600 hover:from-cyan-800 hover:to-emerald-700 text-white border-0 px-8"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
           {loading ? 'Generating...' : 'Download Report'}
@@ -1316,7 +1486,7 @@ function ReportPanel({ loading, onGenerate, hasSession }: { loading: boolean; on
               </div>
               <div className="h-2.5 rounded-full bg-muted overflow-hidden">
                 <motion.div
-                  className="h-full rounded-full bg-gradient-to-r from-purple-600 to-pink-500"
+                  className="h-full rounded-full bg-gradient-to-r from-cyan-700 to-emerald-600"
                   initial={{ width: 0 }}
                   animate={{ width: `${progress}%` }}
                   transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -1455,18 +1625,56 @@ function LoadingSkeleton() {
 }
 
 function corrColor(val: number): string {
-  if (val >= 0.7) return '#7c3aed';
-  if (val >= 0.4) return '#a78bfa';
-  if (val >= 0.1) return '#ddd6fe';
+  if (val >= 0.7) return '#0369a1';
+  if (val >= 0.4) return '#0ea5e9';
+  if (val >= 0.1) return '#bae6fd';
   if (val >= -0.1) return '#f3f4f6';
-  if (val >= -0.4) return '#fecaca';
-  if (val >= -0.7) return '#f87171';
-  return '#ef4444';
+  if (val >= -0.4) return '#fed7aa';
+  if (val >= -0.7) return '#fdba74';
+  return '#f97316';
 }
 
 function truncateLabel(text: string, max: number): string {
   if (!text) return '';
   return text.length > max ? text.slice(0, max - 1) + '…' : text;
+}
+
+function getCategoryBarColor(value: string): string {
+  const text = value || '';
+  let hash = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    hash = (hash << 5) - hash + text.charCodeAt(i);
+    hash |= 0;
+  }
+  const idx = Math.abs(hash) % CATEGORY_BAR_COLORS.length;
+  return CATEGORY_BAR_COLORS[idx];
+}
+
+function computeDataQualityScore(summary: AnalyticsSummary): number {
+  const missingPenalty = Math.min(summary.missing_pct, 40);
+  const duplicateRate = summary.rows > 0 ? (summary.duplicates / summary.rows) * 100 : 0;
+  const duplicatePenalty = Math.min(duplicateRate, 35);
+  const diversityBonus = summary.numeric_columns > 0 && summary.categorical_columns > 0 ? 5 : 0;
+  return Math.max(0, Math.min(100, Math.round(100 - missingPenalty - duplicatePenalty + diversityBonus)));
+}
+
+function bytesToDisplay(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let value = bytes;
+  let idx = 0;
+  while (value >= 1024 && idx < units.length - 1) {
+    value /= 1024;
+    idx += 1;
+  }
+  return `${value.toFixed(value >= 10 ? 1 : 2)} ${units[idx]}`;
+}
+
+function formatDateTime(iso: string): string {
+  if (!iso) return 'N/A';
+  const dt = new Date(iso);
+  if (Number.isNaN(dt.getTime())) return 'N/A';
+  return dt.toLocaleString();
 }
 
 export default AnalyticsWorkspace;
