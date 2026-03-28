@@ -7,7 +7,7 @@ import {
   FileText, Table2, ChevronLeft, ChevronRight, Download,
   AlertTriangle, Clock, Trash2, FileUp, Loader2, X,
   TrendingUp, Database, Eye, PieChart, BoxSelect, Info,
-  ScatterChart as ScatterIcon, BarChart2, Maximize2, Sparkles,
+  ScatterChart as ScatterIcon, BarChart2, Maximize2, Sparkles, SlidersHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,7 @@ import {
   type OutlierData,
   type TimeseriesData,
   type PreviewData,
+  type SimulationResult,
 } from '@/services/analyticsApi';
 
 // tab config
@@ -41,6 +42,7 @@ const TABS = [
   { id: 'correlation', icon: GitCompareArrows, label: 'Correlation' },
   { id: 'distributions', icon: Activity, label: 'Distributions' },
   { id: 'scatter', icon: ScatterIcon, label: 'Scatter & Box' },
+  { id: 'simulation', icon: SlidersHorizontal, label: 'Simulation' },
   { id: 'history', icon: Clock, label: 'History' },
   { id: 'report', icon: FileText, label: 'Report' },
 ] as const;
@@ -88,11 +90,16 @@ const AnalyticsWorkspace = () => {
   const [scatterColY, setScatterColY] = useState('');
   const [boxPlotData, setBoxPlotData] = useState<BoxPlotData | null>(null);
   const [boxPlotCol, setBoxPlotCol] = useState('');
+  const [simulationTargetCol, setSimulationTargetCol] = useState('');
+  const [simulationDriverCol, setSimulationDriverCol] = useState('');
+  const [simulationChangePct, setSimulationChangePct] = useState(10);
+  const [simulationData, setSimulationData] = useState<SimulationResult | null>(null);
 
   const [uploading, setUploading] = useState(false);
   const [loadingTab, setLoadingTab] = useState(false);
   const [scatterLoading, setScatterLoading] = useState(false);
   const [boxPlotLoading, setBoxPlotLoading] = useState(false);
+  const [simulationLoading, setSimulationLoading] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedDistCol, setSelectedDistCol] = useState<string>('');
@@ -146,6 +153,10 @@ const AnalyticsWorkspace = () => {
       setScatterColX('');
       setScatterColY('');
       setBoxPlotCol('');
+      setSimulationTargetCol('');
+      setSimulationDriverCol('');
+      setSimulationChangePct(10);
+      setSimulationData(null);
       setDistributionBins(20);
       setPanelInsights({});
       setPanelInsightLoading({});
@@ -168,8 +179,23 @@ const AnalyticsWorkspace = () => {
     if (!sessionId && tab !== 'history') return;
     setLoadingTab(true);
     try {
-      if (sessionId && (tab === 'columns' || tab === 'distributions' || tab === 'scatter') && columns.length === 0) {
-        setColumns(await analyticsApi.getColumns(sessionId));
+      if (sessionId && (tab === 'columns' || tab === 'distributions' || tab === 'scatter' || tab === 'simulation') && columns.length === 0) {
+        const cols = await analyticsApi.getColumns(sessionId);
+        setColumns(cols);
+        if (tab === 'simulation') {
+          const nums = cols.filter((c) => c.category === 'numeric').map((c) => c.name);
+          if (nums.length >= 2) {
+            setSimulationDriverCol((prev) => prev || nums[0]);
+            setSimulationTargetCol((prev) => prev || nums[1]);
+          }
+        }
+      }
+      if (sessionId && tab === 'simulation' && columns.length > 0) {
+        const nums = columns.filter((c) => c.category === 'numeric').map((c) => c.name);
+        if (nums.length >= 2) {
+          setSimulationDriverCol((prev) => prev || nums[0]);
+          setSimulationTargetCol((prev) => prev || nums[1]);
+        }
       }
       if (sessionId && tab === 'correlation' && !correlation) {
         setCorrelation(await analyticsApi.getCorrelation(sessionId));
@@ -185,7 +211,7 @@ const AnalyticsWorkspace = () => {
       setLoadingTab(false);
       setHistoryLoading(false);
     }
-  }, [sessionId, columns.length, correlation]);
+  }, [sessionId, columns, columns.length, correlation]);
 
   const loadDistribution = useCallback(async (col: string, bins: number) => {
     const cacheKey = `${col}:${bins}`;
@@ -262,12 +288,16 @@ const AnalyticsWorkspace = () => {
     setPreview(null);
     setScatterData(null);
     setBoxPlotData(null);
+    setSimulationTargetCol('');
+    setSimulationDriverCol('');
+    setSimulationChangePct(10);
+    setSimulationData(null);
     setPanelInsights({});
     setPanelInsightLoading({});
     setActiveTab('upload');
   }, [sessionId]);
 
-  const explainPanel = useCallback(async (panel: 'summary' | 'columns' | 'correlation' | 'distribution' | 'scatter_box' | 'timeseries', context: Record<string, unknown>) => {
+  const explainPanel = useCallback(async (panel: 'summary' | 'columns' | 'correlation' | 'distribution' | 'scatter_box' | 'timeseries' | 'simulation', context: Record<string, unknown>) => {
     setPanelInsightLoading((prev) => ({ ...prev, [panel]: true }));
     try {
       const res = await analyticsApi.explainChart({ panel, context });
@@ -278,6 +308,19 @@ const AnalyticsWorkspace = () => {
       setPanelInsightLoading((prev) => ({ ...prev, [panel]: false }));
     }
   }, []);
+
+  const runSimulation = useCallback(async () => {
+    if (!sessionId || !simulationTargetCol || !simulationDriverCol) return;
+    setSimulationLoading(true);
+    try {
+      const res = await analyticsApi.getSimulation(sessionId, simulationTargetCol, simulationDriverCol, simulationChangePct);
+      setSimulationData(res);
+    } catch (e: any) {
+      setError(e.message || 'Simulation failed');
+    } finally {
+      setSimulationLoading(false);
+    }
+  }, [sessionId, simulationTargetCol, simulationDriverCol, simulationChangePct]);
 
   const hasSession = !!sessionId && !!summary;
 
@@ -468,6 +511,28 @@ const AnalyticsWorkspace = () => {
                   onBoxPlotColChange={(c) => { setBoxPlotCol(c); loadBoxPlot(c); }}
                   loading={loadingTab}
                 /></div>
+            )}
+            {activeTab === 'simulation' && (
+              <div key="simulation" id="panel-simulation" role="tabpanel"><SimulationPanel
+                columns={columns}
+                targetCol={simulationTargetCol}
+                driverCol={simulationDriverCol}
+                changePct={simulationChangePct}
+                data={simulationData}
+                loading={loadingTab || simulationLoading}
+                onTargetColChange={setSimulationTargetCol}
+                onDriverColChange={setSimulationDriverCol}
+                onChangePctChange={setSimulationChangePct}
+                onRun={runSimulation}
+                insight={panelInsights.simulation}
+                insightLoading={!!panelInsightLoading.simulation}
+                onExplain={() => explainPanel('simulation', {
+                  target: simulationTargetCol,
+                  driver: simulationDriverCol,
+                  change_pct: simulationChangePct,
+                  result: simulationData,
+                })}
+              /></div>
             )}
             {activeTab === 'history' && (
               <div key="history" id="panel-history" role="tabpanel"><HistoryPanel history={history} loading={historyLoading} /></div>
@@ -1497,6 +1562,149 @@ function ScatterBoxPanel({
           </ChartZoomModal>
         )}
       </AnimatePresence>
+    </motion.div>
+  );
+}
+
+// ─── Simulation Panel ───
+
+function SimulationPanel({
+  columns,
+  targetCol,
+  driverCol,
+  changePct,
+  data,
+  loading,
+  onTargetColChange,
+  onDriverColChange,
+  onChangePctChange,
+  onRun,
+  insight,
+  insightLoading,
+  onExplain,
+}: {
+  columns: ColumnInfo[];
+  targetCol: string;
+  driverCol: string;
+  changePct: number;
+  data: SimulationResult | null;
+  loading: boolean;
+  onTargetColChange: (v: string) => void;
+  onDriverColChange: (v: string) => void;
+  onChangePctChange: (v: number) => void;
+  onRun: () => void;
+  insight?: string;
+  insightLoading: boolean;
+  onExplain: () => void;
+}) {
+  const numericCols = columns.filter((c) => c.category === 'numeric').map((c) => c.name);
+  const hasEnough = numericCols.length >= 2;
+
+  const comparisonData = data ? [
+    { name: 'Baseline', driver: data.baseline.driver, target: data.baseline.target },
+    { name: 'Simulated', driver: data.simulated.driver, target: data.simulated.target },
+  ] : [];
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+      <h1 className="text-2xl font-bold mb-1">What-if Simulation</h1>
+      <p className="text-sm text-muted-foreground mb-6">Model how changing one driver can impact a target KPI using dataset relationships.</p>
+      <InsightCard insight={insight} loading={insightLoading} onExplain={onExplain} />
+
+      {!hasEnough ? (
+        <InfoBanner message="Simulation requires at least 2 numeric columns." variant="warning" />
+      ) : (
+        <>
+          <div className="rounded-xl border border-border bg-card p-5 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Driver Column</p>
+                <Select value={driverCol} onValueChange={onDriverColChange}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select driver" /></SelectTrigger>
+                  <SelectContent>
+                    {numericCols.map((c) => <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Target Column</p>
+                <Select value={targetCol} onValueChange={onTargetColChange}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select target" /></SelectTrigger>
+                  <SelectContent>
+                    {numericCols.map((c) => <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <Button className="w-full h-9 text-xs" onClick={onRun} disabled={loading || !driverCol || !targetCol || driverCol === targetCol}>
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Run Simulation'}
+                </Button>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border p-3 bg-muted/30">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-medium">Driver Change Scenario</p>
+                <p className="text-xs font-semibold text-cyan-700 dark:text-cyan-300">{changePct > 0 ? '+' : ''}{changePct}%</p>
+              </div>
+              <input
+                type="range"
+                min={-50}
+                max={100}
+                step={1}
+                value={changePct}
+                onChange={(e) => onChangePctChange(Number(e.target.value))}
+                className="w-full accent-cyan-700"
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                <span>-50%</span>
+                <span>0%</span>
+                <span>+100%</span>
+              </div>
+            </div>
+          </div>
+
+          {data && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="rounded-lg border border-border bg-card p-3">
+                  <p className="text-[10px] text-muted-foreground uppercase">Target Delta</p>
+                  <p className="text-base font-semibold">{data.impact.target_delta.toLocaleString(undefined, { maximumFractionDigits: 3 })}</p>
+                </div>
+                <div className="rounded-lg border border-border bg-card p-3">
+                  <p className="text-[10px] text-muted-foreground uppercase">Target Delta %</p>
+                  <p className="text-base font-semibold">{data.impact.target_delta_pct.toLocaleString(undefined, { maximumFractionDigits: 2 })}%</p>
+                </div>
+                <div className="rounded-lg border border-border bg-card p-3">
+                  <p className="text-[10px] text-muted-foreground uppercase">Correlation</p>
+                  <p className="text-base font-semibold">{data.model.correlation.toLocaleString(undefined, { maximumFractionDigits: 3 })}</p>
+                </div>
+                <div className="rounded-lg border border-border bg-card p-3">
+                  <p className="text-[10px] text-muted-foreground uppercase">Sample Size</p>
+                  <p className="text-base font-semibold">{data.model.sample_size.toLocaleString()}</p>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border bg-card p-5">
+                <h3 className="font-semibold text-sm mb-3">Baseline vs Simulated</h3>
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={comparisonData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                      <YAxis tick={{ fontSize: 10 }} />
+                      <Tooltip contentStyle={TOOLTIP_STYLE} />
+                      <Legend />
+                      <Bar dataKey="driver" fill="#0e7490" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="target" fill="#f97316" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </motion.div>
   );
 }

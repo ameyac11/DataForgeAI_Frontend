@@ -92,6 +92,17 @@ export interface PreviewData {
   total_pages: number;
 }
 
+export interface SimulationResult {
+  target_column: string;
+  driver_column: string;
+  change_pct: number;
+  baseline: { driver: number; target: number };
+  simulated: { driver: number; target: number };
+  impact: { target_delta: number; target_delta_pct: number; direction: 'increase' | 'decrease' };
+  model: { slope: number; intercept: number; correlation: number; confidence: number; sample_size: number };
+  error: string | null;
+}
+
 export interface AnalyticsHistoryItem {
   session_id: string;
   filename: string;
@@ -106,7 +117,7 @@ export interface AnalyticsHistoryItem {
 }
 
 export interface ExplainChartRequest {
-  panel: 'summary' | 'columns' | 'correlation' | 'distribution' | 'scatter_box' | 'timeseries';
+  panel: 'summary' | 'columns' | 'correlation' | 'distribution' | 'scatter_box' | 'timeseries' | 'simulation';
   context: Record<string, unknown>;
 }
 
@@ -187,6 +198,11 @@ export const analyticsApi = {
 
   getPreview: (sessionId: string, page = 1, pageSize = 50) =>
     analyticsRequest<PreviewData>(`${ENDPOINTS.ANALYTICS_PREVIEW}?session_id=${sessionId}&page=${page}&page_size=${pageSize}`),
+
+  getSimulation: (sessionId: string, targetCol: string, driverCol: string, changePct: number) =>
+    analyticsRequest<SimulationResult>(
+      `${ENDPOINTS.ANALYTICS_SIMULATION}?session_id=${sessionId}&target_col=${encodeURIComponent(targetCol)}&driver_col=${encodeURIComponent(driverCol)}&change_pct=${changePct}`
+    ),
 
   downloadReport: async (sessionId: string) => {
     const url = `${API_URL}${ENDPOINTS.ANALYTICS_REPORT}?session_id=${sessionId}`;

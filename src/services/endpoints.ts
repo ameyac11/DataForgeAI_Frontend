@@ -42,6 +42,7 @@ export const ENDPOINTS = {
     ANALYTICS_OUTLIERS: '/analytics/outliers',
     ANALYTICS_TIMESERIES: '/analytics/timeseries',
     ANALYTICS_PREVIEW: '/analytics/preview',
+    ANALYTICS_SIMULATION: '/analytics/simulation',
     ANALYTICS_REPORT: '/analytics/report',
     ANALYTICS_SESSION: '/analytics/session',
     ANALYTICS_HISTORY: '/analytics/history',
