@@ -45,6 +45,7 @@ export const ENDPOINTS = {
     ANALYTICS_REPORT: '/analytics/report',
     ANALYTICS_SESSION: '/analytics/session',
     ANALYTICS_HISTORY: '/analytics/history',
+    ANALYTICS_EXPLAIN: '/analytics/explain',
 
     // Usage
     USAGE_STATUS: '/usage/status',

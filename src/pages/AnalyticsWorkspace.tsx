@@ -1,11 +1,13 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   Upload, BarChart3, Columns3, GitCompareArrows, Activity,
   FileText, Table2, ChevronLeft, ChevronRight, Download,
   AlertTriangle, Clock, Trash2, FileUp, Loader2, X,
   TrendingUp, Database, Eye, PieChart, BoxSelect, Info,
-  ScatterChart as ScatterIcon, BarChart2, Maximize2,
+  ScatterChart as ScatterIcon, BarChart2, Maximize2, Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -95,6 +97,9 @@ const AnalyticsWorkspace = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedDistCol, setSelectedDistCol] = useState<string>('');
   const [selectedOutlierCol, setSelectedOutlierCol] = useState<string>('');
+  const [distributionBins, setDistributionBins] = useState<number>(20);
+  const [panelInsights, setPanelInsights] = useState<Record<string, string>>({});
+  const [panelInsightLoading, setPanelInsightLoading] = useState<Record<string, boolean>>({});
 
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -141,6 +146,9 @@ const AnalyticsWorkspace = () => {
       setScatterColX('');
       setScatterColY('');
       setBoxPlotCol('');
+      setDistributionBins(20);
+      setPanelInsights({});
+      setPanelInsightLoading({});
       setActiveTab('summary');
     } catch (e: any) {
       setError(e.message || 'Upload failed');
@@ -179,11 +187,12 @@ const AnalyticsWorkspace = () => {
     }
   }, [sessionId, columns.length, correlation]);
 
-  const loadDistribution = useCallback(async (col: string) => {
-    if (!sessionId || distributions[col]) return;
+  const loadDistribution = useCallback(async (col: string, bins: number) => {
+    const cacheKey = `${col}:${bins}`;
+    if (!sessionId || distributions[cacheKey]) return;
     try {
-      const d = await analyticsApi.getDistribution(sessionId, col);
-      setDistributions(prev => ({ ...prev, [col]: d }));
+      const d = await analyticsApi.getDistribution(sessionId, col, bins);
+      setDistributions(prev => ({ ...prev, [cacheKey]: d }));
     } catch (e: any) { setError(e.message); }
   }, [sessionId, distributions]);
 
@@ -253,8 +262,22 @@ const AnalyticsWorkspace = () => {
     setPreview(null);
     setScatterData(null);
     setBoxPlotData(null);
+    setPanelInsights({});
+    setPanelInsightLoading({});
     setActiveTab('upload');
   }, [sessionId]);
+
+  const explainPanel = useCallback(async (panel: 'summary' | 'columns' | 'correlation' | 'distribution' | 'scatter_box' | 'timeseries', context: Record<string, unknown>) => {
+    setPanelInsightLoading((prev) => ({ ...prev, [panel]: true }));
+    try {
+      const res = await analyticsApi.explainChart({ panel, context });
+      setPanelInsights((prev) => ({ ...prev, [panel]: res.insight }));
+    } catch (e: any) {
+      setError(e.message || 'Failed to generate insight');
+    } finally {
+      setPanelInsightLoading((prev) => ({ ...prev, [panel]: false }));
+    }
+  }, []);
 
   const hasSession = !!sessionId && !!summary;
 
@@ -346,13 +369,54 @@ const AnalyticsWorkspace = () => {
               <div key="upload" id="panel-upload" role="tabpanel"><UploadPanel uploading={uploading} fileRef={fileRef} onUpload={handleUpload} onDrop={handleDrop} hasSession={hasSession} summary={summary} /></div>
             )}
             {activeTab === 'summary' && summary && (
-              <div key="summary" id="panel-summary" role="tabpanel"><SummaryPanel summary={summary} loading={loadingTab} /></div>
+              <div key="summary" id="panel-summary" role="tabpanel"><SummaryPanel
+                summary={summary}
+                loading={loadingTab}
+                insight={panelInsights.summary}
+                insightLoading={!!panelInsightLoading.summary}
+                onExplain={() => explainPanel('summary', {
+                  filename: summary.filename,
+                  rows: summary.rows,
+                  columns: summary.columns,
+                  missing_pct: summary.missing_pct,
+                  duplicates: summary.duplicates,
+                  numeric_columns: summary.numeric_columns,
+                  categorical_columns: summary.categorical_columns,
+                })}
+              /></div>
             )}
             {activeTab === 'columns' && (
-              <div key="columns" id="panel-columns" role="tabpanel"><ColumnsPanel columns={columns} loading={loadingTab} /></div>
+              <div key="columns" id="panel-columns" role="tabpanel"><ColumnsPanel
+                columns={columns}
+                loading={loadingTab}
+                insight={panelInsights.columns}
+                insightLoading={!!panelInsightLoading.columns}
+                onExplain={() => explainPanel('columns', {
+                  total_columns: columns.length,
+                  numeric_columns: columns.filter(c => c.category === 'numeric').length,
+                  categorical_columns: columns.filter(c => c.category === 'categorical').length,
+                  datetime_columns: columns.filter(c => c.category === 'datetime').length,
+                  top_missing: columns
+                    .slice()
+                    .sort((a, b) => b.missing - a.missing)
+                    .slice(0, 5)
+                    .map(c => ({ name: c.name, missing: c.missing, missing_pct: c.missing_pct })),
+                })}
+              /></div>
             )}
             {activeTab === 'correlation' && (
-              <div key="correlation" id="panel-correlation" role="tabpanel"><CorrelationPanel correlation={correlation} timeseries={timeseries} loading={loadingTab} /></div>
+              <div key="correlation" id="panel-correlation" role="tabpanel"><CorrelationPanel
+                correlation={correlation}
+                timeseries={timeseries}
+                loading={loadingTab}
+                insight={panelInsights.correlation}
+                insightLoading={!!panelInsightLoading.correlation}
+                onExplain={() => explainPanel('correlation', {
+                  columns: correlation?.columns || [],
+                  matrix: correlation?.matrix || [],
+                  timeseries_columns: timeseries.map((t) => t.column),
+                })}
+              /></div>
             )}
             {activeTab === 'distributions' && (
               <div key="distributions" id="panel-distributions" role="tabpanel"><DistributionsPanel
@@ -361,7 +425,21 @@ const AnalyticsWorkspace = () => {
                   outliers={outliers}
                   selectedDistCol={selectedDistCol}
                   selectedOutlierCol={selectedOutlierCol}
-                  onSelectDist={(c) => { setSelectedDistCol(c); loadDistribution(c); }}
+                  distributionBins={distributionBins}
+                  insight={panelInsights.distribution}
+                  insightLoading={!!panelInsightLoading.distribution}
+                  onExplain={() => explainPanel('distribution', {
+                    selected_column: selectedDistCol,
+                    bins: distributionBins,
+                    distribution: selectedDistCol ? distributions[`${selectedDistCol}:${distributionBins}`] || null : null,
+                    outlier_column: selectedOutlierCol,
+                    outlier: selectedOutlierCol ? outliers[selectedOutlierCol] || null : null,
+                  })}
+                  onDistributionBinsChange={(bins) => {
+                    setDistributionBins(bins);
+                    if (selectedDistCol) loadDistribution(selectedDistCol, bins);
+                  }}
+                  onSelectDist={(c) => { setSelectedDistCol(c); loadDistribution(c, distributionBins); }}
                   onSelectOutlier={(c) => { setSelectedOutlierCol(c); loadOutlier(c); }}
                   loading={loadingTab}
                 /></div>
@@ -378,6 +456,15 @@ const AnalyticsWorkspace = () => {
                   boxPlotData={boxPlotData}
                   boxPlotCol={boxPlotCol}
                   boxPlotLoading={boxPlotLoading}
+                  insight={panelInsights.scatter_box}
+                  insightLoading={!!panelInsightLoading.scatter_box}
+                  onExplain={() => explainPanel('scatter_box', {
+                    scatter: scatterData,
+                    boxplot: boxPlotData,
+                    x_axis: scatterColX,
+                    y_axis: scatterColY,
+                    box_column: boxPlotCol,
+                  })}
                   onBoxPlotColChange={(c) => { setBoxPlotCol(c); loadBoxPlot(c); }}
                   loading={loadingTab}
                 /></div>
@@ -413,6 +500,44 @@ function InfoBanner({ message, variant = 'info' }: { message: string; variant?: 
     )}>
       <Info className="w-4 h-4 shrink-0 mt-0.5" />
       <span>{message}</span>
+    </div>
+  );
+}
+
+function InsightCard({ insight, loading, onExplain }: { insight?: string; loading: boolean; onExplain: () => void }) {
+  return (
+    <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4 mb-4">
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <p className="text-xs font-semibold tracking-wide uppercase text-cyan-700 dark:text-cyan-300 flex items-center gap-2">
+          <Sparkles className="w-3.5 h-3.5" /> Explain this chart
+        </p>
+        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onExplain} disabled={loading}>
+          {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Generate AI Insight'}
+        </Button>
+      </div>
+      {insight ? (
+        <div className="text-xs leading-relaxed text-muted-foreground overflow-hidden">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              h1: ({ children }) => <h4 className="text-sm font-semibold text-foreground mt-2 mb-1">{children}</h4>,
+              h2: ({ children }) => <h4 className="text-sm font-semibold text-foreground mt-2 mb-1">{children}</h4>,
+              h3: ({ children }) => <h5 className="text-xs font-semibold text-foreground mt-2 mb-1">{children}</h5>,
+              h4: ({ children }) => <h5 className="text-xs font-semibold text-foreground mt-2 mb-1">{children}</h5>,
+              p: ({ children }) => <p className="mb-2 text-xs leading-relaxed">{children}</p>,
+              ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 mb-2">{children}</ul>,
+              ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 mb-2">{children}</ol>,
+              li: ({ children }) => <li className="text-xs">{children}</li>,
+              strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+              code: ({ children }) => <code className="px-1 py-0.5 rounded bg-cyan-700/10 text-cyan-700 dark:text-cyan-300">{children}</code>,
+            }}
+          >
+            {insight}
+          </ReactMarkdown>
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">Get a concise AI interpretation with key signal, interpretation, and recommended action.</p>
+      )}
     </div>
   );
 }
@@ -484,9 +609,10 @@ function UploadPanel({ uploading, fileRef, onUpload, onDrop, hasSession, summary
 
 // ─── Summary Panel ───
 
-function SummaryPanel({ summary, loading }: { summary: AnalyticsSummary; loading: boolean }) {
+function SummaryPanel({ summary, loading, insight, insightLoading, onExplain }: { summary: AnalyticsSummary; loading: boolean; insight?: string; insightLoading: boolean; onExplain: () => void }) {
   const [zoomed, setZoomed] = useState(false);
   if (loading) return <LoadingSkeleton />;
+  const executiveInsights = buildExecutiveInsights(summary);
 
   const metrics = [
     { label: 'Rows', value: summary.rows.toLocaleString(), icon: Database, color: 'text-violet-500' },
@@ -507,6 +633,7 @@ function SummaryPanel({ summary, loading }: { summary: AnalyticsSummary; loading
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
       <h1 className="text-2xl font-bold mb-1">Dataset Summary</h1>
       <p className="text-sm text-muted-foreground mb-6">{summary.filename}</p>
+      <InsightCard insight={insight} loading={insightLoading} onExplain={onExplain} />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {metrics.map((m, i) => (
@@ -546,6 +673,20 @@ function SummaryPanel({ summary, loading }: { summary: AnalyticsSummary; loading
         </div>
       </div>
 
+      <div className="mt-6 rounded-xl border border-border bg-card p-5">
+        <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-cyan-700" /> Executive Insights
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {executiveInsights.map((insight) => (
+            <div key={insight.title} className="rounded-lg border border-border/70 bg-muted/30 p-3">
+              <p className="text-xs font-semibold text-foreground">{insight.title}</p>
+              <p className="text-xs text-muted-foreground mt-1">{insight.description}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <AnimatePresence>
         {zoomed && (
           <ChartZoomModal title="Data Type Distribution" onClose={() => setZoomed(false)}>
@@ -568,13 +709,25 @@ function SummaryPanel({ summary, loading }: { summary: AnalyticsSummary; loading
 
 // ─── Columns Panel ───
 
-function ColumnsPanel({ columns, loading }: { columns: ColumnInfo[]; loading: boolean }) {
+function ColumnsPanel({ columns, loading, insight, insightLoading, onExplain }: { columns: ColumnInfo[]; loading: boolean; insight?: string; insightLoading: boolean; onExplain: () => void }) {
   const [zoomedCol, setZoomedCol] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'numeric' | 'categorical' | 'datetime'>('all');
+  const [sortBy, setSortBy] = useState<'alpha' | 'missing' | 'unique'>('missing');
   if (loading) return <LoadingSkeleton />;
 
   const numeric = columns.filter(c => c.category === 'numeric');
   const categorical = columns.filter(c => c.category === 'categorical');
   const datetime = columns.filter(c => c.category === 'datetime');
+
+  const filteredColumns = [...columns]
+    .filter((col) => categoryFilter === 'all' || col.category === categoryFilter)
+    .filter((col) => col.name.toLowerCase().includes(search.trim().toLowerCase()))
+    .sort((a, b) => {
+      if (sortBy === 'alpha') return a.name.localeCompare(b.name);
+      if (sortBy === 'unique') return b.unique - a.unique;
+      return b.missing - a.missing;
+    });
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
@@ -582,11 +735,41 @@ function ColumnsPanel({ columns, loading }: { columns: ColumnInfo[]; loading: bo
       <p className="text-sm text-muted-foreground mb-6">
         {numeric.length} numeric • {categorical.length} categorical • {datetime.length} datetime
       </p>
+      <InsightCard insight={insight} loading={insightLoading} onExplain={onExplain} />
+
+      <div className="mb-4 rounded-xl border border-border bg-card/70 p-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search column name..."
+            className="h-9 rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-cyan-600/30"
+          />
+          <Select value={categoryFilter} onValueChange={(v: any) => setCategoryFilter(v)}>
+            <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Filter category" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" className="text-xs">All categories</SelectItem>
+              <SelectItem value="numeric" className="text-xs">Numeric</SelectItem>
+              <SelectItem value="categorical" className="text-xs">Categorical</SelectItem>
+              <SelectItem value="datetime" className="text-xs">Datetime</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+            <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Sort by" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="missing" className="text-xs">Sort by missing</SelectItem>
+              <SelectItem value="unique" className="text-xs">Sort by unique</SelectItem>
+              <SelectItem value="alpha" className="text-xs">Sort A-Z</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
       {columns.length === 0 && <InfoBanner message="No columns found in dataset." />}
+      {columns.length > 0 && filteredColumns.length === 0 && <InfoBanner message="No columns match current filters." variant="warning" />}
 
       <div className="space-y-3">
-        {columns.map((col, i) => (
+        {filteredColumns.map((col, i) => (
           <motion.div
             key={col.name}
             initial={{ opacity: 0, x: -10 }}
@@ -683,8 +866,9 @@ function ColumnsPanel({ columns, loading }: { columns: ColumnInfo[]; loading: bo
 
 // ─── Correlation Panel ───
 
-function CorrelationPanel({ correlation, timeseries, loading }: {
+function CorrelationPanel({ correlation, timeseries, loading, insight, insightLoading, onExplain }: {
   correlation: CorrelationData | null; timeseries: TimeseriesData[]; loading: boolean;
+  insight?: string; insightLoading: boolean; onExplain: () => void;
 }) {
   const [zoomedHeatmap, setZoomedHeatmap] = useState(false);
   const [zoomedTs, setZoomedTs] = useState<string | null>(null);
@@ -699,6 +883,7 @@ function CorrelationPanel({ correlation, timeseries, loading }: {
 
   const hasMessage = correlation?.message && correlation.columns.length < 2;
   const hasCorr = correlation && correlation.columns.length >= 2;
+  const corrInsights = hasCorr && correlation ? deriveCorrelationInsights(correlation) : null;
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
@@ -706,6 +891,7 @@ function CorrelationPanel({ correlation, timeseries, loading }: {
       <p className="text-sm text-muted-foreground mb-6">
         {hasCorr ? `${correlation.columns.length} numeric columns analyzed` : 'Correlation heatmap & time series'}
       </p>
+      <InsightCard insight={insight} loading={insightLoading} onExplain={onExplain} />
 
       {/* info message when not enough numeric columns */}
       {hasMessage && (
@@ -721,6 +907,23 @@ function CorrelationPanel({ correlation, timeseries, loading }: {
             </h3>
             <ExpandButton onClick={() => setZoomedHeatmap(true)} />
           </div>
+
+          {corrInsights && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
+              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs">
+                <p className="font-semibold text-emerald-700 dark:text-emerald-300">Strongest Positive</p>
+                <p className="text-muted-foreground mt-0.5">
+                  {corrInsights.positive.left} × {corrInsights.positive.right} = {corrInsights.positive.value.toFixed(3)} ({correlationStrengthLabel(corrInsights.positive.value)})
+                </p>
+              </div>
+              <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 px-3 py-2 text-xs">
+                <p className="font-semibold text-orange-700 dark:text-orange-300">Strongest Negative</p>
+                <p className="text-muted-foreground mt-0.5">
+                  {corrInsights.negative.left} × {corrInsights.negative.right} = {corrInsights.negative.value.toFixed(3)} ({correlationStrengthLabel(corrInsights.negative.value)})
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Responsive heatmap grid — fills available width */}
           <div className="relative">
@@ -793,6 +996,9 @@ function CorrelationPanel({ correlation, timeseries, loading }: {
                 </p>
                 <p className="text-[11px] text-cyan-300 mt-0.5">
                   Correlation: {hoveredCorr.value.toFixed(3)}
+                </p>
+                <p className="text-[10px] text-slate-300 mt-0.5">
+                  {correlationStrengthLabel(hoveredCorr.value)}
                 </p>
               </div>
             )}
@@ -908,10 +1114,15 @@ function CorrelationPanel({ correlation, timeseries, loading }: {
 
 // ─── Distributions Panel ───
 
-function DistributionsPanel({ columns, distributions, outliers, selectedDistCol, selectedOutlierCol, onSelectDist, onSelectOutlier, loading }: {
+function DistributionsPanel({ columns, distributions, outliers, selectedDistCol, selectedOutlierCol, distributionBins, insight, insightLoading, onExplain, onDistributionBinsChange, onSelectDist, onSelectOutlier, loading }: {
   columns: ColumnInfo[]; distributions: Record<string, DistributionData>;
   outliers: Record<string, OutlierData>;
   selectedDistCol: string; selectedOutlierCol: string;
+  distributionBins: number;
+  insight?: string;
+  insightLoading: boolean;
+  onExplain: () => void;
+  onDistributionBinsChange: (bins: number) => void;
   onSelectDist: (c: string) => void; onSelectOutlier: (c: string) => void;
   loading: boolean;
 }) {
@@ -920,13 +1131,14 @@ function DistributionsPanel({ columns, distributions, outliers, selectedDistCol,
 
   const numericCols = columns.filter(c => c.category === 'numeric');
   const allCols = columns.map(c => c.name);
-  const dist = distributions[selectedDistCol];
+  const dist = distributions[`${selectedDistCol}:${distributionBins}`];
   const outlier = outliers[selectedOutlierCol];
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
       <h1 className="text-2xl font-bold mb-1">Distributions</h1>
       <p className="text-sm text-muted-foreground mb-6">Explore value distributions and detect outliers</p>
+      <InsightCard insight={insight} loading={insightLoading} onExplain={onExplain} />
 
       {/* distribution chart */}
       <div className="rounded-xl border border-border bg-card p-5 mb-6">
@@ -936,6 +1148,12 @@ function DistributionsPanel({ columns, distributions, outliers, selectedDistCol,
           </h3>
           <div className="flex items-center gap-2">
             {dist && <ExpandButton onClick={() => setZoomedDist(true)} />}
+            <Select value={String(distributionBins)} onValueChange={(v) => onDistributionBinsChange(Number(v))}>
+              <SelectTrigger className="w-28 h-8 text-xs"><SelectValue placeholder="Bins" /></SelectTrigger>
+              <SelectContent>
+                {[10, 20, 30, 40, 50].map((b) => <SelectItem key={b} value={String(b)} className="text-xs">{b} bins</SelectItem>)}
+              </SelectContent>
+            </Select>
             <Select value={selectedDistCol} onValueChange={onSelectDist}>
               <SelectTrigger className="w-52 h-8 text-xs"><SelectValue placeholder="Select column" /></SelectTrigger>
               <SelectContent>
@@ -1043,7 +1261,7 @@ function DistributionsPanel({ columns, distributions, outliers, selectedDistCol,
 function ScatterBoxPanel({
   columns, scatterData, scatterColX, scatterColY, scatterLoading,
   onScatterColXChange, onScatterColYChange,
-  boxPlotData, boxPlotCol, boxPlotLoading, onBoxPlotColChange, loading,
+  boxPlotData, boxPlotCol, boxPlotLoading, insight, insightLoading, onExplain, onBoxPlotColChange, loading,
 }: {
   columns: ColumnInfo[];
   scatterData: ScatterData | null;
@@ -1051,6 +1269,7 @@ function ScatterBoxPanel({
   onScatterColXChange: (c: string) => void; onScatterColYChange: (c: string) => void;
   boxPlotData: BoxPlotData | null;
   boxPlotCol: string; boxPlotLoading: boolean;
+  insight?: string; insightLoading: boolean; onExplain: () => void;
   onBoxPlotColChange: (c: string) => void;
   loading: boolean;
 }) {
@@ -1066,6 +1285,7 @@ function ScatterBoxPanel({
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
       <h1 className="text-2xl font-bold mb-1">Scatter Plot & Box Plot</h1>
       <p className="text-sm text-muted-foreground mb-6">Visualize relationships and distributions of numeric data</p>
+      <InsightCard insight={insight} loading={insightLoading} onExplain={onExplain} />
 
       {/* Scatter Plot */}
       <div className="rounded-xl border border-border bg-card p-5 mb-6">
@@ -1648,6 +1868,69 @@ function getCategoryBarColor(value: string): string {
   }
   const idx = Math.abs(hash) % CATEGORY_BAR_COLORS.length;
   return CATEGORY_BAR_COLORS[idx];
+}
+
+function correlationStrengthLabel(value: number): string {
+  const abs = Math.abs(value);
+  if (abs >= 0.85) return 'Very strong relationship';
+  if (abs >= 0.7) return 'Strong relationship';
+  if (abs >= 0.5) return 'Moderate relationship';
+  if (abs >= 0.3) return 'Weak relationship';
+  return 'Very weak relationship';
+}
+
+function deriveCorrelationInsights(correlation: CorrelationData) {
+  const cols = correlation.columns;
+  const matrix = correlation.matrix;
+  let bestPositive = { left: cols[0], right: cols[0], value: -Infinity };
+  let bestNegative = { left: cols[0], right: cols[0], value: Infinity };
+
+  for (let i = 0; i < matrix.length; i += 1) {
+    for (let j = i + 1; j < matrix[i].length; j += 1) {
+      const val = matrix[i][j];
+      if (val > bestPositive.value) {
+        bestPositive = { left: cols[i], right: cols[j], value: val };
+      }
+      if (val < bestNegative.value) {
+        bestNegative = { left: cols[i], right: cols[j], value: val };
+      }
+    }
+  }
+
+  return { positive: bestPositive, negative: bestNegative };
+}
+
+function buildExecutiveInsights(summary: AnalyticsSummary): Array<{ title: string; description: string }> {
+  const qualityScore = computeDataQualityScore(summary);
+  const duplicateRate = summary.rows > 0 ? ((summary.duplicates / summary.rows) * 100).toFixed(2) : '0.00';
+  const numericBalance = summary.columns > 0 ? ((summary.numeric_columns / summary.columns) * 100).toFixed(1) : '0.0';
+
+  return [
+    {
+      title: `Data quality score: ${qualityScore}/100`,
+      description: qualityScore >= 80
+        ? 'Dataset quality is strong and suitable for advanced analytics workflows.'
+        : 'Quality risk detected. Review missing values and duplicate patterns before modeling.',
+    },
+    {
+      title: `Missing data exposure: ${summary.missing_pct}%`,
+      description: summary.missing_pct > 10
+        ? 'High missing ratio may skew trends. Consider imputation or targeted cleanup.'
+        : 'Missing data is within acceptable range for exploratory analysis.',
+    },
+    {
+      title: `Duplicate rate: ${duplicateRate}%`,
+      description: Number(duplicateRate) > 5
+        ? 'Duplicate-heavy records can distort KPIs; de-duplication is recommended.'
+        : 'Duplicate pressure is low, supporting cleaner aggregates and correlation analysis.',
+    },
+    {
+      title: `Numeric coverage: ${numericBalance}%`,
+      description: Number(numericBalance) >= 40
+        ? 'Healthy numeric coverage enables richer statistical and correlation analyses.'
+        : 'Limited numeric coverage. Focus on categorical and frequency-based analytics.',
+    },
+  ];
 }
 
 function computeDataQualityScore(summary: AnalyticsSummary): number {

@@ -105,6 +105,11 @@ export interface AnalyticsHistoryItem {
   last_accessed_at: string;
 }
 
+export interface ExplainChartRequest {
+  panel: 'summary' | 'columns' | 'correlation' | 'distribution' | 'scatter_box' | 'timeseries';
+  context: Record<string, unknown>;
+}
+
 interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -162,8 +167,8 @@ export const analyticsApi = {
   getColumns: (sessionId: string) =>
     analyticsRequest<ColumnInfo[]>(`${ENDPOINTS.ANALYTICS_COLUMNS}?session_id=${sessionId}`),
 
-  getDistribution: (sessionId: string, column: string) =>
-    analyticsRequest<DistributionData>(`${ENDPOINTS.ANALYTICS_DISTRIBUTION}?session_id=${sessionId}&column=${encodeURIComponent(column)}`),
+  getDistribution: (sessionId: string, column: string, bins = 20) =>
+    analyticsRequest<DistributionData>(`${ENDPOINTS.ANALYTICS_DISTRIBUTION}?session_id=${sessionId}&column=${encodeURIComponent(column)}&bins=${bins}`),
 
   getCorrelation: (sessionId: string) =>
     analyticsRequest<CorrelationData>(`${ENDPOINTS.ANALYTICS_CORRELATION}?session_id=${sessionId}`),
@@ -198,4 +203,10 @@ export const analyticsApi = {
 
   getHistory: (limit = 30) =>
     analyticsRequest<AnalyticsHistoryItem[]>(`${ENDPOINTS.ANALYTICS_HISTORY}?limit=${limit}`),
+
+  explainChart: (payload: ExplainChartRequest) =>
+    analyticsRequest<{ insight: string }>(ENDPOINTS.ANALYTICS_EXPLAIN, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
 };
