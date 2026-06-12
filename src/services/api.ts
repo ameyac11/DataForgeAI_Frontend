@@ -7,10 +7,7 @@ export class ApiError extends Error {
   }
 }
 
-/**
- * Core fetch wrapper. Uses `credentials: 'include'` so httpOnly
- * cookies (access_token + refresh_token) are sent automatically.
- */
+/** core fetch wrapper */
 async function request<T>(
   endpoint: string,
   options: RequestInit = {},
@@ -21,7 +18,7 @@ async function request<T>(
     ...options.headers,
   };
 
-  // Only set Content-Type for non-FormData bodies
+  // skip json for formdata
   if (!(options.body instanceof FormData)) {
     (headers as Record<string, string>)['Content-Type'] = 'application/json';
   }
@@ -29,14 +26,14 @@ async function request<T>(
   const response = await fetch(url, {
     ...options,
     headers,
-    credentials: 'include', // send httpOnly cookies
+    credentials: 'include', // set http cookies
   });
 
-  // Try to refresh token on 401
+  // auto refresh token
   if (response.status === 401 && !endpoint.includes('/auth/')) {
     const refreshed = await refreshToken();
     if (refreshed) {
-      // retry original request
+      // retry req
       const retry = await fetch(url, {
         ...options,
         headers,
@@ -46,7 +43,7 @@ async function request<T>(
         return retry.json();
       }
     }
-    // Refresh failed — force logout
+    // logout if fail
     window.dispatchEvent(new CustomEvent('auth:logout'));
     throw new ApiError(401, 'Session expired');
   }
@@ -56,7 +53,7 @@ async function request<T>(
     throw new ApiError(response.status, body?.detail || body?.message || 'Request failed');
   }
 
-  // Some endpoints return 204 No Content
+  // handle empty response
   const text = await response.text();
   return text ? JSON.parse(text) : ({} as T);
 }
@@ -73,10 +70,7 @@ async function refreshToken(): Promise<boolean> {
   }
 }
 
-/**
- * SSE streaming helper — returns an async generator of parsed SSE events.
- * The backend sends `data: { "type": "chunk" | "done" | "error", ... }\n\n`
- */
+/** sse stream helper */
 export async function* streamSSE(endpoint: string, body: Record<string, unknown>): AsyncGenerator<{
   type: 'chunk' | 'done' | 'error';
   content?: string;
@@ -116,14 +110,14 @@ export async function* streamSSE(endpoint: string, body: Record<string, unknown>
         try {
           yield JSON.parse(line.slice(6));
         } catch {
-          // skip malformed lines
+          // skip bad chunks
         }
       }
     }
   }
 }
 
-// ────────────────────── Convenience methods ──────────────────────
+// helper api methods
 
 export const api = {
   get: <T>(endpoint: string) => request<T>(endpoint, { method: 'GET' }),

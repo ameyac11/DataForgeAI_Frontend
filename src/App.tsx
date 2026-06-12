@@ -11,8 +11,7 @@ import { ErrorToastContainer } from "@/components/ui/error-toast";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { useAuth } from "@/contexts/AuthContext";
 
-// Lazy-load all pages so each gets its own JS chunk and Suspense handles the
-// loading state automatically while navigating between routes.
+// lazy load all pages
 const Landing = lazy(() => import("./pages/Landing"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -31,8 +30,7 @@ const AnalyticsWorkspace = lazy(() => import("./pages/AnalyticsWorkspace"));
 
 const queryClient = new QueryClient();
 
-// Show the loading screen while auth state is being resolved on first load,
-// then keep it visible via Suspense during any lazy-route navigation.
+// show loading screen initially
 const AppWithLoading = () => {
   const { isLoading } = useAuth();
 
