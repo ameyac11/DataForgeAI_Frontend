@@ -41,8 +41,15 @@
 
 <br />
 
-The client app for **DataForgeAI** — generate datasets with AI, analyze data, and export reports.  
-Powered by the [Backend API](../backend/README.md).
+The client app for **DataForgeAI** — an AI-powered platform to generate synthetic datasets, analyze CSV data, and export branded PDF reports. This repo contains the React SPA; the [Backend API](https://github.com/ameyac11/DataForgeAI_Backend) handles auth, LLM orchestration, analytics, and storage.
+
+---
+
+## 🔗 Related Repository
+
+| Repo | Description |
+|:---|:---|
+| ⚙️ [**DataForgeAI Backend**](https://github.com/ameyac11/DataForgeAI_Backend) | FastAPI server — dataset generation, analytics engine, auth & storage |
 
 ---
 
@@ -72,14 +79,56 @@ Powered by the [Backend API](../backend/README.md).
 
 ---
 
+## 📋 Prerequisites
+
+- **Node.js** 18+ and npm
+- Running [DataForgeAI Backend](https://github.com/ameyac11/DataForgeAI_Backend) instance (local or deployed)
+
+---
+
 ## 🚀 Quick Start
 
 ```bash
+git clone https://github.com/ameyac11/DataForgeAI_Frontend.git
+cd DataForgeAI_Frontend
+
 npm install
+cp .env.example .env
 npm run dev
 ```
 
 🌐 App → [`http://localhost:8080`](http://localhost:8080)
+
+### Environment Variables
+
+| Variable | Description | Default |
+|:---|:---|:---|
+| `VITE_API_URL` | Backend API base URL | `http://localhost:8000/api/v1` |
+| `VITE_WEB3FORMS_KEY` | Optional — contact form submissions via [Web3Forms](https://web3forms.com/) | — |
+
+---
+
+## 📁 Project Structure
+
+```
+src/
+├── components/   # UI components (ShadCN, landing, analytics)
+├── pages/        # Route pages (Dashboard, DataNest, Analytics, Auth, …)
+├── services/     # API clients & data fetching
+├── hooks/        # Custom React hooks
+└── lib/          # Utilities & shared helpers
+```
+
+---
+
+## 📜 Scripts
+
+| Command | Description |
+|:---|:---|
+| `npm run dev` | Start dev server on port 8080 |
+| `npm run build` | Production build |
+| `npm run preview` | Preview production build locally |
+| `npm run lint` | Run ESLint |
 
 ---
 
