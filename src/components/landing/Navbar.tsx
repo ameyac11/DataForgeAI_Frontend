@@ -60,7 +60,7 @@ export function Navbar() {
             <Link to="/auth">Sign In</Link>
           </Button>
           <Button asChild size="sm" className="hidden md:inline-flex h-8 text-[13px] font-semibold rounded-lg bg-gradient-to-r from-purple-600 to-orange-500 hover:from-purple-700 hover:to-orange-600 text-white border-0 shadow-sm shadow-purple-500/10">
-            <Link to="/auth?mode=signup">Get Started</Link>
+            <Link to="/auth">Get Started</Link>
           </Button>
           <Button variant="ghost" size="icon" className="md:hidden h-8 w-8" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
             {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}

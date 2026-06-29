@@ -35,7 +35,7 @@ interface SettingsDialogProps {
 
 export function SettingsDialog({ open, onOpenChange, defaultSection = 'general' }: SettingsDialogProps) {
   const { theme, setTheme } = useTheme();
-  const { user, isAnonymous, signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<SettingsSection>(defaultSection);
   const [usage, setUsage] = useState<UsageData | null>(null);
@@ -196,46 +196,31 @@ export function SettingsDialog({ open, onOpenChange, defaultSection = 'general' 
                   <p className="text-sm text-muted-foreground">Manage your identity and subscription status.</p>
                 </div>
 
-                {isAnonymous ? (
-                  <div className="p-6 rounded-xl border border-dashed border-primary/30 bg-primary/5 space-y-4">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-primary">Guest Session</p>
-                      <p className="text-xs text-muted-foreground leading-relaxed">You are using a temporary account. Sign in to sync your work across devices and unlock advanced synthetic data models.</p>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between py-2">
+                    <div>
+                      <p className="text-sm font-medium">Email</p>
+                      <p className="text-xs text-muted-foreground">{user?.email}</p>
                     </div>
-                    <Button
-                      onClick={() => { onOpenChange(false); navigate('/auth'); }}
-                      className="w-full h-10 shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]"
-                    >
-                      Sign in to DataForgeAI
-                    </Button>
+                    <Button variant="outline" size="sm" className="h-8 text-xs">Change</Button>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between py-2">
-                      <div>
-                        <p className="text-sm font-medium">Email</p>
-                        <p className="text-xs text-muted-foreground">{user?.email}</p>
-                      </div>
-                      <Button variant="outline" size="sm" className="h-8 text-xs">Change</Button>
-                    </div>
 
-                    <div className="flex items-center justify-between py-2">
-                      <div>
-                        <p className="text-sm font-medium">Username</p>
-                        <p className="text-xs text-muted-foreground">{user?.username}</p>
-                      </div>
-                      <Button variant="outline" size="sm" className="h-8 text-xs">Edit</Button>
+                  <div className="flex items-center justify-between py-2">
+                    <div>
+                      <p className="text-sm font-medium">Username</p>
+                      <p className="text-xs text-muted-foreground">{user?.username}</p>
                     </div>
-
-                    <div className="flex items-center justify-between py-2">
-                      <div>
-                        <p className="text-sm font-medium">Password</p>
-                        <p className="text-xs text-muted-foreground">••••••••</p>
-                      </div>
-                      <Button variant="outline" size="sm" className="h-8 text-xs">Update</Button>
-                    </div>
+                    <Button variant="outline" size="sm" className="h-8 text-xs">Edit</Button>
                   </div>
-                )}
+
+                  <div className="flex items-center justify-between py-2">
+                    <div>
+                      <p className="text-sm font-medium">Password</p>
+                      <p className="text-xs text-muted-foreground">••••••••</p>
+                    </div>
+                    <Button variant="outline" size="sm" className="h-8 text-xs">Update</Button>
+                  </div>
+                </div>
               </div>
             )}
 

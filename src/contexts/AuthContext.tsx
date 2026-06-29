@@ -19,8 +19,6 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAnonymous: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, username: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -67,22 +65,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('auth:logout', handler);
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const res = await api.post<{ status: string; data: any }>(ENDPOINTS.LOGIN, { email, password });
-    if (res.status === 'error') {
-      throw new Error((res as any).message || 'Login failed');
-    }
-    setUser(mapUser(res.data));
-  };
-
-  const signup = async (email: string, password: string, username: string) => {
-    const res = await api.post<{ status: string; data: any }>(ENDPOINTS.SIGNUP, { email, password, username });
-    if (res.status === 'error') {
-      throw new Error((res as any).message || 'Signup failed');
-    }
-    setUser(mapUser(res.data));
-  };
-
   const signOut = async () => {
     try {
       await api.post(ENDPOINTS.LOGOUT);
@@ -99,8 +81,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: !!user,
         isAnonymous: user?.isAnonymous ?? false,
         isLoading,
-        login,
-        signup,
         signOut,
         refreshUser,
       }}

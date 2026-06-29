@@ -2,14 +2,13 @@ import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { useAuth } from '@/contexts/AuthContext';
-import { LoginPromptDialog } from '@/components/LoginPromptDialog';
 import { HelpMenu } from '@/components/HelpMenu';
 import { OnboardingFlow } from '@/components/OnboardingFlow';
 import { GuideTour } from '@/components/GuideTour';
 import { LoadingScreen } from '@/components/LoadingScreen';
 
 const Dashboard = () => {
-  const { isAuthenticated, isAnonymous, user } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showGuideTour, setShowGuideTour] = useState(false);
@@ -26,12 +25,12 @@ const Dashboard = () => {
 
   // Check if user needs onboarding (new authenticated user)
   useEffect(() => {
-    if (isAuthenticated && !isAnonymous && user) {
+    if (isAuthenticated && user) {
       if (!user.onboarding_completed) {
         setShowOnboarding(true);
       }
     }
-  }, [isAuthenticated, isAnonymous, user]);
+  }, [isAuthenticated, user]);
 
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
@@ -93,9 +92,6 @@ const Dashboard = () => {
         {/* Help Menu - Bottom right corner, only on chat page */}
         {location.pathname === '/app' && <HelpMenu />}
       </main>
-
-      {/* Login prompt for anonymous users - shown once per session */}
-      <LoginPromptDialog isAnonymous={isAnonymous} />
 
       {/* Onboarding flow for new users */}
       <OnboardingFlow

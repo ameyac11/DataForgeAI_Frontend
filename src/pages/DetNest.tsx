@@ -3,11 +3,10 @@ import {
   Plus, Bot, User, StopCircle, CornerDownLeft,
   Sparkles, Zap, FileJson, Table, Database,
   ChevronDown, Globe, ArrowUp, Brain, Search, Cog,
-  CheckCircle2, Copy, ThumbsUp, ThumbsDown, RotateCcw,
+  Copy, ThumbsUp, ThumbsDown, RotateCcw,
   Share, MoreHorizontal, Loader2, FileText, ImageIcon, X,
   Clock, Pin, FileType, Check, Cpu, LayoutGrid, Download,
-  FileDown, Server, Shuffle, PackageCheck, Lock, AlertTriangle,
-  ExternalLink
+  FileDown, Server, Shuffle, PackageCheck, Lock, AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -32,7 +31,6 @@ import { api } from '@/services/api';
 import { ENDPOINTS } from '@/services/endpoints';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { useNavigate } from 'react-router-dom';
 
 // --- Helpers ---
 function fileToBase64(file: File): Promise<string> {
@@ -48,14 +46,16 @@ function fileToBase64(file: File): Promise<string> {
 }
 
 // --- Config ---
+// Keep in sync with MODEL_CONFIG in backend/llm/model_config.py — only
+// `internal: false` entries belong here. The `gpt-oss-120b` model is
+// backend-internal and never shown to users.
 const models = [
-  { value: 'Compound', label: 'Compound', badge: 'Web', color: 'text-purple-500' },
-  { value: 'Compound Mini', label: 'Compound Mini', badge: 'Web', color: 'text-purple-500' },
-  { value: 'Llama 4 Scout', label: 'Llama 4 Scout', badge: 'Default', secondaryBadge: 'Vision', color: 'text-purple-500' },
-  { value: 'GPT OSS 120B', label: 'GPT OSS 120B', color: 'text-gray-500' },
-  { value: 'Kimi K2', label: 'Kimi K2', color: 'text-teal-500' },
-  { value: 'GPT-4o', label: 'GPT-4o', secondaryBadge: 'Vision', color: 'text-blue-500' },
-  { value: 'GPT-4o Mini', label: 'GPT-4o Mini', secondaryBadge: 'Vision', color: 'text-blue-500' },
+  { value: 'Qwen 32B', label: 'Qwen 3 32B', subtitle: 'Fast', color: 'text-emerald-500' },
+  { value: 'Llama 70B', label: 'Llama 3.3 70B', subtitle: 'Premium', color: 'text-blue-500' },
+  { value: 'Llama Scout', label: 'Llama 4 Scout', subtitle: 'Vision', badge: 'Vision', color: 'text-violet-500' },
+  { value: 'Compound Mini', label: 'Compound Mini', subtitle: 'Web Search', badge: 'Web', color: 'text-purple-500' },
+  { value: 'Compound', label: 'Compound', subtitle: 'Web Search+', badge: 'Web', color: 'text-purple-500' },
+  { value: 'Llama 8B', label: 'Llama 3.1 8B', subtitle: 'Instant', color: 'text-amber-500' },
 ];
 
 const dataFormats = [
@@ -151,21 +151,18 @@ interface DownloadModalProps {
 }
 
 function DownloadModal({ open, onClose, chatId, dataFormat, dataMode, modelId, chatTitle }: DownloadModalProps) {
-  const navigate = useNavigate();
   const [progress, setProgress] = useState(0);
   const [step, setStep] = useState(0);
   const [done, setDone] = useState(false);
   const [downloadData, setDownloadData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  const [saveStatus, setSaveStatus] = useState<string | null>(null);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [rowsGenerated, setRowsGenerated] = useState(0);
   const [columnsCount, setColumnsCount] = useState(0);
 
   const steps = DOWNLOAD_STEPS;
 
   useEffect(() => {
-    if (!open || !chatId) { setProgress(0); setStep(0); setDone(false); setError(null); setDownloadData(null); setSaveStatus(null); setSaveMessage(null); setRowsGenerated(0); setColumnsCount(0); return; }
+    if (!open || !chatId) { setProgress(0); setStep(0); setDone(false); setError(null); setDownloadData(null); setRowsGenerated(0); setColumnsCount(0); return; }
 
     let cancelled = false;
 
@@ -198,8 +195,6 @@ function DownloadModal({ open, onClose, chatId, dataFormat, dataMode, modelId, c
         rawData = rawData.data;
       }
       setDownloadData(rawData);
-      setSaveStatus((res as any).save_status || null);
-      setSaveMessage((res as any).save_message || null);
       setRowsGenerated((res as any).rows_generated || 0);
       // Compute columns count from data
       try {
@@ -342,26 +337,6 @@ function DownloadModal({ open, onClose, chatId, dataFormat, dataMode, modelId, c
           </div>
           {done && (
             <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              {/* Save Status Message */}
-              {saveStatus === 'saved' && (
-                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400">
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span className="text-xs font-medium">{saveMessage || 'Dataset saved to My Datasets.'}</span>
-                </div>
-              )}
-              {saveStatus === 'size_exceeded' && (
-                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400">
-                  <AlertTriangle className="w-4 h-4 shrink-0" />
-                  <span className="text-xs font-medium">{saveMessage || 'Dataset exceeds 2MB limit.'}</span>
-                </div>
-              )}
-              {saveStatus === 'limit_exceeded' && (
-                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
-                  <AlertTriangle className="w-4 h-4 shrink-0" />
-                  <span className="text-xs font-medium">{saveMessage || 'Dataset storage is full (10/10).'}</span>
-                </div>
-              )}
-
               {/* Download Button */}
               <button
                 onClick={handleDownload}
@@ -370,17 +345,6 @@ function DownloadModal({ open, onClose, chatId, dataFormat, dataMode, modelId, c
                 <Download className="w-4 h-4" />
                 Download {dataFormat} File
               </button>
-
-              {/* Go to My Datasets (only if saved) */}
-              {saveStatus === 'saved' && (
-                <button
-                  onClick={() => { onClose(); navigate('/app/datasets'); }}
-                  className="w-full flex items-center justify-center gap-2 h-9 rounded-xl border border-border/50 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  Go to My Datasets
-                </button>
-              )}
             </div>
           )}
           {error && (
@@ -407,18 +371,19 @@ export default function DetNest() {
   const currentModel = models.find(m => m.value === model) ?? models[0];
   const isCompoundModel = model === 'Compound' || model === 'Compound Mini';
 
+  // Map display names -> backend model IDs. Keep in sync with MODEL_MAP in
+  // ChatContext.tsx (which is the source of truth).
   const modelIdMap: Record<string, string> = {
-    'Compound': 'compound',
+    'Qwen 32B': 'qwen-32b',
+    'Llama 70B': 'llama-70b',
+    'Llama Scout': 'llama-scout-4',
     'Compound Mini': 'compound-mini',
-    'Llama 4 Scout': 'llama-scout-4',
-    'GPT OSS 120B': 'gpt-oss-120b',
-    'GPT-4o': 'gpt-4o',
-    'GPT-4o Mini': 'gpt-4o-mini',
-    'Kimi K2': 'kimi-k2',
+    'Compound': 'compound',
+    'Llama 8B': 'llama-8b-instant',
   };
 
-  // Check if current model supports vision
-  const isVisionModel = currentModel?.secondaryBadge === 'Vision';
+  // Check if current model supports vision (Llama 4 Scout only)
+  const isVisionModel = currentModel?.badge === 'Vision';
   const currentFormat = dataFormats.find(f => f.value === dataFormat) ?? dataFormats[0];
   const currentMode = dataModes.find(m => m.value === dataMode) ?? dataModes[0];
 
@@ -691,16 +656,11 @@ export default function DetNest() {
                       <span className={cn(
                         "p-1 rounded-full flex items-center justify-center",
                         m.badge === 'Web' ? "bg-green-500/10 text-green-600 dark:text-green-400" :
-                          m.badge === 'Default' ? "bg-purple-500/10 text-purple-600 dark:text-purple-400" :
+                          m.badge === 'Vision' ? "bg-blue-500/10 text-blue-600 dark:text-blue-400" :
                             "bg-muted text-muted-foreground"
                       )}>
                         {m.badge === 'Web' && <Globe className="w-3 h-3" />}
-                        {m.badge === 'Default' && <Sparkles className="w-3 h-3" />}
-                      </span>
-                    )}
-                    {m.secondaryBadge && (
-                      <span className="p-1 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center">
-                        <ImageIcon className="w-3 h-3" />
+                        {m.badge === 'Vision' && <ImageIcon className="w-3 h-3" />}
                       </span>
                     )}
                   </div>

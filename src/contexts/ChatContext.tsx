@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 // Types
 export type DataFormat = 'CSV' | 'JSON' | 'SQL' | 'Parquet';
 export type DataMode = 'Synthetic' | 'Realistic' | 'Hybrid';
-export type Model = 'Compound' | 'Compound Mini' | 'Llama 4 Scout' | 'GPT OSS 120B' | 'GPT-4o' | 'GPT-4o Mini' | 'Kimi K2';
+export type Model = 'Qwen 32B' | 'Llama 70B' | 'Llama Scout' | 'Compound Mini' | 'Compound' | 'Llama 8B';
 export type LoadingPhase = 'thinking' | 'analyzing' | 'generating' | null;
 
 export interface Attachment {
@@ -66,15 +66,17 @@ interface ChatContextType {
     loadHistory: () => Promise<void>;
 }
 
-// Map model display names to backend model IDs
+// Map model display names to backend model IDs.
+// Keep in sync with MODEL_CONFIG in backend/llm/model_config.py — only
+// `internal: false` entries belong here. The `gpt-oss-120b` model is
+// backend-internal and never shown to users.
 const MODEL_MAP: Record<Model, string> = {
-    'Compound': 'compound',
+    'Qwen 32B': 'qwen-32b',
+    'Llama 70B': 'llama-70b',
+    'Llama Scout': 'llama-scout-4',
     'Compound Mini': 'compound-mini',
-    'Llama 4 Scout': 'llama-scout-4',
-    'GPT OSS 120B': 'gpt-oss-120b',
-    'GPT-4o': 'gpt-4o',
-    'GPT-4o Mini': 'gpt-4o-mini',
-    'Kimi K2': 'kimi-k2',
+    'Compound': 'compound',
+    'Llama 8B': 'llama-8b-instant',
 };
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -86,7 +88,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     const [currentChatId, setCurrentChatId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [loadingPhase, setLoadingPhase] = useState<LoadingPhase>(null);
-    const [model, setModel] = useState<Model>('Llama 4 Scout');
+    const [model, setModel] = useState<Model>('Qwen 32B');
     const [dataFormat, setDataFormat] = useState<DataFormat>('JSON');
     const [dataMode, setDataMode] = useState<DataMode>('Synthetic');
     const [abortController, setAbortController] = useState<AbortController | null>(null);
@@ -226,7 +228,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
         try {
             // 2. Stream response from backend
-            const modelId = MODEL_MAP[model] || 'llama-scout-4';
+            const modelId = MODEL_MAP[model] || 'qwen-32b';
             let fullContent = '';
             let chatId = currentChatId;
             let showDownload = false;

@@ -10,13 +10,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useAuth } from '@/contexts/AuthContext';
 import { useChat } from '@/contexts/ChatContext';
 import { cn } from '@/lib/utils';
 
 const HistoryPage = () => {
   const navigate = useNavigate();
-  const { isAnonymous } = useAuth();
   const { chats, deleteChat, renameChat, pinChat, selectChat } = useChat();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'pinned'>('all');

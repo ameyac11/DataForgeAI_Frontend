@@ -1,0 +1,2 @@
+# Cloudflare Pages SPA fallback — every unknown route serves index.html
+/*    /index.html   200

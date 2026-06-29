@@ -20,7 +20,6 @@ const CustomGenerator = lazy(() => import("./pages/CustomGenerator"));
 const SampleDatasets = lazy(() => import("./pages/SampleDatasets"));
 const HistoryPage = lazy(() => import("./pages/History"));
 const SettingsPage = lazy(() => import("./pages/Settings"));
-const MyDatasets = lazy(() => import("./pages/MyDatasets"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const GettingStarted = lazy(() => import("./pages/GettingStarted"));
@@ -50,7 +49,6 @@ const AppWithLoading = () => {
               <Route index element={<DetNest />} />
               <Route path="generator" element={<CustomGenerator />} />
               <Route path="samples" element={<SampleDatasets />} />
-              <Route path="datasets" element={<MyDatasets />} />
               <Route path="history" element={<HistoryPage />} />
               <Route path="analytics" element={<AnalyticsWorkspace />} />
               <Route path="settings" element={<SettingsPage />} />

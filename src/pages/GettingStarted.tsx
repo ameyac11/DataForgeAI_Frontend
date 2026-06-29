@@ -2,13 +2,11 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, MessageSquare, Settings2, FolderOpen, Download, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeLogo } from '@/components/ThemeLogo';
-import { Database } from 'lucide-react';
 
 const features = [
   { icon: MessageSquare, title: 'AI Chat', description: 'Describe your dataset in natural language. The AI understands context, relationships, and patterns.', accent: 'from-purple-500/10 to-purple-500/5' },
   { icon: Settings2, title: 'Custom Generator', description: 'Build datasets visually with 50+ data types and full control over every column.', accent: 'from-orange-500/10 to-orange-500/5' },
   { icon: FolderOpen, title: 'Sample Library', description: 'Pre-built datasets for e-commerce, healthcare, finance, and more.', accent: 'from-blue-500/10 to-blue-500/5' },
-  { icon: Database, title: 'My Datasets', description: 'Manage, search, and download all your previously generated datasets in one place.', accent: 'from-rose-500/10 to-rose-500/5' },
   { icon: Download, title: 'Multiple Formats', description: 'Export in CSV, JSON, SQL, or Parquet.', accent: 'from-emerald-500/10 to-emerald-500/5' },
 ];
 

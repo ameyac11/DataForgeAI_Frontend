@@ -1,7 +1,5 @@
 export const ENDPOINTS = {
     // Auth
-    LOGIN: '/auth/login',
-    SIGNUP: '/auth/signup',
     LOGOUT: '/auth/logout',
     REFRESH: '/auth/refresh',
     ME: '/auth/me',
@@ -25,11 +23,6 @@ export const ENDPOINTS = {
     GENERATE_PREVIEW: '/generate/preview',
     GENERATE_DOWNLOAD: '/generate/download',
     GENERATE_COLUMNS: '/generate/columns',
-
-    // Datasets
-    DATASETS_LIST: '/datasets',
-    DATASETS_DELETE: (id: string) => `/datasets/${id}`,
-    DATASETS_DOWNLOAD: (id: string) => `/datasets/${id}/download`,
 
     // Analytics
     ANALYTICS_UPLOAD: '/analytics/upload',
